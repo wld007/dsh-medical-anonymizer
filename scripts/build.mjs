@@ -26,6 +26,7 @@ for (const file of [
   'NOTICE',
   'LICENSE',
   'README.md',
+  'README.en.md',
 ]) {
   await cp(join(root, file), join(target, file))
 }

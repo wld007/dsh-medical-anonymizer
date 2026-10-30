@@ -48,7 +48,8 @@
     "assets/icon-180.png",
     "NOTICE",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "README.en.md"
   ],
   "scripts": {
     "test": "node test/hints.mjs && node test/policy.mjs && node test/run.mjs",

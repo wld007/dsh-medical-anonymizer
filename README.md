@@ -1,245 +1,208 @@
 # dsh-medical-anonymizer
 
-A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (Cordis)
-plugin for batch de-identification of medical records and tables. It finds
-direct identifiers, replaces them with stable pseudonyms, keeps the file
-structure intact, and writes an audit report plus a re-identification vault.
+**简体中文** | [English](README.en.md)
 
-> This is a data-processing tool, not a compliance certification. Review the
-> applicable law and your institution's policy before publishing any output.
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（Cordis）插件，
+用于批量匿名化病历文本和表格。它发现直接标识符，用稳定假名替换，保持文件结构不变，
+并输出审计报告和可还原的映射库。
 
-## Why this one
+> 这是数据处理工具，不是合规认证。发布任何输出之前，请对照适用法律和本机构的政策进行审查。
 
-- **Structure is preserved by construction.** The model only annotates text;
-  the plugin locates exact spans and replaces only those spans. Line counts,
-  CSV columns, JSON keys, and non-text Excel cells do not move.
-- **Deterministic first, model optional.** Chinese ID checksums, phone/email
-  patterns, labeled fields, and column/key policies run without a model. A
-  model pass adds recall on free text and re-checks the result.
-- **Bounded repair loop.** Findings from the check round go back to discovery,
-  with a round limit. Unresolved items are marked for manual review instead of
-  being silently accepted.
-- **Local-first.** No telemetry. The plugin only contacts the OpenAI-compatible
-  endpoint you configure; point it at a local runtime to keep data on the box.
-- **Auditable output.** Per-file entity counts, structure checks, residual
-  issues, a manual-review list, and a vault that is the only place holding
-  original values. The report does not print identifier values.
+## 特点
 
-## Features
+- **结构天然保持。** 模型只负责标注文本；插件定位精确片段，只替换这些片段。
+  行数、CSV 列、JSON 键和 Excel 非文本单元格都不会变动。
+- **规则优先，模型可选。** 身份证校验位、电话/邮箱模式、带标签字段、列名/键名策略
+  无需模型即可运行。模型轮次用于提高自由文本的召回率，并复核结果。
+- **有界修复循环。** 复核轮次的发现会回到发现阶段，受轮次上限约束。未解决的条目
+  标记为人工复核，而不是被静默接受。
+- **本地优先。** 无遥测。插件只访问你配置的 OpenAI 兼容端点；指向本机运行时，
+  数据就不会离开本机。
+- **输出可审计。** 每个文件的实体统计、结构校验、残留问题、人工复核清单，以及唯一
+  保存原值的映射库。报告不打印标识符原值。
 
-| Area | What it does |
+## 功能
+
+| 方面 | 说明 |
 | --- | --- |
-| Formats | `.txt`, `.md`, `.csv`, `.json`, `.xlsx` |
-| Direct identifiers | name, doctor/staff name, Chinese ID, phone, email, address, medical-record number, admission number, visit number, social-security number, bank card, hospital name |
-| Column/key policy | headers such as `姓名`, `身份证号`, `电话`, `住址`, and keys such as `PTT_NM`, `ID_CRD_NO`, `CTCT_TEL_NO`, `CURR_ADDR*`, `*_DCT_NM`, `MDC_ORG_NM`, `PID`, `INHOS_NO` are pseudonymized wholesale; record keys such as `PRM_KEY`/`RCD_NO` are masked as record identifiers |
-| Pseudonyms | stable per value and type, e.g. `化名-9F3A2C`, `证件-1F0B67`; the same value gets the same token across files and batches sharing an output root |
-| Configurable rules | per identifier type: stable pseudonym (default), partial mask, type label, or keep; optional quasi-identifiers (date, age, sex, postal code): shift, generalize, or label — see [Anonymization rules](#anonymization-rules) |
-| Verification | model re-check, rule re-scan, original-value absence, structure diff |
-| Modes | dry run (detect and verify only; writes no data and no vault), real run, cancel |
-| Report | Markdown + JSON, per file and batch, with a manual-review list |
+| 格式 | `.txt`、`.md`、`.csv`、`.json`、`.xlsx` |
+| 直接标识符 | 姓名、医生/职工姓名、身份证号、电话、邮箱、地址、病历号、住院号、就诊号、社保号、银行卡号、医院名称 |
+| 列名/键名策略 | `姓名`、`身份证号`、`电话`、`住址` 等表头，以及 `PTT_NM`、`ID_CRD_NO`、`CTCT_TEL_NO`、`CURR_ADDR*`、`*_DCT_NM`、`MDC_ORG_NM`、`PID`、`INHOS_NO` 等键整体替换为假名；`PRM_KEY`/`RCD_NO` 等记录键按记录标识符遮盖 |
+| 假名 | 按值和类型稳定生成，如 `化名-9F3A2C`、`证件-1F0B67`；共用同一输出根的文件和批次中，同一个值得到同一个假名 |
+| 可配置规则 | 按标识符类型选择：稳定假名（默认）、部分遮盖、类型标签或保留；可选处理准标识符（日期、年龄、性别、邮编）：平移、泛化或标签——见[匿名化规则](#匿名化规则) |
+| 校验 | 模型复核、规则复扫、原值残留检查、结构比对 |
+| 模式 | 演练（只检测与校验，不写数据和映射库）、正式运行、取消 |
+| 报告 | Markdown + JSON，按文件和批次汇总，附人工复核清单 |
 
-## Install
+## 安装
 
-Requires DSH `>= 0.2.1` (tested on `0.2.1-rc.5`) and Node.js `>= 20`.
+要求 DSH `>= 0.2.1`（在 `0.2.1-rc.5` 上测试）和 Node.js `>= 20`。
 
 ```bash
 dsh plugin --profile <profile> add github:wld007/dsh-medical-anonymizer
-# or, after an npm release:
+# 或在发布到 npm 之后：
 dsh plugin --profile <profile> add dsh-medical-anonymizer
 ```
 
-Restart DSH after installing: the plugin layer is composed at startup.
+安装后重启 DSH：插件层在启动时组装。
 
-The settings page appears at **Settings → Medical Data Anonymization**. The
-`/anonymize` command and the agent tools are available as soon as the host half
-is active.
+设置页位于 **设置 → 医疗数据匿名化**。主机端激活后即可使用 `/anonymize` 命令和
+Agent 工具。
 
-## Model setup
+## 模型配置
 
-The plugin never calls a built-in cloud model. It only uses the
-OpenAI-compatible endpoint you configure.
+插件从不调用内置的云端模型，只使用你配置的 OpenAI 兼容端点。
 
-| Runtime | Base URL | Notes |
+| 运行时 | Base URL | 说明 |
 | --- | --- | --- |
-| Ollama | `http://127.0.0.1:11434/v1` | Recommended for local use |
-| LM Studio | `http://127.0.0.1:1234/v1` | Enable the local server |
-| vLLM / llama.cpp | your `/v1` endpoint | Any OpenAI-compatible chat server |
+| Ollama | `http://127.0.0.1:11434/v1` | 推荐本地使用 |
+| LM Studio | `http://127.0.0.1:1234/v1` | 需开启本地服务器 |
+| vLLM / llama.cpp | 你的 `/v1` 端点 | 任意 OpenAI 兼容的 chat 服务 |
 
-Leave the model name empty to run the deterministic rule layer only. With a
-model configured, the plugin sends each batch of text to that endpoint for
-discovery and verification; if the endpoint is remote, the text leaves this
-machine. Use a local or institution-controlled endpoint for patient data.
+模型名称留空则只运行确定性的规则层。配置模型后，插件会把每批文本发送到该端点进行
+发现和复核；如果端点在远程，文本就会离开本机。处理患者数据请使用本机或机构可控的端点。
 
-Reasoning models (Qwen3 and similar) can spend the whole token budget on hidden
-reasoning. **Disable thinking** is on by default; leave it checked, or pass
-`--no-think` to `/anonymize`. Uncheck it (or pass `--think`) only if your model
-needs reasoning. Servers that reject the optional request fields are retried
-once without them.
+推理模型（Qwen3 等）可能把全部 token 预算花在隐藏推理上。**关闭思考模式**默认开启；
+保持勾选，或给 `/anonymize` 加 `--no-think`。只有模型确实需要推理时才取消勾选
+（或传 `--think`）。不接受这些可选请求字段的服务器会自动去掉字段重试一次。
 
-## Usage
+## 使用
 
-### Settings → Medical Data Anonymization (configuration)
+### 设置 → 医疗数据匿名化（配置）
 
-Configuration only, with a collapsible **How it works** guide at the top:
+只放配置，分为 **模型连接**、**匿名化规则**、**批次与界面**、**使用说明** 几个标签页：
 
-- **Local model**: endpoint, model, API key, disable thinking, **Test
-  connection** (flags a model name the endpoint does not serve).
-- **Batch defaults**: output root, max rounds, start in dry-run mode.
-- **Anonymization rules**: treatment per identifier type, the quasi-identifier
-  switch, and treatment per quasi-identifier type, each with a live example.
-- **Interface**: show or hide the **Medical Anonymization** entry in the left
-  sidebar. When hidden, `/anonymize` and the agent tools still work.
-- The save bar lists unsaved fields; **Save** writes them into the profile's own
-  config layer, so they survive restarts and plugin updates. The API key is
-  saved only when you type or clear it, is never shown again, and lives in the
-  profile config file (mode 600). Saving is refused while a batch is running,
-  because it re-applies the plugin.
+- **本地模型**：端点、模型、API Key、关闭思考模式、**测试连接**（端点上没有该模型名时会提示）。
+- **批次默认值**：输出根目录、最大轮次、默认使用演练模式。
+- **匿名化规则**：每类标识符的处理方式、准标识符开关、每类准标识符的处理方式，均附实时示例。
+- **界面**：在左侧栏显示或隐藏 **医疗数据匿名化** 入口。隐藏后 `/anonymize` 和 Agent 工具仍可使用。
+- 保存栏列出未保存的字段；**保存** 会写入该 profile 自己的配置层，重启和插件更新后依然保留。
+  API Key 只在你输入或清除时保存，之后不再显示，存放在 profile 配置文件中（权限 600）。
+  批次运行期间不允许保存，因为保存会重新加载插件。
 
-### Left sidebar → Medical Anonymization (running batches)
+### 左侧栏 → 医疗数据匿名化（运行批次）
 
-1. Choose the input directory; optionally override the output root.
-2. Keep **Dry run** checked for the first pass and start the batch. Model,
-   endpoint, and rounds come from the saved settings.
-3. Click a batch to see per-file results and the report, copy the output path,
-   or cancel a running batch.
+1. 选择输入目录；可选覆盖输出根目录。
+2. 首次运行保持勾选 **演练模式**，然后启动批次。模型、端点和轮次取自已保存的设置。
+3. 点击批次查看文件明细和报告、复制输出路径，或取消正在运行的批次。
 
-### `/anonymize` command
+### `/anonymize` 命令
 
 ```text
 /anonymize /path/to/records --model qwen2.5:14b --endpoint http://127.0.0.1:11434/v1
 ```
 
-Defaults to dry run. Add `--apply` to write anonymized files.
+默认为演练模式。加 `--apply` 才写出匿名化文件。
 
-Options: `--rounds N`, `--output DIR`, `--no-think`, `--apply`.
+选项：`--rounds N`、`--output DIR`、`--no-think`、`--apply`。
 
-### Agent tools
+### Agent 工具
 
-| Tool | Purpose |
+| 工具 | 用途 |
 | --- | --- |
-| `anonymize_start` | Start a batch and return its `runId` |
-| `anonymize_cancel` | Cancel the running batch; written files stay |
-| `anonymize_status` | Progress, entity counts, unresolved issues |
-| `anonymize_report` | Read the Markdown report |
-| `anonymize_runs` | List recent batches |
+| `anonymize_start` | 启动批次并返回 `runId` |
+| `anonymize_cancel` | 取消正在运行的批次；已写出的文件保留 |
+| `anonymize_status` | 进度、实体统计、未解决问题 |
+| `anonymize_report` | 读取 Markdown 报告 |
+| `anonymize_runs` | 列出最近的批次 |
 
-`anonymize_start` parameters: `inputDir`, `outputRoot`, `dryRun`, `maxRounds`.
+`anonymize_start` 参数：`inputDir`、`outputRoot`、`dryRun`、`maxRounds`。
 
-The agent tools cannot choose the model endpoint, model, API key, or thinking
-mode: those always come from the user's saved settings, so an agent cannot
-redirect patient text to another service. The tool description names the
-plugin and this data boundary, which helps the agent pick it over similarly
-named tools. Only the human-typed `/anonymize` command accepts `--endpoint` and
-`--model` overrides.
+Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些始终取自用户已保存的设置，
+因此 Agent 无法把患者文本转发到其他服务。工具描述中写明了插件名和这一数据边界，
+有助于 Agent 在名称相近的工具中选中它。只有人工输入的 `/anonymize` 命令接受
+`--endpoint` 和 `--model` 覆盖。
 
-## How it works
+## 工作原理
 
-1. **Rule pre-scan.** Chinese ID (checksum-validated), mobile/landline, email,
-   bank card (Luhn), MRN/admission/visit numbers, labeled names/addresses/
-   hospitals/doctors.
-2. **Column and key policy.** Dedicated fields are pseudonymized as a whole,
-   including common hospital-export keys such as `PTT_NM`, `ID_CRD_NO`,
-   `CTCT_TEL_NO`, `*_ADDR*`, `*_DCT_NM`, `*_STFF_NM`, `MDC_ORG_NM`, `PID`, and
-   `INHOS_NO`.
-3. **Optional model discovery.** Batches of text are sent to the configured
-   endpoint. The model returns `{segment, type, text}`; the plugin locates the
-   exact text in the source. Model coordinates are never trusted.
-4. **Pseudonymization.** `HMAC-SHA256(salt, type + value)` produces a stable
-   token per value and type. Only the matched span changes.
-5. **Verification.** Model re-check, rule re-scan, original-value absence, and a
-   structure diff (line count, CSV shape/header, JSON key/type shape, Excel
-   non-text cells).
-6. **Bounded repair.** Errors go back to discovery for another round, up to
-   `maxRounds`. If no progress is made, the file is marked `review` and listed
-   for manual review.
+1. **规则预扫描。** 身份证号（校验位验证）、手机/座机、邮箱、银行卡（Luhn）、
+   病历号/住院号/就诊号，以及带标签的姓名/地址/医院/医生。
+2. **列名与键名策略。** 专用字段整体替换为假名，包括常见医院导出键，如 `PTT_NM`、
+   `ID_CRD_NO`、`CTCT_TEL_NO`、`*_ADDR*`、`*_DCT_NM`、`*_STFF_NM`、`MDC_ORG_NM`、
+   `PID`、`INHOS_NO`。
+3. **可选的模型发现。** 文本分批发送到配置的端点。模型返回 `{segment, type, text}`；
+   插件在原文中定位精确文本。从不信任模型给出的坐标。
+4. **假名化。** `HMAC-SHA256(salt, type + value)` 为每个值和类型生成稳定标记。
+   只改动匹配到的片段。
+5. **校验。** 模型复核、规则复扫、原值残留检查，以及结构比对（行数、CSV 形状/表头、
+   JSON 键/类型结构、Excel 非文本单元格）。
+6. **有界修复。** 错误回到发现阶段再跑一轮，最多 `maxRounds` 轮。如果没有进展，
+   该文件标记为 `review` 并列入人工复核清单。
 
-## Anonymization rules
+## 匿名化规则
 
-Defaults reproduce the behaviour of earlier versions: every identifier becomes a
-stable pseudonym, and quasi-identifiers are left untouched.
+默认行为与早期版本一致：所有标识符替换为稳定假名，准标识符不处理。
 
-| Identifier strategy | Example (`张三`, `13800138000`) | Reversible |
+| 标识符策略 | 示例（`张三`、`13800138000`） | 可还原 |
 | --- | --- | --- |
-| `pseudonym` (default) | `化名-9F3A2C`, `电话-7A8ED8` | yes, through the vault |
-| `mask` | `张*`, `138****8000` | no; part of the value remains |
-| `redact` | `[姓名]`, `[电话]` | no |
-| `keep` | unchanged | — |
+| `pseudonym`（默认，稳定假名） | `化名-9F3A2C`、`电话-7A8ED8` | 是，通过映射库 |
+| `mask`（部分遮盖） | `张*`、`138****8000` | 否；保留部分原值 |
+| `redact`（类型标签） | `[姓名]`、`[电话]` | 否 |
+| `keep`（保留） | 不变 | — |
 
-Masks: names keep the first character; ID keeps the first 3 and last 4
-characters; phone the first 3 and last 4 digits; bank card and record numbers
-the last 4; email the first letter and domain; address the province/city/district
-prefix; hospital the first 2 characters and the suffix.
+遮盖规则：姓名保留首字；身份证号保留前 3 位和后 4 位；电话保留前 3 位和后 4 位；
+银行卡和各类编号保留后 4 位；邮箱保留首字母和域名；地址保留省/市/区前缀；
+医院保留前 2 个字和后缀。
 
-Quasi-identifiers are processed only when **quasiIdentifiers** is on. They are
-handled deterministically after identifiers, without the model:
+只有开启 **quasiIdentifiers** 时才处理准标识符。它们在标识符之后以确定性方式处理，
+不使用模型：
 
-| Type | Strategies (default first when enabled) | Example |
+| 类型 | 策略（开启后第一个为默认） | 示例 |
 | --- | --- | --- |
-| Date | `shift`, `month`, `year`, `redact`, `keep` | `2024-03-01` → `2024-04-07` / `2024-03` / `2024` |
-| Age | `band10`, `band5`, `redact`, `keep` | `45岁` → `40-49岁` / `45-49岁`; 90 and over → `90岁及以上` |
-| Sex | `keep`, `redact` | `男` → `[性别]` |
-| Postal code | `prefix3`, `redact`, `keep` | `100020` → `100***` |
+| 日期 | `shift`、`month`、`year`、`redact`、`keep` | `2024-03-01` → `2024-04-07` / `2024-03` / `2024` |
+| 年龄 | `band10`、`band5`、`redact`、`keep` | `45岁` → `40-49岁` / `45-49岁`；90 岁及以上 → `90岁及以上` |
+| 性别 | `keep`、`redact` | `男` → `[性别]` |
+| 邮编 | `prefix3`、`redact`、`keep` | `100020` → `100***` |
 
-- Detection covers prose (`2024-03-01`, `2024年3月1日`, `45岁`, `年龄：45`,
-  `性别：男`, `邮编：100020`) and fields named like `BTH_DT`, `*_DT`, `出生日期`,
-  `AGE`, `GDR_NM`, `SEX`, `ZIP`, `邮编`; compact `YYYYMMDD` only in date fields.
-- Date shifting uses one offset (±1–365 days) per output root, derived from the
-  vault salt, so intervals between dates and across batches are preserved. The
-  offset never appears in reports. Do not re-run shifting on its own output.
-- Only text values change: Excel numeric/date cells and JSON numbers are left
-  as-is, and the report says so.
+- 检测范围包括正文（`2024-03-01`、`2024年3月1日`、`45岁`、`年龄：45`、`性别：男`、
+  `邮编：100020`）以及 `BTH_DT`、`*_DT`、`出生日期`、`AGE`、`GDR_NM`、`SEX`、`ZIP`、
+  `邮编` 等字段；紧凑的 `YYYYMMDD` 格式只在日期字段中识别。
+- 日期平移在每个输出根下使用同一个偏移量（±1–365 天），由映射库的盐值派生，
+  因此日期之间以及跨批次的间隔保持不变。偏移量不会出现在报告中。不要对平移后的
+  输出再次平移。
+- 只修改文本值：Excel 数值/日期单元格和 JSON 数字保持原样，报告中会说明这一点。
 
-## Output
+## 输出
 
 ```text
 <outputRoot>/
-  vault.json                 # original <-> pseudonym, mode 0600
-  index.json                 # recent batches
+  vault.json                 # 原值 <-> 假名，权限 0600
+  index.json                 # 最近的批次
   runs/<runId>/
-    output/...               # anonymized copy, same relative layout
+    output/...               # 匿名化副本，相对目录结构不变
     report.md
     report.json
 ```
 
-`vault.json` is the re-identification key. Keep it separate from the output and
-protect it accordingly. The report deliberately contains no original values.
-Set `vaultPassphrase` in the plugin config to encrypt the vault with
-AES-256-GCM; without it the vault is plaintext JSON with mode 0600.
+`vault.json` 是还原身份的钥匙。请与输出分开存放并妥善保护。报告刻意不包含任何原值。
+在插件配置中设置 `vaultPassphrase` 可用 AES-256-GCM 加密映射库；不设置时映射库为
+权限 0600 的明文 JSON。
 
-Without an explicit or configured `outputRoot`, output goes to a hidden
-`.medical-anonymizer` directory **beside** the input directory, so sibling
-batches (for example one folder per patient) share one vault and keep
-consistent pseudonyms. The output root may not equal the input directory. If
-you place it inside the input directory, it is excluded from scanning, so the
-vault and earlier outputs are never read back in as records.
+未显式指定也未配置 `outputRoot` 时，输出写到输入目录**旁边**的隐藏目录
+`.medical-anonymizer`，因此相邻的批次（例如每位患者一个文件夹）共享同一个映射库，
+假名保持一致。输出根不能与输入目录相同。如果放在输入目录内部，它会被排除在扫描之外，
+映射库和之前的输出不会被当作病历重新读入。
 
-Dry runs read an existing vault for stable tokens but never write a new one.
-Files with unsupported extensions, and files beyond `maxFiles`, are listed in
-the report's **注意** section; a batch cut short by `maxFiles` is marked
-`review`.
+演练模式会读取已有映射库以保持标记稳定，但从不写入新的映射库。扩展名不受支持的文件，
+以及超出 `maxFiles` 的文件，会列在报告的 **注意** 部分；因 `maxFiles` 被截断的批次
+标记为 `review`。
 
-## Privacy and security
+## 隐私与安全
 
-- No telemetry, analytics, or hidden network calls. The only outbound request is
-  to the configured chat endpoint (plus `/models` when you press Test).
-- The model sees the text it is asked to check. For patient data, use a local
-  runtime or an endpoint inside your trust boundary. Plain HTTP on a shared
-  network is not a safe transport.
-- The report omits identifier values but includes the input/output paths; treat
-  both the report and the vault as PHI.
-- The plugin never rewrites input files; output goes to the root you choose.
-- File and directory names are copied as-is. Rename files whose names contain
-  identifiers before publishing the output.
-- Not a compliance certification. Unless quasi-identifier processing is on,
-  dates, age, sex, institution, and rare diagnosis combinations can still
-  re-identify; the report states which quasi-identifiers were handled.
-- `mask` keeps part of the original and is irreversible; `keep` leaves an
-  identifier in the output. Both are listed in the report's warnings.
+- 无遥测、无统计、无隐藏的网络请求。唯一的出站请求是发往配置的 chat 端点
+  （以及点击测试时的 `/models`）。
+- 模型能看到它被要求检查的文本。处理患者数据请使用本机运行时或位于信任边界内的端点。
+  共享网络上的明文 HTTP 不是安全的传输方式。
+- 报告不含标识符原值，但包含输入/输出路径；报告和映射库都应按受保护健康信息（PHI）对待。
+- 插件从不改写输入文件；输出写到你选择的输出根。
+- 文件名和目录名原样复制。发布输出前，请重命名文件名中含有标识符的文件。
+- 这不是合规认证。除非开启准标识符处理，日期、年龄、性别、机构和罕见诊断的组合
+  仍可能重新识别个人；报告会说明处理了哪些准标识符。
+- `mask` 保留部分原值且不可还原；`keep` 会把标识符留在输出中。两者都会在报告的警告中列出。
 
-## Configuration
+## 配置
 
-Defaults live in `cordis.patch.yml` and can be overridden in the profile patch
-layer:
+默认值位于 `cordis.patch.yml`，可在 profile 的 patch 层覆盖：
 
 ```yaml
 - id: medical-anonymizer
@@ -255,73 +218,45 @@ layer:
     disableThinking: true
     dryRun: true
     vaultPassphrase: ''
-    identifierPolicy: { name: pseudonym, phone: mask, hospital: keep }  # unlisted types: pseudonym
+    identifierPolicy: { name: pseudonym, phone: mask, hospital: keep }  # 未列出的类型：pseudonym
     quasiIdentifiers: false
     quasiPolicy: { date: shift, age: band10, sex: keep, postalCode: prefix3 }
 ```
 
-- `maxFiles` caps a batch; `maxLlmCalls` caps model calls per batch.
-- `timeoutMs` is the per-call model timeout.
-- `outputRoot` empty means `<parent of input>/.medical-anonymizer`.
+- `maxFiles` 限制单批文件数；`maxLlmCalls` 限制单批模型调用次数。
+- `timeoutMs` 是单次模型调用的超时。
+- `outputRoot` 为空表示 `<输入目录的上级>/.medical-anonymizer`。
 
-## Supported formats and limits
+## 支持的格式与限制
 
-- Input: `.txt`, `.md`, `.csv`, `.json`, `.xlsx`.
-- Direct identifiers by default; quasi-identifier handling (date, age, sex,
-  postal code) is opt-in. Department, institution code, and order numbers are
-  never generalized. Record keys matching `PRM_KEY`/`RCD_NO` are treated as
-  record identifiers; order numbers are not.
-- Field hints cover common Chinese and English hospital schemas. Unusual field
-  names need an extra pattern in `lib/formats.js` (`HEADER_HINTS`).
-- No Word, PDF, images, or DICOM. JSON output is pretty-printed; keys, arrays,
-  and value types are unchanged.
-- The model pass is optional and its quality depends on the model. The
-  deterministic layer is the baseline.
+- 输入：`.txt`、`.md`、`.csv`、`.json`、`.xlsx`。
+- 默认处理直接标识符；准标识符（日期、年龄、性别、邮编）需手动开启。科室、机构代码
+  和医嘱号从不泛化。匹配 `PRM_KEY`/`RCD_NO` 的记录键按记录标识符处理；医嘱号不处理。
+- 字段提示覆盖常见的中英文医院数据结构。不常见的字段名需要在 `lib/formats.js`
+  （`HEADER_HINTS`）中添加模式。
+- 不支持 Word、PDF、图片或 DICOM。JSON 输出会格式化缩进；键、数组和值类型不变。
+- 模型轮次是可选的，效果取决于模型。确定性规则层是基线。
 
-## Development
+## 开发
 
 ```bash
-npm test                      # field hints, rule policy, end-to-end pipeline
-node scripts/build.mjs 0.3.1  # build a versioned dist/ for a local profile
+npm test                      # 字段提示、规则策略、端到端流程
+node scripts/build.mjs 0.3.1  # 为本地 profile 构建带版本号的 dist/
 ```
 
-`npm test` uses a deterministic mock model; no network or real data is needed.
-A local install is for development only. End users install from GitHub or npm.
+`npm test` 使用确定性的模拟模型，不需要网络或真实数据。本地安装仅用于开发；
+最终用户请从 GitHub 或 npm 安装。
 
-## Troubleshooting
+## 故障排查
 
-- **The model times out or returns empty content.** Enable disable-thinking,
-  use an instruct (non-reasoning) model, or leave the model empty and rely on
-  the rule layer. The run continues and records a model warning.
-- **No identifiers are found in a structured file.** Check whether its field
-  names are in `HEADER_HINTS`; add a pattern for your schema.
-- **The settings page is missing.** Confirm the profile is on DSH `>= 0.2.1`,
-  the bundle is enabled, and the page was reloaded after installation.
-- **`vault.json` cannot be read.** It was encrypted with a `vaultPassphrase`;
-  configure the same passphrase to read it.
+- **模型超时或返回空内容。** 开启关闭思考模式、改用指令（非推理）模型，或把模型留空
+  只依赖规则层。批次会继续运行并记录模型警告。
+- **结构化文件中没有发现标识符。** 检查其字段名是否在 `HEADER_HINTS` 中；为你的数据结构
+  添加模式。
+- **设置页不见了。** 确认 profile 使用 DSH `>= 0.2.1`、插件包已启用，且安装后已刷新页面。
+- **`vault.json` 无法读取。** 它是用 `vaultPassphrase` 加密的；配置相同的口令即可读取。
 
-## License
+## 许可证
 
-MIT. See [LICENSE](LICENSE). This package vendors SheetJS Community Edition
-0.20.3 under Apache-2.0; see [NOTICE](NOTICE) and
-[vendor/SheetJS-LICENSE.txt](vendor/SheetJS-LICENSE.txt).
-
-## 中文说明
-
-DSH（DeepSeek Harness）医疗数据匿名化插件：批量处理 txt/md/csv/json/xlsx，
-发现直接标识符并用稳定假名替换，保持文件结构，输出审计报告和映射库。
-
-- 安装：`dsh plugin --profile <profile> add github:wld007/dsh-medical-anonymizer`，装完重启 DSH。
-- 配置：设置 → 医疗数据匿名化；端点填 OpenAI 兼容地址（Ollama 默认
-  `http://127.0.0.1:11434/v1`），模型留空则使用插件默认模型，默认也为空时只跑规则层。
-- 使用：设置页启动批次，或在聊天框输入 `/anonymize <目录>`；默认演练（不写数据、
-  不写映射库），加 `--apply` 才写出数据。
-- 输出：不指定输出根时，写到输入目录旁的隐藏目录 `.medical-anonymizer`；
-  输出根不能与输入目录相同，放在输入目录内部时会被扫描排除。
-- 隐私：不联网、无遥测，只访问你配置的模型端点；`vault.json` 是还原钥匙，
-  默认明文 0600，可用 `vaultPassphrase` 加密；报告不含原值，但含输入/输出路径。
-- 规则：设置 → 医疗数据匿名化 → 匿名化规则。标识符可逐类选择稳定假名（默认）、
-  部分遮盖、类型标签或保留；准标识符（日期、年龄、性别、邮编）默认不处理，
-  开启后可平移、泛化或替换为标签。
-- 限制：准标识符只处理文本值；科室、机构代码不处理；文件名和目录名原样保留；
-  不支持 Word/PDF/图片/DICOM（跳过的文件会在报告里列出）。
+MIT，见 [LICENSE](LICENSE)。本包内置 SheetJS Community Edition 0.20.3（Apache-2.0），
+见 [NOTICE](NOTICE) 和 [vendor/SheetJS-LICENSE.txt](vendor/SheetJS-LICENSE.txt)。
