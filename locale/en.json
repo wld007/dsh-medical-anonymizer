@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Medical Data Anonymization",
+    "description": "Batch-anonymize medical text, tables, and JSON with stable pseudonyms, model-assisted discovery and verification, and an audit report."
+  }
+}

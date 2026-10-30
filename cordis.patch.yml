@@ -1,0 +1,39 @@
+- insert:
+    - id: medical-anonymizer
+      name: 'dsh-medical-anonymizer'
+      config:
+        baseURL: 'http://127.0.0.1:11434/v1'
+        model: ''
+        outputRoot: ''
+        maxRounds: 3
+        maxFiles: 200
+        maxLlmCalls: 240
+        disableThinking: true
+        dryRun: true
+        showSidebarEntry: true
+        # Anonymization rules. Defaults: every identifier -> stable pseudonym;
+        # quasi-identifiers untouched. Strategies:
+        #   identifiers: pseudonym | mask | redact | keep
+        #   date: keep | shift | month | year | redact
+        #   age: keep | band10 | band5 | redact
+        #   sex: keep | redact
+        #   postalCode: keep | prefix3 | redact
+        identifierPolicy:
+          name: pseudonym
+          doctor: pseudonym
+          idCard: pseudonym
+          phone: pseudonym
+          email: pseudonym
+          address: pseudonym
+          mrn: pseudonym
+          admission: pseudonym
+          visit: pseudonym
+          socialSecurity: pseudonym
+          bankCard: pseudonym
+          hospital: pseudonym
+        quasiIdentifiers: false
+        quasiPolicy:
+          date: shift
+          age: band10
+          sex: keep
+          postalCode: prefix3

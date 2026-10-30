@@ -1,0 +1,9 @@
+dsh-medical-anonymizer
+Copyright (c) 2026 wld007
+Licensed under the MIT License; see LICENSE.
+
+This product includes SheetJS Community Edition 0.20.3 (vendor/xlsx.mjs),
+obtained from https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs,
+Copyright (C) 2012-present SheetJS LLC, licensed under the Apache License,
+Version 2.0. A copy of that license is provided in
+vendor/SheetJS-LICENSE.txt.

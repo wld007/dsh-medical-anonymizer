@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Medical data anonymization">
+  <rect width="64" height="64" rx="14" fill="#1f6f5c"/>
+  <rect x="15" y="12" width="34" height="44" rx="5" fill="#e9f5f0"/>
+  <rect x="24" y="8" width="16" height="8" rx="3" fill="#bfe0d3"/>
+  <path d="M32 21v12M26 27h12" stroke="#1f6f5c" stroke-width="4.2" stroke-linecap="round"/>
+  <rect x="21" y="39" width="22" height="4.6" rx="2.3" fill="#24323a"/>
+  <rect x="21" y="47" width="13" height="4.6" rx="2.3" fill="#24323a"/>
+</svg>

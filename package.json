@@ -1,0 +1,69 @@
+{
+  "name": "dsh-medical-anonymizer",
+  "version": "0.3.0",
+  "description": "Batch medical-data anonymization for DeepSeek Harness: deterministic identifier rules, optional OpenAI-compatible model discovery and verification, exact-span pseudonymization, and an audit report.",
+  "type": "module",
+  "license": "MIT",
+  "author": "wld007",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wld007/dsh-medical-anonymizer.git"
+  },
+  "homepage": "https://github.com/wld007/dsh-medical-anonymizer#readme",
+  "bugs": {
+    "url": "https://github.com/wld007/dsh-medical-anonymizer/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "plugin",
+    "medical",
+    "anonymization",
+    "de-identification",
+    "privacy",
+    "pseudonymization"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.1-0"
+  },
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib/**/*.js",
+    "vendor/xlsx.mjs",
+    "vendor/SheetJS-LICENSE.txt",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "assets/icon-180.png",
+    "NOTICE",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node test/hints.mjs && node test/policy.mjs && node test/run.mjs",
+    "check:public": "node scripts/check-public.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  }
+}

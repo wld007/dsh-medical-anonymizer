@@ -1,0 +1,8 @@
+node_modules/
+dist/
+test/.tmp/
+test/fixtures/records/labs.xlsx
+.DS_Store
+*.log
+.env
+scripts/check-public.local.json
