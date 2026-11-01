@@ -82,7 +82,7 @@ Agent 工具。
 
 ### 左侧栏 → 医疗数据匿名化（运行批次）
 
-1. 选择输入目录；可选覆盖输出根目录。
+1. 选择输入目录（也可直接填写单个文件的路径）；可选覆盖输出根目录。
 2. 首次运行保持勾选 **演练模式**，然后启动批次。模型、端点和轮次取自已保存的设置。
 3. 点击批次查看文件明细和报告、复制输出路径，或取消正在运行的批次。
 
@@ -93,6 +93,9 @@ Agent 工具。
 ```
 
 默认为演练模式。加 `--apply` 才写出匿名化文件。
+
+输入也可以是单个文件，例如 `/anonymize /path/to/note.txt --apply`：只处理该文件，
+输出为 `runs/<批次号>/output/note.txt`，默认输出根目录在该文件旁边的 `.medical-anonymizer`。
 
 选项：`--rounds N`、`--output DIR`、`--no-think`、`--apply`。
 
@@ -106,7 +109,7 @@ Agent 工具。
 | `anonymize_report` | 读取 Markdown 报告 |
 | `anonymize_runs` | 列出最近的批次 |
 
-`anonymize_start` 参数：`inputDir`、`outputRoot`、`dryRun`、`maxRounds`。
+`anonymize_start` 参数：`inputDir`（目录或单个文件）、`outputRoot`、`dryRun`、`maxRounds`。
 
 Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些始终取自用户已保存的设置，
 因此 Agent 无法把患者文本转发到其他服务。工具描述中写明了插件名和这一数据边界，

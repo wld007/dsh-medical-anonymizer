@@ -21,8 +21,8 @@ export function apply(ctx, config = {}) {
     name: 'anonymize_start',
     description: 'dsh-medical-anonymizer 插件：批量匿名化医疗数据（txt/md/csv/json/xlsx），把直接标识符替换为稳定假名并生成报告，文件结构不变；DICOM 影像（如 CT）只处理元数据：删除姓名与各类 ID、PatientID 换成不可回查的随机编号、UID 重新生成、日期整体平移，像素原样保留，且不经过模型。病历原文只发往用户在插件设置中配置的模型端点（通常为本机或内网）；未配置模型时只在本机用规则处理。立即返回批次 id。',
     parameters: {
-      inputDir: { type: 'string', required: true, description: '待处理目录的绝对路径（或相对当前工作区的路径）。' },
-      outputRoot: { type: 'string', description: '输出根目录，不能与输入目录相同；省略时用设置里的默认值，再缺省则为输入目录旁的 .medical-anonymizer。' },
+      inputDir: { type: 'string', required: true, description: '待处理的目录或单个文件的绝对路径（或相对当前工作区的路径）。传单个文件时只处理该文件。' },
+      outputRoot: { type: 'string', description: '输出根目录，不能与输入目录相同；省略时用设置里的默认值，再缺省则为输入目录（或输入文件）旁的 .medical-anonymizer。' },
       dryRun: { type: 'boolean', description: '演练模式：只检测与校验，不写出匿名化数据，也不更新映射库。省略时用设置里的默认值。' },
       maxRounds: { type: 'number', description: '发现-复核的最大轮次（1–6）；省略时用设置里的默认值。' },
     },
@@ -150,10 +150,10 @@ export function apply(ctx, config = {}) {
   ctx.inject(['commands'], (cmdCtx) => {
     const dispose = cmdCtx.commands.register({
       name: 'anonymize',
-      description: '批量匿名化医疗数据：/anonymize <目录> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think] [--apply]',
-      input: { hint: '目录 [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think] [--apply]' },
+      description: '批量匿名化医疗数据：/anonymize <目录或文件> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think] [--apply]',
+      input: { hint: '目录或文件 [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think] [--apply]' },
       handler: async (invocation) => {
-        const usage = '用法：/anonymize <输入目录> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think] [--apply]（默认演练，不写数据）'
+        const usage = '用法：/anonymize <输入目录或文件> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think] [--apply]（默认演练，不写数据）'
         const tokens = String(invocation.rawInput ?? '').trim().split(/\s+/).filter(Boolean)
         const inputDir = tokens.shift()
         if (!inputDir) return { kind: 'error', text: usage }

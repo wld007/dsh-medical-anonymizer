@@ -197,6 +197,26 @@ async function main() {
     await assert.rejects(stat(join(nestedOut, 'runs', 'nested-2', 'output', '_anon')))
   })
 
+  // Single-file input: only that file is processed, its siblings are ignored,
+  // and the output keeps the file's own name at the output root.
+  const singleDir = join(tmp, 'single')
+  await mkdir(singleDir, { recursive: true })
+  for (const name of ['note1.txt', 'visits.json']) {
+    await writeFile(join(singleDir, name), await readFile(join(fixtures, name)))
+  }
+  const single = await runBatch({
+    inputDir: join(singleDir, 'note1.txt'),
+    outputRoot: join(tmp, 'single-out'),
+    options: { runId: 'single-1' },
+  })
+  await check('单个文件输入只处理该文件', async () => {
+    assert.equal(single.status, 'completed')
+    assert.deepEqual(single.files.map((file) => file.relPath), ['note1.txt'])
+    const out = await readFile(join(tmp, 'single-out', 'runs', 'single-1', 'output', 'note1.txt'), 'utf8')
+    assert.ok(!out.includes('11010519491231002X'), out)
+    await assert.rejects(stat(join(tmp, 'single-out', 'runs', 'single-1', 'output', 'visits.json')))
+  })
+
   // Unsupported files and the maxFiles cap must be reported, not silently dropped.
   const mixedIn = join(tmp, 'mixed')
   await mkdir(mixedIn, { recursive: true })
@@ -359,6 +379,21 @@ async function main() {
     }
     await stat(join(tmp, 'svc', '.medical-anonymizer', 'runs', started.runId, 'output', 'note1.txt'))
     await assert.rejects(stat(join(tmp, 'profile-dir', '.medical-anonymizer')))
+  })
+  await check('服务接受单个文件，默认输出写在文件旁', async () => {
+    const file = join(serviceIn, 'note1.txt')
+    const started = await service.start({ inputDir: file, dryRun: false })
+    assert.equal(started.inputDir, file)
+    assert.equal(started.outputRoot, join(serviceIn, '.medical-anonymizer'))
+    for (let i = 0; i < 100; i += 1) {
+      const { active } = await service.status(started.runId)
+      if (!active) break
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    await stat(join(serviceIn, '.medical-anonymizer', 'runs', started.runId, 'output', 'note1.txt'))
+  })
+  await check('服务拒绝不存在的输入路径', async () => {
+    await assert.rejects(service.start({ inputDir: join(serviceIn, 'missing.txt') }), /输入路径不存在/)
   })
 
   const idemRoot = join(tmp, 'idem')

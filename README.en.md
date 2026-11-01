@@ -99,7 +99,8 @@ Configuration only, with a collapsible **How it works** guide at the top:
 
 ### Left sidebar → Medical Anonymization (running batches)
 
-1. Choose the input directory; optionally override the output root.
+1. Choose the input directory (or type the path of a single file); optionally
+   override the output root.
 2. Keep **Dry run** checked for the first pass and start the batch. Model,
    endpoint, and rounds come from the saved settings.
 3. Click a batch to see per-file results and the report, copy the output path,
@@ -113,6 +114,10 @@ Configuration only, with a collapsible **How it works** guide at the top:
 
 Defaults to dry run. Add `--apply` to write anonymized files.
 
+The input may also be a single file, e.g. `/anonymize /path/to/note.txt --apply`:
+only that file is processed, the output is `runs/<runId>/output/note.txt`, and
+the default output root is a `.medical-anonymizer` folder next to the file.
+
 Options: `--rounds N`, `--output DIR`, `--no-think`, `--apply`.
 
 ### Agent tools
@@ -125,7 +130,7 @@ Options: `--rounds N`, `--output DIR`, `--no-think`, `--apply`.
 | `anonymize_report` | Read the Markdown report |
 | `anonymize_runs` | List recent batches |
 
-`anonymize_start` parameters: `inputDir`, `outputRoot`, `dryRun`, `maxRounds`.
+`anonymize_start` parameters: `inputDir` (a directory or a single file), `outputRoot`, `dryRun`, `maxRounds`.
 
 The agent tools cannot choose the model endpoint, model, API key, or thinking
 mode: those always come from the user's saved settings, so an agent cannot
