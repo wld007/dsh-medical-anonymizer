@@ -70,6 +70,20 @@ window.__ModuleLoader__.load({
       'run.output': '输出根目录',
       'run.outputDefault': '留空：输入目录旁的 .medical-anonymizer',
       'run.rounds': '最大轮次',
+      'run.maxFiles': '每组文件数（超出自动分组，不丢文件）',
+      'run.concurrency': '同时处理的文件数',
+      'run.maxDicom': '单批 DICOM 文件上限',
+      'model.timeout': '单次模型调用超时（秒）',
+      'model.temperature': '温度（0 最稳定）',
+      'vault.title': '映射库加密',
+      'vault.hint': '设置口令后，映射库（原值 ↔ 假名）用 AES-256-GCM 加密保存；口令写入本机 profile 配置文件（权限 600），之后不再显示。',
+      'vault.on': '当前：已加密（留空表示不修改口令）',
+      'vault.off': '当前：未加密（映射库为权限 600 的明文 JSON）',
+      'vault.pass': '新口令（至少 8 个字符）',
+      'vault.confirm': '再次输入新口令',
+      'vault.mismatch': '两次输入的口令不一致',
+      'vault.clear': '取消加密（清除已保存的口令）',
+      'vault.warn': '注意：口令只用于读写映射库，不会转换已有文件。未加密的映射库在下次运行时会被加密；已用旧口令加密的映射库，改口令或取消加密后将无法读取，批次会报错。请先确认没有要继续使用的旧映射库，并牢记口令——丢失后无法找回。',
       'save.clean': '所有配置已保存。',
       'save.dirty': '未保存：{fields}',
       'save.save': '保存',
@@ -83,6 +97,12 @@ window.__ModuleLoader__.load({
       'field.disableThinking': '思考模式',
       'field.outputRoot': '输出根目录',
       'field.maxRounds': '最大轮次',
+      'field.maxFiles': '每组文件数',
+      'field.concurrency': '并发文件数',
+      'field.maxDicomFiles': 'DICOM 上限',
+      'field.timeoutMs': '模型超时',
+      'field.temperature': '温度',
+      'field.vaultPassphrase': '映射库口令',
       'page.title': '医疗数据匿名化',
       'page.model': '模型：{model} · {endpoint}',
       'page.noModel': '未配置模型，只跑规则层',
@@ -199,6 +219,20 @@ window.__ModuleLoader__.load({
       'run.output': 'Output root',
       'run.outputDefault': 'Empty: .medical-anonymizer beside the input',
       'run.rounds': 'Max rounds',
+      'run.maxFiles': 'Files per chunk (larger inputs are split; nothing is dropped)',
+      'run.concurrency': 'Files processed at the same time',
+      'run.maxDicom': 'DICOM files per batch (cap)',
+      'model.timeout': 'Model call timeout (seconds)',
+      'model.temperature': 'Temperature (0 is most stable)',
+      'vault.title': 'Vault encryption',
+      'vault.hint': 'With a passphrase, the vault (original ↔ pseudonym) is stored AES-256-GCM encrypted. The passphrase is written to this profile\'s config file (mode 600) and never shown again.',
+      'vault.on': 'Currently encrypted (leave empty to keep the passphrase)',
+      'vault.off': 'Currently not encrypted (plain JSON, mode 600)',
+      'vault.pass': 'New passphrase (at least 8 characters)',
+      'vault.confirm': 'Repeat the new passphrase',
+      'vault.mismatch': 'The two passphrases do not match',
+      'vault.clear': 'Turn encryption off (clear the saved passphrase)',
+      'vault.warn': 'The passphrase is only used to read and write vaults; existing files are not converted. A plain vault is encrypted on its next run; a vault encrypted with the old passphrase can no longer be read after you change or clear it, and batches using it will fail. Make sure no old vault is still needed, and keep the passphrase safe: it cannot be recovered.',
       'save.clean': 'All settings are saved.',
       'save.dirty': 'Unsaved: {fields}',
       'save.save': 'Save',
@@ -212,6 +246,12 @@ window.__ModuleLoader__.load({
       'field.disableThinking': 'thinking mode',
       'field.outputRoot': 'output root',
       'field.maxRounds': 'max rounds',
+      'field.maxFiles': 'files per chunk',
+      'field.concurrency': 'concurrency',
+      'field.maxDicomFiles': 'DICOM cap',
+      'field.timeoutMs': 'model timeout',
+      'field.temperature': 'temperature',
+      'field.vaultPassphrase': 'vault passphrase',
       'page.title': 'Medical Data Anonymization',
       'page.model': 'Model: {model} · {endpoint}',
       'page.noModel': 'No model configured; rule layer only',
@@ -494,6 +534,14 @@ window.__ModuleLoader__.load({
       const [disableThinking, setDisableThinking] = React.useState(true)
       const [outputRoot, setOutputRoot] = React.useState('')
       const [maxRounds, setMaxRounds] = React.useState(3)
+      const [maxFiles, setMaxFiles] = React.useState(200)
+      const [concurrency, setConcurrency] = React.useState(4)
+      const [maxDicomFiles, setMaxDicomFiles] = React.useState(50000)
+      const [timeoutSec, setTimeoutSec] = React.useState(120)
+      const [temperature, setTemperature] = React.useState(0)
+      const [passphrase, setPassphrase] = React.useState('')
+      const [passphrase2, setPassphrase2] = React.useState('')
+      const [clearPassphrase, setClearPassphrase] = React.useState(false)
       const [landline, setLandline] = React.useState(false)
       const [showSidebar, setShowSidebar] = React.useState(true)
       const [identifierPolicy, setIdentifierPolicy] = React.useState({})
@@ -517,6 +565,14 @@ window.__ModuleLoader__.load({
         setDisableThinking(info.disableThinking === true)
         setOutputRoot(info.outputRoot ?? '')
         setMaxRounds(Number(info.maxRounds ?? 3))
+        setMaxFiles(Number(info.maxFiles ?? 200))
+        setConcurrency(Number(info.concurrency ?? 4))
+        setMaxDicomFiles(Number(info.maxDicomFiles ?? 50000))
+        setTimeoutSec(Math.round(Number(info.timeoutMs ?? 120000) / 1000))
+        setTemperature(Number(info.temperature ?? 0))
+        setPassphrase('')
+        setPassphrase2('')
+        setClearPassphrase(false)
         setLandline(info.landline === true)
         setShowSidebar(info.showSidebarEntry !== false)
         setIdentifierPolicy({ ...(info.identifierPolicy ?? {}) })
@@ -551,6 +607,12 @@ window.__ModuleLoader__.load({
         ['disableThinking', disableThinking !== (config.disableThinking === true)],
         ['outputRoot', outputRoot.trim() !== String(config.outputRoot ?? '')],
         ['maxRounds', Number(maxRounds) !== Number(config.maxRounds ?? 3)],
+        ['maxFiles', Number(maxFiles) !== Number(config.maxFiles ?? 200)],
+        ['concurrency', Number(concurrency) !== Number(config.concurrency ?? 4)],
+        ['maxDicomFiles', Number(maxDicomFiles) !== Number(config.maxDicomFiles ?? 50000)],
+        ['timeoutMs', Number(timeoutSec) * 1000 !== Number(config.timeoutMs ?? 120000)],
+        ['temperature', Number(temperature) !== Number(config.temperature ?? 0)],
+        ['vaultPassphrase', passphrase.length > 0 || passphrase2.length > 0 || clearPassphrase],
         ['showSidebarEntry', showSidebar !== (config.showSidebarEntry !== false)],
         ['rules', !sameMap(identifierPolicy, config.identifierPolicy) || quasiOn !== (config.quasiIdentifiers === true)
           || landline !== (config.landline === true)
@@ -573,6 +635,10 @@ window.__ModuleLoader__.load({
       async function save() {
         setError('')
         setNotice('')
+        if (passphrase !== passphrase2) {
+          setError(t('vault.mismatch'))
+          return
+        }
         setSaving(true)
         try {
           const request = {
@@ -581,6 +647,11 @@ window.__ModuleLoader__.load({
             disableThinking,
             outputRoot: outputRoot.trim(),
             maxRounds: Number(maxRounds),
+            maxFiles: Number(maxFiles),
+            concurrency: Number(concurrency),
+            maxDicomFiles: Number(maxDicomFiles),
+            timeoutMs: Math.round(Number(timeoutSec) * 1000),
+            temperature: Number(temperature),
             landline,
             showSidebarEntry: showSidebar,
             identifierPolicy,
@@ -591,6 +662,8 @@ window.__ModuleLoader__.load({
           }
           if (apiKey.length > 0) request.apiKey = apiKey
           else if (clearKey) request.apiKey = ''
+          if (passphrase.length > 0) request.vaultPassphrase = passphrase
+          else if (clearPassphrase) request.vaultPassphrase = ''
           await call('saveDefaults', request)
           // Saving re-applies the host plugin; wait until it answers again.
           let info = null
@@ -624,9 +697,9 @@ window.__ModuleLoader__.load({
         : t('save.clean'))
 
       const tabFields = {
-        model: ['baseURL', 'model', 'apiKey', 'disableThinking'],
+        model: ['baseURL', 'model', 'apiKey', 'disableThinking', 'timeoutMs', 'temperature'],
         rules: ['rules'],
-        batch: ['outputRoot', 'maxRounds', 'showSidebarEntry'],
+        batch: ['outputRoot', 'maxRounds', 'maxFiles', 'concurrency', 'maxDicomFiles', 'vaultPassphrase', 'showSidebarEntry'],
         guide: [],
       }
       const tabs = ['model', 'rules', 'batch', 'guide']
@@ -665,6 +738,18 @@ window.__ModuleLoader__.load({
           h('label', { className: 'ma-check' },
             h('input', { type: 'checkbox', checked: disableThinking, onChange: (event) => setDisableThinking(event.target.checked) }),
             t('model.thinking')),
+          h('div', { className: 'ma-grid' },
+            h('label', { className: 'ma-field' }, t('model.timeout'),
+              h('input', {
+                className: 'ma-input', type: 'number', min: 10, max: 1800, value: timeoutSec,
+                onChange: (event) => setTimeoutSec(Number(event.target.value)),
+              })),
+            h('label', { className: 'ma-field' }, t('model.temperature'),
+              h('input', {
+                className: 'ma-input', type: 'number', min: 0, max: 2, step: 0.1, value: temperature,
+                onChange: (event) => setTemperature(Number(event.target.value)),
+              })),
+          ),
           h('div', { className: 'ma-actions' },
             h('button', { className: 'ma-btn ma-small', onClick: testConnection, disabled: testing },
               testing ? t('model.testing') : t('model.test')),
@@ -758,7 +843,45 @@ window.__ModuleLoader__.load({
                 className: 'ma-input', type: 'number', min: 1, max: 6, value: maxRounds,
                 onChange: (event) => setMaxRounds(Number(event.target.value)),
               })),
+            h('label', { className: 'ma-field' }, t('run.maxFiles'),
+              h('input', {
+                className: 'ma-input', type: 'number', min: 1, max: 2000, value: maxFiles,
+                onChange: (event) => setMaxFiles(Number(event.target.value)),
+              })),
+            h('label', { className: 'ma-field' }, t('run.concurrency'),
+              h('input', {
+                className: 'ma-input', type: 'number', min: 1, max: 16, value: concurrency,
+                onChange: (event) => setConcurrency(Number(event.target.value)),
+              })),
+            h('label', { className: 'ma-field' }, t('run.maxDicom'),
+              h('input', {
+                className: 'ma-input', type: 'number', min: 1, max: 500000, value: maxDicomFiles,
+                onChange: (event) => setMaxDicomFiles(Number(event.target.value)),
+              })),
           ),
+          h('hr', { className: 'ma-divider' }),
+          h('h3', {}, t('vault.title')),
+          h('p', { className: 'ma-hint' }, t('vault.hint')),
+          h('p', { className: 'ma-hint' }, config?.vaultEncrypted ? t('vault.on') : t('vault.off')),
+          h('div', { className: 'ma-grid' },
+            h('label', { className: 'ma-field' }, t('vault.pass'),
+              h('input', {
+                className: 'ma-input', type: 'password', autoComplete: 'new-password', value: passphrase,
+                onChange: (event) => { setPassphrase(event.target.value); setClearPassphrase(false) },
+              })),
+            h('label', { className: 'ma-field' }, t('vault.confirm'),
+              h('input', {
+                className: 'ma-input', type: 'password', autoComplete: 'new-password', value: passphrase2,
+                onChange: (event) => { setPassphrase2(event.target.value); setClearPassphrase(false) },
+              })),
+          ),
+          passphrase && passphrase2 && passphrase !== passphrase2 ? h('p', { className: 'ma-hint ma-error' }, t('vault.mismatch')) : null,
+          config?.vaultEncrypted
+            ? h('label', { className: 'ma-check' },
+              h('input', { type: 'checkbox', checked: clearPassphrase, onChange: (event) => { setClearPassphrase(event.target.checked); if (event.target.checked) { setPassphrase(''); setPassphrase2('') } } }),
+              t('vault.clear'))
+            : null,
+          dirty.includes('vaultPassphrase') ? h('p', { className: 'ma-hint ma-error' }, t('vault.warn')) : null,
           h('hr', { className: 'ma-divider' }),
           h('h3', {}, t('ui.title')),
           h('label', { className: 'ma-check' },

@@ -85,9 +85,10 @@ once without them.
 
 Configuration only, with a collapsible **How it works** guide at the top:
 
-- **Local model**: endpoint, model, API key, disable thinking, **Test
+- **Local model**: endpoint, model, API key, disable thinking, model call timeout, temperature, **Test
   connection** (flags a model name the endpoint does not serve).
-- **Batch defaults**: output root, max rounds.
+- **Batch defaults**: output root, max rounds, files per chunk, files processed at the same time, DICOM cap per batch.
+- **Vault encryption**: set, change, or clear `vaultPassphrase` (entered twice, never shown again). After changing or clearing it, vaults encrypted with the old passphrase can no longer be read.
 - **Anonymization rules**: treatment per identifier type, the quasi-identifier
   switch, and treatment per quasi-identifier type, each with a live example;
   optional detection of landline numbers without an area code.
@@ -302,7 +303,7 @@ byte for byte: never decoded, modified, or sent to a model.
 
 `vault.json` is the re-identification key. Keep it separate from the output and
 protect it accordingly. The report deliberately contains no original values.
-Set `vaultPassphrase` in the plugin config to encrypt the vault with
+Set `vaultPassphrase` on the settings page (Batches & UI → Vault encryption) or in the plugin config to encrypt the vault with
 AES-256-GCM; without it the vault is plaintext JSON with mode 0600.
 
 Without an explicit or configured `outputRoot`, output goes to a hidden

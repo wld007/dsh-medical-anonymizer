@@ -601,6 +601,22 @@ async function main() {
   await check('服务拒绝不存在的输入路径', async () => {
     await assert.rejects(service.start({ inputDir: join(serviceIn, 'missing.txt') }), /输入路径不存在/)
   })
+  await check('设置页可保存分组、并发、超时、温度、DICOM 上限与映射库口令', () => {
+    const patch = service.normalizeDefaults({
+      maxFiles: 50, concurrency: 8, maxDicomFiles: 1000, timeoutMs: 300000, temperature: 0.2, vaultPassphrase: 'correct horse',
+    })
+    assert.deepEqual(patch, { maxFiles: 50, concurrency: 8, maxDicomFiles: 1000, timeoutMs: 300000, temperature: 0.2, vaultPassphrase: 'correct horse' })
+    assert.deepEqual(service.normalizeDefaults({ vaultPassphrase: '' }), { vaultPassphrase: '' })
+    assert.throws(() => service.normalizeDefaults({ concurrency: 0 }), /并发文件数/)
+    assert.throws(() => service.normalizeDefaults({ maxFiles: 1.5 }), /每组文件数/)
+    assert.throws(() => service.normalizeDefaults({ timeoutMs: 500 }), /超时/)
+    assert.throws(() => service.normalizeDefaults({ temperature: 3 }), /温度/)
+    assert.throws(() => service.normalizeDefaults({ vaultPassphrase: 'short' }), /至少 8/)
+    const info = service.configInfo()
+    assert.equal(info.timeoutMs, 120000)
+    assert.equal(info.concurrency, 4)
+    assert.equal('vaultPassphrase' in info, false)
+  })
 
   const idemRoot = join(tmp, 'idem')
   const idem = await runBatch({
