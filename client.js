@@ -34,6 +34,7 @@ window.__ModuleLoader__.load({
       'rules.allowHint': '报告里出现误判时在这里排除，然后重新运行。每行一项；之前误存进映射库的对应关系会在下次运行时移除。',
       'rules.allowValues': '不匹配的值（这些值永远不当作标识符，如 01、居民身份证、科室名称）',
       'rules.skipFields': '不处理的字段（列名或 JSON 键名，不区分大小写，如 ADMN_BED_NO；这些字段原样输出）',
+      'rules.landline': '识别带「电话：」标签的无区号座机号（如 66809363；默认关闭，医院总机号也会被替换）',
       'strategy.pseudonym': '稳定假名',
       'strategy.mask': '部分遮盖',
       'strategy.redact': '替换为类型标签',
@@ -69,7 +70,6 @@ window.__ModuleLoader__.load({
       'run.output': '输出根目录',
       'run.outputDefault': '留空：输入目录旁的 .medical-anonymizer',
       'run.rounds': '最大轮次',
-      'run.dry': '默认使用演练模式（只检测与校验，不写出数据和映射库）',
       'save.clean': '所有配置已保存。',
       'save.dirty': '未保存：{fields}',
       'save.save': '保存',
@@ -83,7 +83,6 @@ window.__ModuleLoader__.load({
       'field.disableThinking': '思考模式',
       'field.outputRoot': '输出根目录',
       'field.maxRounds': '最大轮次',
-      'field.dryRun': '演练模式',
       'page.title': '医疗数据匿名化',
       'page.model': '模型：{model} · {endpoint}',
       'page.noModel': '未配置模型，只跑规则层',
@@ -93,7 +92,6 @@ window.__ModuleLoader__.load({
       'form.inputPlaceholder': '/path/to/records 或 /path/to/note.txt',
       'form.browse': '浏览…',
       'form.output': '输出根目录',
-      'form.dry': '演练模式（只检测与校验，不写出数据和映射库）',
       'form.start': '开始匿名化',
       'form.starting': '正在启动…',
       'form.inputRequired': '请先选择输入目录或文件。',
@@ -119,7 +117,7 @@ window.__ModuleLoader__.load({
       'detail.round': ' · 第 {round} 轮',
       'detail.files': '文件明细',
       'detail.noFiles': '暂无文件记录。',
-      'detail.dry': '演练',
+      'detail.calls': '模型调用',
       'run.cancel': '取消批次',
       'run.cancelling': '正在取消…',
       'status.running': '运行中',
@@ -165,6 +163,7 @@ window.__ModuleLoader__.load({
       'rules.allowHint': 'When the report shows a false positive, exclude it here and run again. One item per line; mappings an earlier run stored for these values are removed on the next run.',
       'rules.allowValues': 'Values that are never identifiers (e.g. 01, 居民身份证, department names)',
       'rules.skipFields': 'Fields left untouched (column or JSON key names, case-insensitive, e.g. ADMN_BED_NO; values are copied as-is)',
+      'rules.landline': 'Detect labelled local landline numbers without area code (e.g. 66809363; off by default, also replaces hospital switchboard numbers)',
       'strategy.pseudonym': 'Stable pseudonym',
       'strategy.mask': 'Partial mask',
       'strategy.redact': 'Type label',
@@ -200,7 +199,6 @@ window.__ModuleLoader__.load({
       'run.output': 'Output root',
       'run.outputDefault': 'Empty: .medical-anonymizer beside the input',
       'run.rounds': 'Max rounds',
-      'run.dry': 'Start batches in dry-run mode (detect and verify only; writes no data and no vault)',
       'save.clean': 'All settings are saved.',
       'save.dirty': 'Unsaved: {fields}',
       'save.save': 'Save',
@@ -214,7 +212,6 @@ window.__ModuleLoader__.load({
       'field.disableThinking': 'thinking mode',
       'field.outputRoot': 'output root',
       'field.maxRounds': 'max rounds',
-      'field.dryRun': 'dry run',
       'page.title': 'Medical Data Anonymization',
       'page.model': 'Model: {model} · {endpoint}',
       'page.noModel': 'No model configured; rule layer only',
@@ -224,7 +221,6 @@ window.__ModuleLoader__.load({
       'form.inputPlaceholder': '/path/to/records or /path/to/note.txt',
       'form.browse': 'Browse…',
       'form.output': 'Output root',
-      'form.dry': 'Dry run (detect and verify only; writes no data and no vault)',
       'form.start': 'Start anonymization',
       'form.starting': 'Starting…',
       'form.inputRequired': 'Choose an input directory or file first.',
@@ -250,7 +246,7 @@ window.__ModuleLoader__.load({
       'detail.round': ' · round {round}',
       'detail.files': 'Files',
       'detail.noFiles': 'No file records.',
-      'detail.dry': 'Dry run',
+      'detail.calls': 'Model calls',
       'run.cancel': 'Cancel batch',
       'run.cancelling': 'Cancelling…',
       'status.running': 'Running',
@@ -281,9 +277,9 @@ window.__ModuleLoader__.load({
         ] },
         { title: '怎么用', ordered: true, items: [
           '在本页填写模型端点和模型名称，点「测试连接」，确认后点「保存」。模型留空则只用规则识别。',
-          '打开左侧栏「医疗数据匿名化」，选择输入目录，保持「演练模式」先跑一遍：只检测和校验，不写出任何数据。',
-          '在批次详情里查看报告。确认没有问题后取消演练模式再跑一次，才会写出匿名化文件。',
-          '也可以在聊天框输入 /anonymize <目录>（加 --apply 正式输出），或让 Agent 调用 anonymize_start 等工具。',
+          '打开左侧栏「医疗数据匿名化」，选择输入目录或文件（支持 .zip），点「开始」。匿名化文件写到单独的输出目录，源文件只读、绝不修改。',
+          '在批次详情里查看报告。发现规则误判时，修改规则后可用 anonymize_undo_mappings 撤销该批新增的映射再重跑。',
+          '也可以在聊天框输入 /anonymize <目录>，或让 Agent 调用 anonymize_start 等工具。'
         ] },
         { title: '每个文件的处理流程', ordered: true, items: [
           '字段策略：表头或键名是姓名、身份证号、电话、地址等的列整格替换，包括 PTT_NM、ID_CRD_NO、CTCT_TEL_NO、MDC_ORG_NM 等常见医院导出字段。',
@@ -298,13 +294,13 @@ window.__ModuleLoader__.load({
           '输出根目录/runs/<批次号>/output/：匿名化后的文件，目录结构与输入相同。',
           '输出根目录/runs/<批次号>/report.md：报告，包括每个文件的实体统计、结构校验、残留问题和人工复核清单；报告里不出现原值。',
           '输出根目录/vault.json：映射库（原值 ↔ 假名），权限 600。它是还原钥匙，泄露等同原文泄露，请与输出数据分开保管。',
-          '不设置输出根目录时，写到输入目录旁的隐藏目录 .medical-anonymizer；演练模式不写数据，也不写映射库。',
+          '不设置输出根目录时，写到输入目录旁的隐藏目录 .medical-anonymizer。模型调用次数不设上限；报告会记录源文件在运行前后是否一致。',
         ] },
         { title: '注意事项', items: [
           '模型会看到原文。请使用本机或可信内网的模型端点，不要用公网云服务处理患者数据。',
-          '默认只处理直接标识符。开启准标识符后也只覆盖日期、年龄、性别、邮编的文本值；科室、机构代码等不处理，文件名和目录名原样保留。',
+          '默认只处理直接标识符。开启准标识符后也只覆盖日期、年龄、性别、邮编的文本值；科室、机构代码等不处理。文件名和目录名里的姓名、证件号、手机号、病人编号、住院号/门诊号会替换，原路径对照写在 path-map.json（与映射库同样敏感）。',
           '部分遮盖会保留一部分原值，且不可还原；需要能还原时请用稳定假名。日期平移后不要对输出再跑一遍，否则会被平移两次。',
-          '不支持 Word、PDF、图片、DICOM；跳过的文件和超出单批上限的文件会在报告的「注意」里列出。',
+          '不支持 Word、PDF、图片；DICOM 只处理元数据。zip 会解压到临时目录处理后重新打包（嵌套最多 3 层，有防 zip 炸弹限制）。跳过的文件在报告的「注意」里列出；文件很多时自动分组处理，不丢文件。',
           '状态为「待复核」的批次请先人工确认报告中的问题，再对外发布数据。本工具不等于合规认证。',
         ] },
       ],
@@ -318,9 +314,9 @@ window.__ModuleLoader__.load({
         ] },
         { title: 'How to use', ordered: true, items: [
           'Enter the model endpoint and name here, press Test connection, then Save. Leave the model empty to use rules only.',
-          'Open Medical Anonymization in the left sidebar, choose the input directory, and keep Dry run on for the first pass: it detects and verifies but writes nothing.',
-          'Read the report in the batch detail. When it looks right, run again without Dry run to write anonymized files.',
-          'You can also type /anonymize <dir> in the composer (add --apply to write output) or ask the agent to use anonymize_start and the related tools.',
+          'Open Medical Anonymization in the left sidebar, choose an input directory or file (.zip supported), and press Start. Output goes to a separate folder; source files are read-only and never modified.',
+          'Read the report in the batch detail. If a rule misfired, fix the rule, withdraw that batch\'s new mappings with anonymize_undo_mappings, and run again.',
+          'You can also type /anonymize <dir> in the composer or ask the agent to use anonymize_start and the related tools.'
         ] },
         { title: 'Per-file pipeline', ordered: true, items: [
           'Field policy: columns or keys such as name, ID, phone, and address are replaced as a whole, including hospital export fields like PTT_NM, ID_CRD_NO, CTCT_TEL_NO, and MDC_ORG_NM.',
@@ -335,13 +331,13 @@ window.__ModuleLoader__.load({
           '<output root>/runs/<batch>/output/: anonymized files with the input\'s layout.',
           '<output root>/runs/<batch>/report.md: per-file counts, structure checks, leftovers, and the manual-review list; no original values.',
           '<output root>/vault.json: original ↔ pseudonym map, mode 600. It is the re-identification key; store it apart from the output.',
-          'With no output root set, output goes to a hidden .medical-anonymizer folder beside the input. Dry runs write neither data nor the vault.',
+          'With no output root set, output goes to a hidden .medical-anonymizer folder beside the input. Model calls are not capped; the report records whether source files were unchanged.',
         ] },
         { title: 'Cautions', items: [
           'The model sees the original text. Use a local or trusted internal endpoint, never a public cloud service, for patient data.',
-          'By default only direct identifiers are processed. Quasi-identifier handling covers text values of date, age, sex, and postal code only; department and institution codes are not touched, and file and folder names are kept as-is.',
+          'By default only direct identifiers are processed. Quasi-identifier handling covers text values of date, age, sex, and postal code only; department and institution codes are not touched, while names, ID and phone numbers, patient numbers, and admission/visit numbers in file and folder names are replaced (the original-path map is saved as path-map.json, as sensitive as the vault).',
           'Partial masks keep part of the original and cannot be reversed; use pseudonyms when you need restoration. Do not re-run date shifting on its own output, or dates shift twice.',
-          'Word, PDF, images, and DICOM are not supported; skipped files and files over the batch limit are listed in the report.',
+          'Word, PDF, and images are not supported; DICOM gets metadata-only processing. Zip archives are extracted to a temporary folder and re-packed (up to 3 nesting levels, with zip-bomb limits). Skipped files are listed in the report; large inputs are split into chunks automatically, nothing is dropped.',
           'Review every Needs review item before publishing. This tool is not a compliance certification.',
         ] },
       ],
@@ -498,7 +494,7 @@ window.__ModuleLoader__.load({
       const [disableThinking, setDisableThinking] = React.useState(true)
       const [outputRoot, setOutputRoot] = React.useState('')
       const [maxRounds, setMaxRounds] = React.useState(3)
-      const [dryRun, setDryRun] = React.useState(true)
+      const [landline, setLandline] = React.useState(false)
       const [showSidebar, setShowSidebar] = React.useState(true)
       const [identifierPolicy, setIdentifierPolicy] = React.useState({})
       const [quasiOn, setQuasiOn] = React.useState(false)
@@ -521,7 +517,7 @@ window.__ModuleLoader__.load({
         setDisableThinking(info.disableThinking === true)
         setOutputRoot(info.outputRoot ?? '')
         setMaxRounds(Number(info.maxRounds ?? 3))
-        setDryRun(info.dryRun !== false)
+        setLandline(info.landline === true)
         setShowSidebar(info.showSidebarEntry !== false)
         setIdentifierPolicy({ ...(info.identifierPolicy ?? {}) })
         setQuasiOn(info.quasiIdentifiers === true)
@@ -555,9 +551,9 @@ window.__ModuleLoader__.load({
         ['disableThinking', disableThinking !== (config.disableThinking === true)],
         ['outputRoot', outputRoot.trim() !== String(config.outputRoot ?? '')],
         ['maxRounds', Number(maxRounds) !== Number(config.maxRounds ?? 3)],
-        ['dryRun', dryRun !== (config.dryRun !== false)],
         ['showSidebarEntry', showSidebar !== (config.showSidebarEntry !== false)],
         ['rules', !sameMap(identifierPolicy, config.identifierPolicy) || quasiOn !== (config.quasiIdentifiers === true)
+          || landline !== (config.landline === true)
           || !sameMap(quasiPolicy, config.quasiPolicy)
           || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields)],
       ].filter(([, changed]) => changed).map(([key]) => key) : []
@@ -585,7 +581,7 @@ window.__ModuleLoader__.load({
             disableThinking,
             outputRoot: outputRoot.trim(),
             maxRounds: Number(maxRounds),
-            dryRun,
+            landline,
             showSidebarEntry: showSidebar,
             identifierPolicy,
             quasiIdentifiers: quasiOn,
@@ -630,7 +626,7 @@ window.__ModuleLoader__.load({
       const tabFields = {
         model: ['baseURL', 'model', 'apiKey', 'disableThinking'],
         rules: ['rules'],
-        batch: ['outputRoot', 'maxRounds', 'dryRun', 'showSidebarEntry'],
+        batch: ['outputRoot', 'maxRounds', 'showSidebarEntry'],
         guide: [],
       }
       const tabs = ['model', 'rules', 'batch', 'guide']
@@ -741,6 +737,9 @@ window.__ModuleLoader__.load({
               className: 'ma-input ma-textarea', value: skipText, spellCheck: false,
               onChange: (event) => setSkipText(event.target.value),
             })),
+          h('label', { className: 'ma-check' },
+            h('input', { type: 'checkbox', checked: landline, onChange: (event) => setLandline(event.target.checked) }),
+            t('rules.landline')),
         ),
       )
 
@@ -760,9 +759,6 @@ window.__ModuleLoader__.load({
                 onChange: (event) => setMaxRounds(Number(event.target.value)),
               })),
           ),
-          h('label', { className: 'ma-check' },
-            h('input', { type: 'checkbox', checked: dryRun, onChange: (event) => setDryRun(event.target.checked) }),
-            t('run.dry')),
           h('hr', { className: 'ma-divider' }),
           h('h3', {}, t('ui.title')),
           h('label', { className: 'ma-check' },
@@ -805,7 +801,6 @@ window.__ModuleLoader__.load({
       const [config, setConfig] = React.useState(null)
       const [inputDir, setInputDir] = React.useState('')
       const [outputRoot, setOutputRoot] = React.useState('')
-      const [dryRun, setDryRun] = React.useState(true)
       const [runs, setRuns] = React.useState([])
       const [activeId, setActiveId] = React.useState(null)
       const [detail, setDetail] = React.useState(null)
@@ -825,7 +820,6 @@ window.__ModuleLoader__.load({
             if (!alive) return
             setConfig(info)
             setOutputRoot(info.outputRoot ?? '')
-            setDryRun(info.dryRun !== false)
           } catch (cause) {
             if (alive) setError(message(cause))
           }
@@ -897,7 +891,7 @@ window.__ModuleLoader__.load({
         try {
           // Model, endpoint, key, thinking mode and rounds come from the saved
           // configuration; only per-batch choices are sent.
-          const result = await call('start', { inputDir: inputDir.trim(), outputRoot: outputRoot.trim(), dryRun })
+          const result = await call('start', { inputDir: inputDir.trim(), outputRoot: outputRoot.trim() })
           setNotice(t('notice.started'))
           reportLoaded.current.delete(result.runId)
           setActiveId(result.runId)
@@ -972,9 +966,6 @@ window.__ModuleLoader__.load({
                   placeholder: t('run.outputDefault'),
                 })),
             ),
-            h('label', { className: 'ma-check' },
-              h('input', { type: 'checkbox', checked: dryRun, onChange: (event) => setDryRun(event.target.checked) }),
-              t('form.dry')),
             h('div', { className: 'ma-actions' },
               h('button', { className: 'ma-btn ma-primary', onClick: start, disabled: busy },
                 busy ? t('form.starting') : t('form.start')),
@@ -1006,7 +997,7 @@ window.__ModuleLoader__.load({
                   h('td', {}, formatTime(run.startedAt)),
                   h('td', { className: 'ma-mono', title: run.inputDir ?? '' }, baseName(run.inputDir)),
                   h('td', {}, h('span', { className: statusClass(run.status) },
-                    `${t(`status.${run.status}`)}${run.dryRun ? ` · ${t('detail.dry')}` : ''}`)),
+                    t(`status.${run.status}`))),
                   h('td', {}, String(run.files ?? 0)),
                   h('td', {}, String(run.entities ?? 0)),
                   h('td', {}, String(run.unresolved ?? 0)),
@@ -1034,7 +1025,7 @@ window.__ModuleLoader__.load({
                 stat(t('runs.files'), current.totals?.files ?? current.files?.length ?? 0),
                 stat(t('runs.entities'), current.totals?.entities ?? 0),
                 stat(t('runs.unresolved'), current.totals?.unresolved ?? 0),
-                stat(t('detail.dry'), current.dryRun ? '✓' : '—'),
+                stat(t('detail.calls'), current.totals?.modelCalls ?? 0),
               ),
               h('h4', {}, t('detail.files')),
               !Array.isArray(current.files) || current.files.length === 0

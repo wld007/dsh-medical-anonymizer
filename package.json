@@ -1,6 +1,6 @@
 {
   "name": "dsh-medical-anonymizer",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Batch medical-data anonymization for DeepSeek Harness: deterministic identifier rules, optional OpenAI-compatible model discovery and verification, exact-span pseudonymization, and an audit report.",
   "type": "module",
   "license": "MIT",
@@ -53,7 +53,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "node test/hints.mjs && node test/policy.mjs && node test/run.mjs && node test/dicom.mjs",
+    "test": "node test/hints.mjs && node test/policy.mjs && node test/zip.mjs && node test/paths.mjs && node test/run.mjs && node test/archive.mjs && node test/dicom.mjs",
     "check:public": "node scripts/check-public.mjs"
   },
   "dsh": {

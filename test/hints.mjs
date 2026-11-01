@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict'
 import { hintForJsonKey, hintForKey, hintForSibling } from '../lib/formats.js'
-import { scan, genericInstitution } from '../lib/rules.js'
+import { scan, genericInstitution, looksLikeInstitution } from '../lib/rules.js'
 
 const cases = {
   // patient / contact names
@@ -137,6 +137,27 @@ for (const [parent, key, expected] of jsonKeyCases) {
   if (actual !== expected) {
     failed += 1
     console.error(`FAIL jsonKey ${JSON.stringify(parent)}.${key}: expected ${expected}, got ${actual}`)
+  }
+}
+
+// Optional landline detection and institution names in name columns.
+{
+  const off = scan('放疗科电话：66809363/66808119。').filter((hit) => hit.type === '电话')
+  const on = scan('放疗科电话：66809363/66808119。', { landline: true }).filter((hit) => hit.type === '电话').map((hit) => hit.text)
+  if (off.length !== 0 || JSON.stringify(on) !== JSON.stringify(['66809363', '66808119'])) {
+    failed += 1
+    console.error(`FAIL landline: off=${JSON.stringify(off)} on=${JSON.stringify(on)}`)
+  }
+  if (scan('白细胞 12345678 个', { landline: true }).some((hit) => hit.type === '电话')) {
+    failed += 1
+    console.error('FAIL landline matched an unlabelled number')
+  }
+  const institutions = { 东江市人民医院: true, 南海医学院第二附属医院: true, 崖城镇中心卫生院: true, 张三: false, 人民医院: false, 内科: false }
+  for (const [value, expected] of Object.entries(institutions)) {
+    if (looksLikeInstitution(value) !== expected) {
+      failed += 1
+      console.error(`FAIL looksLikeInstitution(${value}): expected ${expected}`)
+    }
   }
 }
 

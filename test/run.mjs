@@ -11,6 +11,8 @@ import * as XLSX from '../vendor/xlsx.mjs'
 import { runBatch, echoesPseudonym } from '../lib/pipeline.js'
 import { createLlm } from '../lib/llm.js'
 import { createService } from '../lib/service.js'
+import { Vault } from '../lib/pseudonym.js'
+import { snapshotTree } from './snapshot.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const fixtures = join(here, 'fixtures', 'records')
@@ -73,6 +75,7 @@ async function main() {
   const llm = createLlm({ baseURL: BASE, model: 'mock-medical', timeoutMs: 15000 })
   const signal = new AbortController().signal
 
+  const fixturesBefore = await snapshotTree(fixtures)
   let run
   {
     run = await runBatch({
@@ -83,7 +86,6 @@ async function main() {
         model: 'mock-medical',
         baseURL: BASE,
         maxRounds: 3,
-        maxLlmCalls: 200,
         runId: 'test-run-1',
       },
       signal,
@@ -164,22 +166,22 @@ async function main() {
     assert.ok(note1.includes(entry.pseudonym), 'first run pseudonym mismatch')
   })
 
-  const dryRoot = join(tmp, 'dry')
-  const dry = await runBatch({
-    inputDir: fixtures,
-    outputRoot: dryRoot,
-    options: { llm, dryRun: true, runId: 'test-dry', maxRounds: 3, maxLlmCalls: 200 },
-    signal,
+  await check('源文件逐字节不变，报告记录源文件检查', async () => {
+    assert.deepEqual(await snapshotTree(fixtures), fixturesBefore)
+    assert.equal(run.sourceCheck.changed, 0)
+    assert.ok(run.sourceCheck.files >= 5)
   })
-  await check('演练模式不写出数据', async () => {
-    await assert.rejects(stat(join(dryRoot, 'runs', 'test-dry', 'output')))
-    const report = await readFile(join(dryRoot, 'runs', 'test-dry', 'report.md'), 'utf8')
-    assert.match(report, /演练模式/)
-    assert.equal(dry.totals.entities > 0, true)
+  await check('不再有演练模式与模型调用上限', () => {
+    assert.equal('dryRun' in run, false)
+    assert.ok(run.totals.modelCalls > 0)
   })
-  await check('演练模式不落盘映射库（不保存原文）', async () => {
-    await assert.rejects(stat(join(dryRoot, 'vault.json')))
-    assert.equal(dry.vaultPath, null)
+  await check('映射记录所属批次，可整批撤销', async () => {
+    assert.ok(run.totals.newMappings >= 10)
+    const undo = new Vault(join(outRoot, 'vault.json'))
+    await undo.load()
+    const before = undo.size()
+    assert.equal(undo.forgetRun('test-run-1'), run.totals.newMappings)
+    assert.equal(undo.size(), before - run.totals.newMappings)
   })
 
   // Output root inside the input directory: the second run must not read the
@@ -411,7 +413,8 @@ async function main() {
     assert.ok(allowRun.warnings.some((warning) => /移除 1 条/.test(warning)), JSON.stringify(allowRun.warnings))
   })
 
-  // Unsupported files and the maxFiles cap must be reported, not silently dropped.
+  // Unsupported files are reported; more files than maxFiles are split into
+  // chunks instead of being dropped.
   const mixedIn = join(tmp, 'mixed')
   await mkdir(mixedIn, { recursive: true })
   for (const name of ['note1.txt', 'visits.json']) {
@@ -423,14 +426,19 @@ async function main() {
     outputRoot: join(tmp, 'mixed-out'),
     options: { runId: 'mixed', maxFiles: 1 },
   })
-  await check('跳过的文件与超出上限的文件会进入报告', async () => {
+  await check('跳过的文件进入报告；超过 maxFiles 自动分组全部处理', async () => {
     assert.equal(mixed.skipped.unsupported, 1)
-    assert.equal(mixed.skipped.overLimit, 1)
-    assert.equal(mixed.status, 'review')
+    assert.equal(mixed.skipped.overLimit, 0)
+    assert.equal(mixed.chunks, 2)
+    assert.equal(mixed.totals.files, 2)
+    assert.notEqual(mixed.status, 'failed')
+    for (const name of ['note1.txt', 'visits.json']) {
+      await stat(join(tmp, 'mixed-out', 'runs', 'mixed', 'output', name))
+    }
     const report = await readFile(join(tmp, 'mixed-out', 'runs', 'mixed', 'report.md'), 'utf8')
     assert.match(report, /## 注意/)
     assert.match(report, /\.pdf×1/)
-    assert.match(report, /超过单批上限 1/)
+    assert.match(report, /自动分为 2 组/)
   })
 
   // A residual only the verifier catches must be replaced in the next round,
@@ -564,7 +572,7 @@ async function main() {
   })
   await check('未配置输出根时写到输入目录旁而不是 profile 目录', async () => {
     assert.equal(service.configInfo().outputRoot, '')
-    const started = await service.start({ inputDir: serviceIn, dryRun: false })
+    const started = await service.start({ inputDir: serviceIn })
     assert.equal(started.outputRoot, join(tmp, 'svc', '.medical-anonymizer'))
     for (let i = 0; i < 100; i += 1) {
       const { active } = await service.status(started.runId)
@@ -576,7 +584,7 @@ async function main() {
   })
   await check('服务接受单个文件，默认输出写在文件旁', async () => {
     const file = join(serviceIn, 'note1.txt')
-    const started = await service.start({ inputDir: file, dryRun: false })
+    const started = await service.start({ inputDir: file })
     assert.equal(started.inputDir, file)
     assert.equal(started.outputRoot, join(serviceIn, '.medical-anonymizer'))
     for (let i = 0; i < 100; i += 1) {
@@ -598,7 +606,7 @@ async function main() {
   const idem = await runBatch({
     inputDir: outDir,
     outputRoot: idemRoot,
-    options: { llm, runId: 'test-idem', maxRounds: 3, maxLlmCalls: 200 },
+    options: { llm, runId: 'test-idem', maxRounds: 3 },
     signal,
   })
   const idemNote = await readFile(join(idemRoot, 'runs', 'test-idem', 'output', 'note1.txt'), 'utf8')

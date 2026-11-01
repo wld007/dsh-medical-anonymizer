@@ -13,6 +13,7 @@ import { dateShiftDays } from '../lib/policy.js'
 import {
   writeDicomFixtures, GBK, STUDY, SERIES, SOP2, FOR,
 } from './dicom-fixtures.mjs'
+import { snapshotTree } from './snapshot.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmp = join(here, '.tmp', 'dicom')
@@ -208,10 +209,12 @@ async function main() {
     assert.equal(vaultText.includes('P0012345'), false)
   })
 
-  await check('演练模式不写出 DICOM', async () => {
-    const dry = await runBatch({ inputDir: input, outputRoot: join(tmp, 'dry'), options: { runId: 'dry', dryRun: true } })
-    assert.equal(dry.totals.dicom.files, 5)
-    await assert.rejects(stat(join(tmp, 'dry', 'runs', 'dry', 'output', 'patientA')))
+  await check('DICOM 源文件逐字节不变', async () => {
+    const before = await snapshotTree(input)
+    const again = await runBatch({ inputDir: input, outputRoot: join(tmp, 'untouched'), options: { runId: 'untouched' } })
+    assert.equal(again.totals.dicom.files, 5)
+    assert.deepEqual(await snapshotTree(input), before)
+    assert.equal(again.warnings.some((warning) => warning.includes('源文件')), false)
   })
 
   await check('准标识符策略作用于 DICOM（年龄分段、日期删除、性别删除）', async () => {

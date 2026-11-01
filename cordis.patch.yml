@@ -6,13 +6,16 @@
         model: ''
         outputRoot: ''
         maxRounds: 3
+        # Text files per chunk; larger inputs are split into chunks automatically.
         maxFiles: 200
+        # Files processed at the same time. Model calls are never capped.
+        concurrency: 4
         # DICOM files (header only, no model calls) have their own cap.
         maxDicomFiles: 50000
-        maxLlmCalls: 240
         disableThinking: true
-        dryRun: true
         showSidebarEntry: true
+        # Labelled local landline numbers without area code ("电话：66809363").
+        landline: false
         # Anonymization rules. Defaults: every identifier -> stable pseudonym;
         # quasi-identifiers untouched. Strategies:
         #   identifiers: pseudonym | mask | redact | keep

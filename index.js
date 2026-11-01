@@ -1,7 +1,7 @@
 /**
  * Host half of the medical data anonymizer bundle.
  *
- * Registers five agent tools, one /anonymize command, and one authenticated
+ * Registers six agent tools, one /anonymize command, and one authenticated
  * browser RPC channel. Every caller shares the same service methods.
  */
 import { createService } from './lib/service.js'
@@ -19,11 +19,10 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(tool({
     name: 'anonymize_start',
-    description: 'dsh-medical-anonymizer 插件：批量匿名化医疗数据（txt/md/csv/json/xlsx），把直接标识符替换为稳定假名并生成报告，文件结构不变；DICOM 影像（如 CT）只处理元数据：删除姓名与各类 ID、PatientID 换成不可回查的随机编号、UID 重新生成、日期整体平移，像素原样保留，且不经过模型。病历原文只发往用户在插件设置中配置的模型端点（通常为本机或内网）；未配置模型时只在本机用规则处理。立即返回批次 id。',
+    description: 'dsh-medical-anonymizer 插件：批量匿名化医疗数据（txt/md/csv/json/xlsx，以及 zip 压缩包：解压到临时目录处理后重新打包，原包只读），把直接标识符替换为稳定假名并生成报告，文件结构不变；文件名和目录名里的姓名、证件号、病人编号、住院号/门诊号也会替换；文件很多时自动分组，不丢文件；绝不修改源文件。DICOM 影像（如 CT）只处理元数据：删除姓名与各类 ID、PatientID 换成不可回查的随机编号、UID 重新生成、日期整体平移，像素原样保留，且不经过模型。病历原文只发往用户在插件设置中配置的模型端点（通常为本机或内网）；未配置模型时只在本机用规则处理。立即返回批次 id。',
     parameters: {
-      inputDir: { type: 'string', required: true, description: '待处理的目录或单个文件的绝对路径（或相对当前工作区的路径）。传单个文件时只处理该文件。' },
+      inputDir: { type: 'string', required: true, description: '待处理的目录或单个文件（含 .zip）的绝对路径（或相对当前工作区的路径）。传单个文件时只处理该文件。' },
       outputRoot: { type: 'string', description: '输出根目录，不能与输入目录相同；省略时用设置里的默认值，再缺省则为输入目录（或输入文件）旁的 .medical-anonymizer。' },
-      dryRun: { type: 'boolean', description: '演练模式：只检测与校验，不写出匿名化数据，也不更新映射库。省略时用设置里的默认值。' },
       maxRounds: { type: 'number', description: '发现-复核的最大轮次（1–6）；省略时用设置里的默认值。' },
     },
     // Model endpoint, model, key and thinking mode always come from the user's
@@ -31,14 +30,13 @@ export function apply(ctx, config = {}) {
     execute: async (args) => service.start({
       inputDir: args.inputDir,
       outputRoot: args.outputRoot,
-      dryRun: args.dryRun,
       maxRounds: args.maxRounds,
     }),
     render: (args, value) => [{
       type: 'text',
       text: value.modelConfigured
-        ? `已启动批次 ${value.runId}（模型 ${value.model}${value.dryRun ? '，演练模式' : ''}）。用 anonymize_status 查看进度。`
-        : `已启动批次 ${value.runId}（未配置模型，仅规则层${value.dryRun ? '，演练模式' : ''}）。用 anonymize_status 查看进度。`,
+        ? `已启动批次 ${value.runId}（模型 ${value.model}）。用 anonymize_status 查看进度。`
+        : `已启动批次 ${value.runId}（未配置模型，仅规则层）。用 anonymize_status 查看进度。`,
     }],
   }))
 
@@ -54,6 +52,19 @@ export function apply(ctx, config = {}) {
       text: value.cancelled
         ? `已请求取消批次 ${value.runId}（正在中断模型调用，报告记为已取消）。`
         : `没有取消：${value.reason ?? '当前没有运行中的批次'}`,
+    }],
+  }))
+
+  ctx.tools.register(tool({
+    name: 'anonymize_undo_mappings',
+    description: '撤销某个匿名化批次新增到映射库里的"原值→假名"对应关系（例如发现规则误判后清理）。只改映射库，不删除该批次的输出文件；之后重跑会重新生成映射。',
+    parameters: {
+      runId: { type: 'string', required: true, description: '要撤销映射的批次 id。' },
+    },
+    execute: async (args) => service.undoMappings(args.runId),
+    render: (args, value) => [{
+      type: 'text',
+      text: `已从映射库移除批次 ${value.runId} 新增的 ${value.removed} 条映射（${value.vaultPath}）。该批次的输出文件未改动。`,
     }],
   }))
 
@@ -78,7 +89,6 @@ export function apply(ctx, config = {}) {
         run: {
           id: run.id,
           status: run.status,
-          dryRun: run.dryRun,
           startedAt: run.startedAt,
           finishedAt: run.finishedAt,
           inputDir: run.inputDir,
@@ -104,7 +114,7 @@ export function apply(ctx, config = {}) {
       if (!value.found) return [{ type: 'text', text: '还没有匿名化批次。' }]
       const run = value.run
       const lines = [
-        `批次 ${run.id}: ${run.status}${run.dryRun ? '（演练）' : ''}`,
+        `批次 ${run.id}: ${run.status}`,
         `文件 ${run.totals?.files ?? 0} 个，实体 ${run.totals?.entities ?? 0} 处，待复核 ${run.totals?.unresolved ?? 0} 项`,
         `模型 ${run.config?.model || '未配置'}，调用 ${run.totals?.modelCalls ?? 0} 次`,
       ]
@@ -146,7 +156,7 @@ export function apply(ctx, config = {}) {
       return [{
         type: 'text',
         text: value.runs.map((run) =>
-          `${run.id}  ${run.startedAt}  ${run.status}${run.dryRun ? '（演练）' : ''}  文件 ${run.files}  实体 ${run.entities}  待复核 ${run.unresolved}`,
+          `${run.id}  ${run.startedAt}  ${run.status}  文件 ${run.files}  实体 ${run.entities}  待复核 ${run.unresolved}`,
         ).join('\n'),
       }]
     },
@@ -155,17 +165,16 @@ export function apply(ctx, config = {}) {
   ctx.inject(['commands'], (cmdCtx) => {
     const dispose = cmdCtx.commands.register({
       name: 'anonymize',
-      description: '批量匿名化医疗数据：/anonymize <目录或文件> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think] [--apply]',
-      input: { hint: '目录或文件 [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think] [--apply]' },
+      description: '批量匿名化医疗数据：/anonymize <目录或文件> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think]',
+      input: { hint: '目录或文件 [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think]' },
       handler: async (invocation) => {
-        const usage = '用法：/anonymize <输入目录或文件> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think] [--apply]（默认演练，不写数据）'
+        const usage = '用法：/anonymize <输入目录或文件> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think]'
         const tokens = String(invocation.rawInput ?? '').trim().split(/\s+/).filter(Boolean)
         const inputDir = tokens.shift()
         if (!inputDir) return { kind: 'error', text: usage }
-        const request = { inputDir, dryRun: true }
+        const request = { inputDir }
         while (tokens.length > 0) {
           const token = tokens.shift()
-          if (token === '--apply') { request.dryRun = false; continue }
           if (token === '--no-think') { request.disableThinking = true; continue }
           if (token === '--think') { request.disableThinking = false; continue }
           if (token === '--model' || token === '--endpoint' || token === '--base-url' || token === '--rounds' || token === '--output') {
@@ -183,7 +192,7 @@ export function apply(ctx, config = {}) {
           const info = await service.start(request)
           return {
             kind: 'success',
-            text: `已启动批次 ${info.runId}${info.dryRun ? '（演练模式，不写出数据）' : ''}，模型 ${info.model || '未配置（仅规则层）'}${info.disableThinking ? '，思考模式已关闭' : ''}。输入 ${info.inputDir}。用 anonymize_status 查看进度。`,
+            text: `已启动批次 ${info.runId}，模型 ${info.model || '未配置（仅规则层）'}${info.disableThinking ? '，思考模式已关闭' : ''}。输入 ${info.inputDir}。用 anonymize_status 查看进度。`,
           }
         } catch (error) {
           return { kind: 'error', text: String(error?.message ?? error) }
@@ -292,6 +301,8 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.report(request.runId) }
         case 'cancel':
           return { ok: true, value: await service.cancel(request.runId) }
+        case 'undoMappings':
+          return { ok: true, value: await service.undoMappings(request.runId) }
         case 'saveDefaults':
           return { ok: true, value: await saveDefaults(request) }
         default:
