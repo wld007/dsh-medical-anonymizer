@@ -31,7 +31,7 @@ structure intact, and writes an audit report plus a re-identification vault.
 
 | Area | What it does |
 | --- | --- |
-| Formats | `.txt`, `.md`, `.csv`, `.json`, `.xlsx` |
+| Formats | `.txt`, `.md`, `.csv`, `.json`, `.xlsx`; DICOM images (metadata only, see [DICOM images](#dicom-images)) |
 | Direct identifiers | name, doctor/staff name, Chinese ID, phone, email, address, medical-record number, admission number, visit number, social-security number, bank card, hospital name |
 | Column/key policy | headers such as `姓名`, `身份证号`, `电话`, `住址`, and keys such as `PTT_NM`, `ID_CRD_NO`, `CTCT_TEL_NO`, `CURR_ADDR*`, `*_DCT_NM`, `MDC_ORG_NM`, `PID`, `INHOS_NO` are pseudonymized wholesale; record keys such as `PRM_KEY`/`RCD_NO` are masked as record identifiers |
 | Pseudonyms | stable per value and type, e.g. `化名-9F3A2C`, `证件-1F0B67`; the same value gets the same token across files and batches sharing an output root |
@@ -191,6 +191,48 @@ handled deterministically after identifiers, without the model:
 - Only text values change: Excel numeric/date cells and JSON numbers are left
   as-is, and the report says so.
 
+## DICOM images
+
+Metadata de-identification for CT and other DICOM images. Pixel data is kept
+byte for byte: never decoded, modified, or sent to a model.
+
+- Detection: `.dcm`/`.dicom`/`.dic`/`.ima`, extensionless, or numeric-extension
+  files (typical PACS exports), confirmed by the `DICM` marker.
+- Rules: DICOM PS3.15 Annex E Basic Application Level Confidentiality Profile
+  with the Retain Longitudinal (modified dates) and Retain Patient
+  Characteristics options:
+  - patient and physician names emptied or removed; every PN attribute removed;
+  - birth date emptied; addresses, phones, other IDs, accession number, study ID,
+    institution, department, device serial, station name, comments and request
+    details removed;
+  - private (odd-group) attributes, curves, overlay comments, icon images and
+    digital signatures removed;
+  - **PatientID** becomes a cuid-style code, consistent per patient within one
+    batch. The key lives only in memory for that run and is never stored, so the
+    code cannot be traced back (and is not written to the vault). Process all
+    images of one patient in the same batch;
+  - instance UIDs become `2.25.<decimal>`, derived from the vault salt, so
+    cross-file references and re-runs stay consistent; class/syntax UIDs are kept;
+  - dates shift by the same offset as text; times kept; age kept (≥90 → `090Y`);
+    sex, size and weight kept;
+  - study/series description and protocol name kept but rule-scanned; any hit
+    (phone, ID number, …) removes the whole attribute.
+- With quasi-identifier handling on, DICOM follows the same date/age/sex policy
+  (age bands are written as their lower bound, e.g. `040Y`).
+- Writes `PatientIdentityRemoved=YES`, the de-identification method and code
+  sequence, and `LongitudinalTemporalInformationModified`.
+- Checks: header re-parse; leftover names/private tags/original UIDs; removed
+  identity values (names, IDs, birth date, institution) reappearing in kept
+  attributes are flagged for review; pixel data SHA-256 compared with the source.
+- Implicit/explicit VR little endian and all encapsulated syntaxes are
+  supported. Explicit VR big endian, deflated data sets and broken/truncated
+  files fail. `DICOMDIR` is not copied; regenerate it on the output.
+- `maxDicomFiles` (default 50000) caps DICOM files per batch, separately from
+  `maxFiles`. The report lists only DICOM files with issues and summarizes the
+  rest per directory.
+- Not handled: text burned into pixels, face reconstruction, NIfTI, whole-slide
+  pathology.
+
 ## Output
 
 ```text
@@ -251,6 +293,7 @@ layer:
     outputRoot: ''
     maxRounds: 3
     maxFiles: 200
+    maxDicomFiles: 50000
     maxLlmCalls: 240
     timeoutMs: 120000
     temperature: 0
@@ -268,14 +311,14 @@ layer:
 
 ## Supported formats and limits
 
-- Input: `.txt`, `.md`, `.csv`, `.json`, `.xlsx`.
+- Input: `.txt`, `.md`, `.csv`, `.json`, `.xlsx`, and DICOM (metadata only).
 - Direct identifiers by default; quasi-identifier handling (date, age, sex,
   postal code) is opt-in. Department, institution code, and order numbers are
   never generalized. Record keys matching `PRM_KEY`/`RCD_NO` are treated as
   record identifiers; order numbers are not.
 - Field hints cover common Chinese and English hospital schemas. Unusual field
   names need an extra pattern in `lib/formats.js` (`HEADER_HINTS`).
-- No Word, PDF, images, or DICOM. JSON output is pretty-printed; keys, arrays,
+- No Word, PDF, or plain images; DICOM pixels are not processed. JSON output is pretty-printed; keys, arrays,
   and value types are unchanged.
 - The model pass is optional and its quality depends on the model. The
   deterministic layer is the baseline.

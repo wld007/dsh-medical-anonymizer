@@ -7,6 +7,8 @@
         outputRoot: ''
         maxRounds: 3
         maxFiles: 200
+        # DICOM files (header only, no model calls) have their own cap.
+        maxDicomFiles: 50000
         maxLlmCalls: 240
         disableThinking: true
         dryRun: true

@@ -52,7 +52,7 @@
     "README.en.md"
   ],
   "scripts": {
-    "test": "node test/hints.mjs && node test/policy.mjs && node test/run.mjs",
+    "test": "node test/hints.mjs && node test/policy.mjs && node test/run.mjs && node test/dicom.mjs",
     "check:public": "node scripts/check-public.mjs"
   },
   "dsh": {

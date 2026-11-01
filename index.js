@@ -19,7 +19,7 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(tool({
     name: 'anonymize_start',
-    description: 'dsh-medical-anonymizer 插件：批量匿名化医疗数据（txt/md/csv/json/xlsx），把直接标识符替换为稳定假名并生成报告，文件结构不变。病历原文只发往用户在插件设置中配置的模型端点（通常为本机或内网）；未配置模型时只在本机用规则处理。立即返回批次 id。',
+    description: 'dsh-medical-anonymizer 插件：批量匿名化医疗数据（txt/md/csv/json/xlsx），把直接标识符替换为稳定假名并生成报告，文件结构不变；DICOM 影像（如 CT）只处理元数据：删除姓名与各类 ID、PatientID 换成不可回查的随机编号、UID 重新生成、日期整体平移，像素原样保留，且不经过模型。病历原文只发往用户在插件设置中配置的模型端点（通常为本机或内网）；未配置模型时只在本机用规则处理。立即返回批次 id。',
     parameters: {
       inputDir: { type: 'string', required: true, description: '待处理目录的绝对路径（或相对当前工作区的路径）。' },
       outputRoot: { type: 'string', description: '输出根目录，不能与输入目录相同；省略时用设置里的默认值，再缺省则为输入目录旁的 .medical-anonymizer。' },
@@ -66,6 +66,12 @@ export function apply(ctx, config = {}) {
     execute: async (args) => {
       const { run, active } = await service.status(args.runId)
       if (!run) return { found: false, active }
+      // CT batches can hold tens of thousands of slices: list files with
+      // problems first and cap the rest.
+      const allFiles = run.files ?? []
+      const noisy = allFiles.filter((file) => file.status !== 'clean' || (file.issues ?? []).length > 0)
+      const quiet = allFiles.filter((file) => !noisy.includes(file))
+      const listed = [...noisy.slice(0, 100), ...quiet.slice(0, Math.max(0, 50 - Math.min(noisy.length, 50)))]
       return {
         found: true,
         active,
@@ -79,7 +85,8 @@ export function apply(ctx, config = {}) {
           runDir: run.runDir,
           config: run.config,
           totals: run.totals,
-          files: (run.files ?? []).map((file) => ({
+          filesOmitted: allFiles.length - listed.length,
+          files: listed.map((file) => ({
             relPath: file.relPath,
             status: file.status,
             rounds: file.rounds,
@@ -104,6 +111,7 @@ export function apply(ctx, config = {}) {
       for (const file of run.files ?? []) {
         lines.push(`- ${file.relPath}: ${file.status}，${file.entities} 处，${file.issues} 个错误 / ${file.warnings} 个提示`)
       }
+      if (run.filesOmitted > 0) lines.push(`…另有 ${run.filesOmitted} 个文件全部通过，未逐一列出`)
       if (value.active) lines.push(`（批次 ${value.active} 正在运行）`)
       return [{ type: 'text', text: lines.join('\n') }]
     },
