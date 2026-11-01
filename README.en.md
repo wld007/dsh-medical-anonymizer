@@ -143,12 +143,17 @@ named tools. Only the human-typed `/anonymize` command accepts `--endpoint` and
 
 1. **Rule pre-scan.** Chinese ID (checksum-validated), mobile/landline, email,
    bank card (Luhn), MRN/admission/visit numbers, labeled names/addresses/
-   hospitals/doctors.
+   hospitals/doctors, and EMR template fields whose label and value are split
+   by markup (`F=[引用值:姓名]…[<isele 0>value<isele 1>]`).
 2. **Column and key policy.** Dedicated fields are pseudonymized as a whole,
    including common hospital-export keys such as `PTT_NM`, `ID_CRD_NO`,
    `CTCT_TEL_NO`, `*_ADDR*`, `*_DCT_NM`, `*_STFF_NM`, `MDC_ORG_NM`, `PID`,
-   `INHOS_NO`, `*_DCT_CD`/`*_NUS_CD` (staff codes) and `*_SGNT` (signatures).
-   Columns that describe an identifier (`ID_CRD_CGY_CD` card type, `*_TP_*`,
+   `INHOS_NO`, `*_DCT_CD`/`*_NUS_CD` (staff codes) and `*_SGNT` (signatures);
+   from regional health-platform exports also `SLF_NM` (self name), `*_PSN_NM`
+   (sample collector, reviewer, …), `WRK_UNT_NM` (employer), linkage keys
+   `USER_ID`, `VST_UNQ_ID`, `OTPT_EMG_NO`, `RGST_NO`, and institution codes
+   `*_ORG_CD`. Item/value records such as `{"ITM_NM": "姓名", "ITM_VLU": "…"}`
+   are judged by the item name. Columns that describe an identifier (`ID_CRD_CGY_CD` card type, `*_TP_*`,
    `*_FLG`, …) are not identifier columns.
 3. **Optional model discovery.** Batches of text are sent to the configured
    endpoint, with field names. Identical texts are sent once; pure numbers/dates
@@ -162,6 +167,14 @@ named tools. Only the human-typed `/anonymize` command accepts `--endpoint` and
    but never inside a longer run of letters/digits (`01` does not hit
    `2001017`), and codes shorter than 6 characters are replaced only where they
    were detected.
+   Categories and common nouns such as `区属医院`, `综合医院`, `中医院` or a bare
+   `医院` are not hospital names.
+   **Across files:** before processing, a model-free pass over all files (column
+   policy + rules) builds a batch dictionary, so a name or ID found in one file
+   is replaced in every other file. After all files are done, a batch re-check
+   catches values that only a later file (or the model) revealed; the report
+   lists it as `批次复扫`. Administrative region names (province, city, county)
+   do not spread across files.
 4. **Pseudonymization.** `HMAC-SHA256(salt, type + value)` produces a stable
    token per value and type. Only the matched span changes.
 5. **Verification.** Model re-check, rule re-scan, original-value absence (with

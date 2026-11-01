@@ -8,7 +8,7 @@ import { readFile, writeFile, rm, stat, mkdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as XLSX from '../vendor/xlsx.mjs'
-import { runBatch } from '../lib/pipeline.js'
+import { runBatch, echoesPseudonym } from '../lib/pipeline.js'
 import { createLlm } from '../lib/llm.js'
 import { createService } from '../lib/service.js'
 
@@ -289,6 +289,108 @@ async function main() {
     assert.equal(new Set(exportCalls.detectTexts).size, exportCalls.detectTexts.length, 'duplicate texts sent')
     assert.ok(!exportCalls.detectTexts.some((text) => /^[\d\s:.-]+$/.test(text)), 'numeric values sent')
     assert.ok(exportRun.totals.modelCalls <= 4, `calls=${exportRun.totals.modelCalls}`)
+  })
+
+  // Regional-platform export (GEHR): several record types for one patient,
+  // split over files. Reproduces leaks and corruption seen on real batches.
+  const gehrIn = join(tmp, 'gehr', 'in')
+  await mkdir(join(gehrIn, 'a'), { recursive: true })
+  await mkdir(join(gehrIn, 'b'), { recursive: true })
+  await writeFile(join(gehrIn, 'a', 'visit.json'), JSON.stringify([{
+    USER_ID: '53d63c7ea19e0a113ea490a9efc03fda',
+    PTT_NM: '赵小明',
+    MDC_ORG_CD: '5746',
+    MDC_ORG_NM: '东江市人民医院',
+    VST_UNQ_ID: '31301d399a3a8b7bdddde3888eff7197',
+    OTPT_EMG_NO: '7318775',
+    RGST_DPT_NM: '中医院发热门诊',
+    RGST_SRC_NM: '医院官方app、网站、公众号等',
+    ORG_ATRBT_NM: '综合医院',
+    ORG_ADMNSTRT_RGN_LVL_NM: '区属医院',
+    ADVC: '好转不明显请及时到医院再次就诊',
+    CLLT_SPCM_PSN_NM: '钱多多',
+    VRF_RCPT_PSN_NM: '孙一一',
+    REMARK: '陪同人周大福已告知',
+  }]))
+  await writeFile(join(gehrIn, 'b', 'contract.json'), JSON.stringify([{
+    SLF_NM: '赵小明',
+    ID_CRD_CGY_CD: '01',
+    ID_CRD_NO: '110105201710241652',
+    RSPSBLT_DCT_CD: '2c9c909e712b6b0f017270a07f437455',
+    WRK_UNT_NM: '光明社区',
+  }]))
+  await writeFile(join(gehrIn, 'b', 'emr.json'), JSON.stringify([
+    { ITM_NM: '文本主体', ITM_VLU: '<cell>姓名<fontbold 0>:<baseele I=1 N=文本型 F=[引用值:姓名><isele 1>[<isele 0>赵小明<isele 1>]<isele 0></cell><cell>住址<fontbold 0>:<baseele I=1 C=0 F=[引用值:联系地址><isele 1>[<isele 0>海南省东江市万城镇党校<isele 1>]<isele 0></cell>' },
+    { ITM_NM: '地址', ITM_VLU: '东江市万城镇市委党校\t\t' },
+    { ITM_NM: '病史', ITM_VLU: '现在住址：东江市万城镇市委党校\t\t电话号码：13800138000\n家属周大福陪同' },
+  ]))
+  // The model finds the companion's name only in prose of the last file; the
+  // first file holds it in an unlabelled remark and is already done by then.
+  const gehrModel = {
+    model: 'scripted',
+    async chatJson(messages) {
+      const prompt = messages.map((message) => message.content).join('\n')
+      const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
+      if (prompt.includes('检查下面脱敏后的文本')) return { json: { issues: [] } }
+      const entities = []
+      for (const segment of segments) {
+        if (segment.text.includes('家属周大福')) entities.push({ segment: segment.id, type: '姓名', text: '周大福' })
+        // Echo of a pseudonym fragment: must not be reported as unlocated.
+        const echo = /证件-([0-9A-F]{6})/.exec(segment.text)
+        if (echo) entities.push({ segment: segment.id, type: '身份证号', text: echo[1] })
+      }
+      return { json: { entities } }
+    },
+  }
+  const gehrRun = await runBatch({
+    inputDir: gehrIn,
+    outputRoot: join(tmp, 'gehr', 'out'),
+    options: { llm: gehrModel, runId: 'gehr', maxRounds: 3 },
+  })
+  const gehrOut = join(tmp, 'gehr', 'out', 'runs', 'gehr', 'output')
+  const gVisit = JSON.parse(await readFile(join(gehrOut, 'a', 'visit.json'), 'utf8'))[0]
+  const gContract = JSON.parse(await readFile(join(gehrOut, 'b', 'contract.json'), 'utf8'))[0]
+  const gEmrRaw = await readFile(join(gehrOut, 'b', 'emr.json'), 'utf8')
+  await check('区域平台导出：机构类别与通用词“医院”不被替换', () => {
+    assert.equal(gVisit.RGST_DPT_NM, '中医院发热门诊')
+    assert.equal(gVisit.RGST_SRC_NM, '医院官方app、网站、公众号等')
+    assert.equal(gVisit.ORG_ATRBT_NM, '综合医院')
+    assert.equal(gVisit.ORG_ADMNSTRT_RGN_LVL_NM, '区属医院')
+    assert.equal(gVisit.ADVC, '好转不明显请及时到医院再次就诊')
+    assert.equal(gContract.ID_CRD_CGY_CD, '01')
+    assert.equal(gContract.RSPSBLT_DCT_CD.includes('017270'), false) // whole staff code replaced, never a fragment
+    assert.match(gContract.RSPSBLT_DCT_CD, /^医生-[0-9A-F]{6}$/)
+  })
+  await check('区域平台导出：本人/检验人员/工作单位/可串联 ID 被替换', () => {
+    assert.match(gContract.SLF_NM, /^化名-[0-9A-F]{6}$/)
+    assert.equal(gContract.SLF_NM, gVisit.PTT_NM, 'same patient, same pseudonym')
+    assert.match(gVisit.CLLT_SPCM_PSN_NM, /^医生-/)
+    assert.match(gVisit.VRF_RCPT_PSN_NM, /^医生-/)
+    assert.match(gContract.WRK_UNT_NM, /^地址-/)
+    for (const key of ['USER_ID', 'VST_UNQ_ID', 'OTPT_EMG_NO', 'MDC_ORG_CD']) {
+      assert.match(gVisit[key], /^[\u4e00-\u9fa5]{2}-[0-9A-F]{6}$/, `${key} = ${gVisit[key]}`)
+    }
+  })
+  await check('区域平台导出：病历模板标记与 ITM_NM/ITM_VLU 中的姓名、住址被替换', () => {
+    for (const secret of ['赵小明', '党校', '13800138000']) assert.ok(!gEmrRaw.includes(secret), secret)
+    assert.match(gEmrRaw, /\[<isele 0>化名-[0-9A-F]{6}<isele 1>\]/)
+    assert.match(gEmrRaw, /地址-[0-9A-F]{6}\\t\\t/, 'padding around a whole-field value is kept')
+  })
+  await check('区域平台导出：其他文件识别到的姓名在批次复扫中补替换', () => {
+    assert.ok(!JSON.stringify(gVisit).includes('周大福'), gVisit.REMARK)
+    assert.ok(!gEmrRaw.includes('周大福'))
+    const visitFile = gehrRun.files.find((file) => file.relPath === 'a/visit.json')
+    assert.ok(visitFile.issues.some((issue) => issue.code === 'batch-recheck'), JSON.stringify(visitFile.issues))
+    assert.ok(!('doc' in JSON.parse(JSON.stringify(visitFile))), 'live document must not be serialized')
+  })
+  await check('区域平台导出：模型复述假名片段不产生“未定位”提示', () => {
+    assert.equal(echoesPseudonym('ID: 证件-294CD0', '294CD0'), true)
+    assert.equal(echoesPseudonym('就诊于医院-4A9C2A', '医院-4A9C2A'), true)
+    assert.equal(echoesPseudonym('患者周大福', '周大福'), false)
+    for (const file of gehrRun.files) {
+      assert.ok(!file.issues.some((issue) => issue.code === 'unlocated'), `${file.relPath}: ${JSON.stringify(file.issues)}`)
+    }
+    assert.equal(gehrRun.status, 'completed', JSON.stringify(gehrRun.files.map((file) => [file.relPath, file.issues])))
   })
 
   const allowRun = await runBatch({
