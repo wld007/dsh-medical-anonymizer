@@ -8,7 +8,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { runBatch } from '../lib/pipeline.js'
+import { runBatch, cleanStaleStaging } from '../lib/pipeline.js'
 import { readZip, writeZip } from '../lib/zip.js'
 import { createWriteGuard } from '../lib/guard.js'
 import { snapshotTree } from './snapshot.mjs'
@@ -57,6 +57,7 @@ await writeFile(join(input, 'patient_573999', 'stays', 'zyh_1008599', 'disease.j
 await rm(inner)
 
 const before = await snapshotTree(input)
+const stagingBefore = new Set((await readdir(tmpdir())).filter((name) => name.startsWith('dsh-anon-')))
 const run = await runBatch({ inputDir: input, outputRoot: outRoot, options: { runId: 'arch', maxFiles: 2 } })
 const outputDir = join(outRoot, 'runs', 'arch', 'output')
 
@@ -135,11 +136,21 @@ await check('源文件（含压缩包）逐字节不变', async () => {
 })
 
 await check('临时解压目录已清理', async () => {
-  const leftovers = (await readdir(tmpdir())).filter((name) => name.startsWith('dsh-anon-'))
-  for (const name of leftovers) {
-    const files = await listTree(join(tmpdir(), name)).catch(() => [])
-    assert.ok(!files.some((file) => file.includes('gehr_inhos_vst_rcd')), `staging left: ${name}`)
-  }
+  // Only folders this test created: a real batch may be running alongside.
+  const leftovers = (await readdir(tmpdir())).filter((name) => name.startsWith('dsh-anon-') && !stagingBefore.has(name))
+  assert.deepEqual(leftovers, [])
+})
+
+await check('被强制结束的运行留下的解压目录会被清理，运行中的不动', async () => {
+  const root = join(tmp, 'staging-root')
+  await mkdir(join(root, 'dsh-anon-dead', '0'), { recursive: true })
+  await writeFile(join(root, 'dsh-anon-dead', '.owner'), '999999')
+  await writeFile(join(root, 'dsh-anon-dead', '0', 'record.json'), '{}')
+  await mkdir(join(root, 'dsh-anon-live'), { recursive: true })
+  await writeFile(join(root, 'dsh-anon-live', '.owner'), String(process.pid))
+  await mkdir(join(root, 'other'), { recursive: true })
+  assert.equal(await cleanStaleStaging(root), 1)
+  assert.deepEqual((await readdir(root)).sort(), ['dsh-anon-live', 'other'])
 })
 
 await check('写入守卫拒绝输入目录与输出根之外', async () => {
