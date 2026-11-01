@@ -3,7 +3,7 @@
  * schemas; a missing mapping silently leaves identifiers in the output.
  */
 import assert from 'node:assert/strict'
-import { hintForKey, hintForSibling } from '../lib/formats.js'
+import { hintForJsonKey, hintForKey, hintForSibling } from '../lib/formats.js'
 import { scan, genericInstitution } from '../lib/rules.js'
 
 const cases = {
@@ -120,6 +120,26 @@ for (const [parent, key, expected] of siblingCases) {
   }
 }
 
+// A bare JSON "name" is a person name only inside a person-like object.
+const jsonKeyCases = [
+  [{ id: 1, name: 'x', age: 40, card_no: 'x', phone: 'x' }, 'name', '姓名'],
+  [{ name: 'x', sex: '男' }, 'name', '姓名'],
+  [{ icd10: 'J18.9', name: 'x' }, 'name', null], // diagnosis
+  [{ name: 'x', unit: 'g/L', value: '3', status: 'x' }, 'name', null], // lab item
+  [{ code: '01', name: 'x' }, 'name', null], // order category
+  [{ id: 1, name: 'x', patient_name: 'x', hname: 'x' }, 'name', null], // exam with its own patient name
+  [{ id: 1, name: 'x', content: 'x', hname: 'x' }, 'name', null], // document title
+  [{ id: 1, patient_name: 'x', name: 'x' }, 'patient_name', '姓名'],
+  [{ PTT_NM: 'x', AGE: 1 }, 'PTT_NM', '姓名'],
+]
+for (const [parent, key, expected] of jsonKeyCases) {
+  const actual = hintForJsonKey(parent, key)
+  if (actual !== expected) {
+    failed += 1
+    console.error(`FAIL jsonKey ${JSON.stringify(parent)}.${key}: expected ${expected}, got ${actual}`)
+  }
+}
+
 // Institution categories are not names.
 const institutionCases = {
   医院: true, 中医院: true, 综合医院: true, 区属医院: true, 市属医院: true, 省属医院: true,
@@ -154,4 +174,4 @@ for (const text of ['到医院就诊', '区属医院', '中医院发热门诊', 
 }
 
 assert.equal(failed, 0, `${failed} field-policy case(s) failed`)
-console.log(`HINTS PASS (${Object.keys(cases).length + siblingCases.length + Object.keys(institutionCases).length + 6} cases)`)
+console.log(`HINTS PASS (${Object.keys(cases).length + siblingCases.length + jsonKeyCases.length + Object.keys(institutionCases).length + 6} cases)`)
