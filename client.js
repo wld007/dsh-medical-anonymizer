@@ -30,6 +30,10 @@ window.__ModuleLoader__.load({
       'rules.quasiTitle': '准标识符（单独不能识别个人，组合起来可能识别）',
       'rules.quasiToggle': '同时处理准标识符（日期、年龄、性别、邮编）',
       'rules.quasiHint': '默认关闭，即只处理标识符。开启后按下表处理；只处理文本值，Excel 数值/日期单元格和 JSON 数字不改动。',
+      'rules.allowTitle': '排除误判',
+      'rules.allowHint': '报告里出现误判时在这里排除，然后重新运行。每行一项；之前误存进映射库的对应关系会在下次运行时移除。',
+      'rules.allowValues': '不匹配的值（这些值永远不当作标识符，如 01、居民身份证、科室名称）',
+      'rules.skipFields': '不处理的字段（列名或 JSON 键名，不区分大小写，如 ADMN_BED_NO；这些字段原样输出）',
       'strategy.pseudonym': '稳定假名',
       'strategy.mask': '部分遮盖',
       'strategy.redact': '替换为类型标签',
@@ -111,6 +115,8 @@ window.__ModuleLoader__.load({
       'detail.copied': '已复制',
       'detail.loading': '加载中…',
       'detail.noReport': '批次尚未结束，报告将在完成后生成。',
+      'detail.progress': '进行中：{file} · {step}{round}，已调用模型 {calls} 次',
+      'detail.round': ' · 第 {round} 轮',
       'detail.files': '文件明细',
       'detail.noFiles': '暂无文件记录。',
       'detail.dry': '演练',
@@ -155,6 +161,10 @@ window.__ModuleLoader__.load({
       'rules.quasiTitle': 'Quasi-identifiers (identify a person only in combination)',
       'rules.quasiToggle': 'Also process quasi-identifiers (date, age, sex, postal code)',
       'rules.quasiHint': 'Off by default, so only identifiers are processed. When on, text values are handled as below; Excel numeric/date cells and JSON numbers are not changed.',
+      'rules.allowTitle': 'Exclude false positives',
+      'rules.allowHint': 'When the report shows a false positive, exclude it here and run again. One item per line; mappings an earlier run stored for these values are removed on the next run.',
+      'rules.allowValues': 'Values that are never identifiers (e.g. 01, 居民身份证, department names)',
+      'rules.skipFields': 'Fields left untouched (column or JSON key names, case-insensitive, e.g. ADMN_BED_NO; values are copied as-is)',
       'strategy.pseudonym': 'Stable pseudonym',
       'strategy.mask': 'Partial mask',
       'strategy.redact': 'Type label',
@@ -236,6 +246,8 @@ window.__ModuleLoader__.load({
       'detail.copied': 'Copied',
       'detail.loading': 'Loading…',
       'detail.noReport': 'The batch is still running; the report appears when it finishes.',
+      'detail.progress': 'In progress: {file} · {step}{round}; {calls} model calls so far',
+      'detail.round': ' · round {round}',
       'detail.files': 'Files',
       'detail.noFiles': 'No file records.',
       'detail.dry': 'Dry run',
@@ -352,6 +364,7 @@ window.__ModuleLoader__.load({
       .ma-field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--dsw-alias-label-secondary);min-width:0}
       .ma-field.ma-wide{grid-column:1 / -1}
       .ma-input{height:30px;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);padding:0 9px;font:inherit;font-size:13px;min-width:0}
+      .ma-textarea{height:auto;min-height:84px;padding:6px 9px;resize:vertical;font-family:var(--dsw-font-mono,ui-monospace,monospace);font-size:12px;line-height:1.5}
       .ma-input:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-alias-brand-primary);outline-offset:1px}
       .ma-inline{display:flex;gap:8px}
       .ma-inline .ma-input{flex:1}
@@ -490,6 +503,8 @@ window.__ModuleLoader__.load({
       const [identifierPolicy, setIdentifierPolicy] = React.useState({})
       const [quasiOn, setQuasiOn] = React.useState(false)
       const [quasiPolicy, setQuasiPolicy] = React.useState({})
+      const [allowText, setAllowText] = React.useState('')
+      const [skipText, setSkipText] = React.useState('')
       const [testing, setTesting] = React.useState(false)
       const [ping, setPing] = React.useState(null)
       const [saving, setSaving] = React.useState(false)
@@ -511,7 +526,11 @@ window.__ModuleLoader__.load({
         setIdentifierPolicy({ ...(info.identifierPolicy ?? {}) })
         setQuasiOn(info.quasiIdentifiers === true)
         setQuasiPolicy({ ...(info.quasiPolicy ?? {}) })
+        setAllowText((info.allowValues ?? []).join('\n'))
+        setSkipText((info.skipFields ?? []).join('\n'))
       }
+      const lines = (text) => [...new Set(String(text ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean))]
+      const sameList = (text, list) => JSON.stringify(lines(text)) === JSON.stringify(list ?? [])
 
       const schema = config?.policySchema ?? { identifiers: [], quasi: [] }
       const sameMap = (a, b) => JSON.stringify(Object.entries(a ?? {}).sort()) === JSON.stringify(Object.entries(b ?? {}).sort())
@@ -519,6 +538,8 @@ window.__ModuleLoader__.load({
         setIdentifierPolicy(Object.fromEntries(schema.identifiers.map((item) => [item.id, 'pseudonym'])))
         setQuasiOn(false)
         setQuasiPolicy(Object.fromEntries(schema.quasi.map((item) => [item.id, item.default])))
+        setAllowText('')
+        setSkipText('')
       }
 
       React.useEffect(() => {
@@ -537,7 +558,8 @@ window.__ModuleLoader__.load({
         ['dryRun', dryRun !== (config.dryRun !== false)],
         ['showSidebarEntry', showSidebar !== (config.showSidebarEntry !== false)],
         ['rules', !sameMap(identifierPolicy, config.identifierPolicy) || quasiOn !== (config.quasiIdentifiers === true)
-          || !sameMap(quasiPolicy, config.quasiPolicy)],
+          || !sameMap(quasiPolicy, config.quasiPolicy)
+          || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields)],
       ].filter(([, changed]) => changed).map(([key]) => key) : []
 
       async function testConnection() {
@@ -568,6 +590,8 @@ window.__ModuleLoader__.load({
             identifierPolicy,
             quasiIdentifiers: quasiOn,
             quasiPolicy,
+            allowValues: lines(allowText),
+            skipFields: lines(skipText),
           }
           if (apiKey.length > 0) request.apiKey = apiKey
           else if (clearKey) request.apiKey = ''
@@ -700,6 +724,23 @@ window.__ModuleLoader__.load({
                 (value) => setQuasiPolicy({ ...quasiPolicy, [item.id]: value }), !quasiOn),
               h('span', { className: 'ma-mono', title: example }, example))
           })),
+        ),
+        h('div', { className: 'ma-card' },
+          h('div', { className: 'ma-block-head' },
+            h('div', {},
+              h('h3', {}, t('rules.allowTitle')),
+              h('p', { className: 'ma-hint' }, t('rules.allowHint'))),
+          ),
+          h('label', { className: 'ma-field' }, t('rules.allowValues'),
+            h('textarea', {
+              className: 'ma-input ma-textarea', value: allowText, spellCheck: false,
+              onChange: (event) => setAllowText(event.target.value),
+            })),
+          h('label', { className: 'ma-field' }, t('rules.skipFields'),
+            h('textarea', {
+              className: 'ma-input ma-textarea', value: skipText, spellCheck: false,
+              onChange: (event) => setSkipText(event.target.value),
+            })),
         ),
       )
 
@@ -1016,7 +1057,16 @@ window.__ModuleLoader__.load({
                 ),
               h('h4', {}, t('detail.report')),
               current.status === 'running'
-                ? h('p', { className: 'ma-empty' }, t('detail.noReport'))
+                ? h('div', {},
+                  current.current
+                    ? h('p', { className: 'ma-hint' }, t('detail.progress', {
+                      file: current.current.file,
+                      step: current.current.step,
+                      round: current.current.round ? t('detail.round', { round: current.current.round }) : '',
+                      calls: current.current.modelCalls ?? 0,
+                    }))
+                    : null,
+                  h('p', { className: 'ma-empty' }, t('detail.noReport')))
                 : (reportText
                   ? h('pre', { className: 'ma-pre' }, reportText)
                   : h('p', { className: 'ma-empty' }, t('detail.loading'))),

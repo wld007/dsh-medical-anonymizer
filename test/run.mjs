@@ -217,6 +217,98 @@ async function main() {
     await assert.rejects(stat(join(tmp, 'single-out', 'runs', 'single-1', 'output', 'visits.json')))
   })
 
+  // Hospital export regression (synthetic data shaped like FACT_ADMN_RCD_INFMT):
+  // the ID-card *category* code "01" must not be treated as an ID number and
+  // spread into department codes and dates; a ward name returned by the model
+  // as a hospital must be rejected; short codes must not spread to bed numbers.
+  const exportIn = join(tmp, 'export-in')
+  await mkdir(exportIn, { recursive: true })
+  const exportRecords = Array.from({ length: 30 }, (_, index) => ({
+    PRM_KEY: String(81234500 + index),
+    MDC_ORG_NM: '北京示范第一人民医院',
+    INHOS_NO: String(20230100 + index),
+    PTT_NM: '张三',
+    ID_CRD_CGY_CD: '01',
+    ID_CRD_CGY_NM: '居民身份证',
+    ID_CRD_NO: '11010519491231002X',
+    ADMN_DT_TM: `2023-01-${String(index % 28 + 1).padStart(2, '0')} 08:01:19`,
+    ADMN_DPT_CD: '2001017',
+    ADMN_DPT_NM: '内一科(肾脏病科)(11病区)',
+    ADMN_BED_NO: index === 0 ? '4321' : `${index}S`,
+    ADMN_DCT_CD: '4321',
+    ADMN_DCT_NM: '赵一鸣',
+    RSPSBLT_NUS_SGNT: '钱晓丽',
+    UPD_STFF_NM: 'AUTO',
+    ADMN_TNTTV_DIAG_DSCPT: '肾病综合征',
+  }))
+  await writeFile(join(exportIn, 'admissions.json'), JSON.stringify(exportRecords, null, 2))
+  const exportCalls = { detect: 0, verify: 0, detectTexts: [] }
+  const wardModel = {
+    model: 'scripted',
+    async chatJson(messages) {
+      const prompt = messages.map((message) => message.content).join('\n')
+      const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
+      if (prompt.includes('检查下面脱敏后的文本')) {
+        exportCalls.verify += 1
+        return { json: { issues: [] } }
+      }
+      exportCalls.detect += 1
+      exportCalls.detectTexts.push(...segments.map((segment) => segment.text))
+      const ward = segments.find((segment) => segment.text.includes('病区'))
+      return { json: { entities: ward ? [{ segment: ward.id, type: '医院', text: ward.text }] : [] } }
+    },
+  }
+  const exportRun = await runBatch({
+    inputDir: join(exportIn, 'admissions.json'),
+    outputRoot: join(tmp, 'export-out'),
+    options: { llm: wardModel, runId: 'export', maxRounds: 3 },
+  })
+  const exportOut = JSON.parse(await readFile(join(tmp, 'export-out', 'runs', 'export', 'output', 'admissions.json'), 'utf8'))
+  await check('医院导出：证件类型代码、科室、日期、床号不被误替换', async () => {
+    const file = exportRun.files[0]
+    assert.equal(exportRun.status, 'completed', JSON.stringify(file.issues))
+    exportOut.forEach((record, index) => {
+      const source = exportRecords[index]
+      for (const key of ['ID_CRD_CGY_CD', 'ID_CRD_CGY_NM', 'ADMN_DT_TM', 'ADMN_DPT_CD', 'ADMN_DPT_NM', 'UPD_STFF_NM', 'ADMN_TNTTV_DIAG_DSCPT']) {
+        assert.equal(record[key], source[key], `${key}[${index}]`)
+      }
+      if (index > 0) assert.equal(record.ADMN_BED_NO, source.ADMN_BED_NO, `ADMN_BED_NO[${index}]`)
+      for (const key of ['PRM_KEY', 'MDC_ORG_NM', 'INHOS_NO', 'PTT_NM', 'ID_CRD_NO', 'ADMN_DCT_CD', 'ADMN_DCT_NM', 'RSPSBLT_NUS_SGNT']) {
+        assert.match(record[key], /^[\u4e00-\u9fa5]{2,3}-[0-9A-F]{6}$/, `${key}[${index}] = ${record[key]}`)
+      }
+    })
+    // A bed number equal to a staff code is a coincidence: short codes do not spread.
+    assert.equal(exportOut[0].ADMN_BED_NO, '4321')
+    const raw = JSON.stringify(exportOut)
+    for (const secret of ['张三', '11010519491231002X', '北京示范第一人民医院', '赵一鸣', '钱晓丽']) {
+      assert.ok(!raw.includes(secret), secret)
+    }
+    assert.ok(file.issues.some((issue) => issue.code === 'implausible' && /科室/.test(issue.detail)), JSON.stringify(file.issues))
+  })
+  await check('医院导出：重复文本只发一次、数字/日期不发给模型', async () => {
+    assert.equal(new Set(exportCalls.detectTexts).size, exportCalls.detectTexts.length, 'duplicate texts sent')
+    assert.ok(!exportCalls.detectTexts.some((text) => /^[\d\s:.-]+$/.test(text)), 'numeric values sent')
+    assert.ok(exportRun.totals.modelCalls <= 4, `calls=${exportRun.totals.modelCalls}`)
+  })
+
+  const allowRun = await runBatch({
+    inputDir: join(exportIn, 'admissions.json'),
+    outputRoot: join(tmp, 'export-out'),
+    options: {
+      runId: 'export-allow',
+      policy: { allowValues: ['张三'], skipFields: ['ID_CRD_NO'] },
+    },
+  })
+  const allowOut = JSON.parse(await readFile(join(tmp, 'export-out', 'runs', 'export-allow', 'output', 'admissions.json'), 'utf8'))
+  await check('排除误判：不匹配的值与不处理的字段原样保留，映射库同步移除', async () => {
+    assert.equal(allowOut[0].PTT_NM, '张三')
+    assert.equal(allowOut[0].ID_CRD_NO, '11010519491231002X')
+    assert.match(allowOut[0].ADMN_DCT_NM, /^医生-/)
+    const vaultAfter = JSON.parse(await readFile(join(tmp, 'export-out', 'vault.json'), 'utf8'))
+    assert.ok(!vaultAfter.entries.some((entry) => entry.original === '张三'), 'allowlisted value still in vault')
+    assert.ok(allowRun.warnings.some((warning) => /移除 1 条/.test(warning)), JSON.stringify(allowRun.warnings))
+  })
+
   // Unsupported files and the maxFiles cap must be reported, not silently dropped.
   const mixedIn = join(tmp, 'mixed')
   await mkdir(mixedIn, { recursive: true })
@@ -391,6 +483,10 @@ async function main() {
       await new Promise((resolve) => setTimeout(resolve, 50))
     }
     await stat(join(serviceIn, '.medical-anonymizer', 'runs', started.runId, 'output', 'note1.txt'))
+  })
+  await check('服务拒绝不支持的单个文件', async () => {
+    await writeFile(join(serviceIn, 'scan.pdf'), 'not a pdf')
+    await assert.rejects(service.start({ inputDir: join(serviceIn, 'scan.pdf') }), /不支持的文件类型/)
   })
   await check('服务拒绝不存在的输入路径', async () => {
     await assert.rejects(service.start({ inputDir: join(serviceIn, 'missing.txt') }), /输入路径不存在/)

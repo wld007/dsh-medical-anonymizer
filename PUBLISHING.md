@@ -142,6 +142,7 @@ dsh --profile test --dump-config | grep -A4 medical-anonymizer
 ## 提交前清单
 
 - [ ] `OWNER` 全部替换，条目文件已重命名
+- [ ] `CHANGELOG.md` 已补充本版本条目，`package.json` 的 `version` 已同步修改
 - [ ] `npm test` 通过
 - [ ] `npm pack --dry-run` 里没有 test/dist/vault/个人路径
 - [ ] `package.json` 同时有 `dsh.bundle` 和 `dsh.client`

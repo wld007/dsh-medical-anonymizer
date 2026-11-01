@@ -39,3 +39,8 @@
           age: band10
           sex: keep
           postalCode: prefix3
+        # False-positive exclusions, one item each. allowValues are never
+        # treated as identifiers (and are removed from the vault on the next
+        # run); skipFields are column/JSON key names copied as-is.
+        allowValues: []
+        skipFields: []

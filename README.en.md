@@ -146,16 +146,29 @@ named tools. Only the human-typed `/anonymize` command accepts `--endpoint` and
    hospitals/doctors.
 2. **Column and key policy.** Dedicated fields are pseudonymized as a whole,
    including common hospital-export keys such as `PTT_NM`, `ID_CRD_NO`,
-   `CTCT_TEL_NO`, `*_ADDR*`, `*_DCT_NM`, `*_STFF_NM`, `MDC_ORG_NM`, `PID`, and
-   `INHOS_NO`.
+   `CTCT_TEL_NO`, `*_ADDR*`, `*_DCT_NM`, `*_STFF_NM`, `MDC_ORG_NM`, `PID`,
+   `INHOS_NO`, `*_DCT_CD`/`*_NUS_CD` (staff codes) and `*_SGNT` (signatures).
+   Columns that describe an identifier (`ID_CRD_CGY_CD` card type, `*_TP_*`,
+   `*_FLG`, …) are not identifier columns.
 3. **Optional model discovery.** Batches of text are sent to the configured
-   endpoint. The model returns `{segment, type, text}`; the plugin locates the
-   exact text in the source. Model coordinates are never trusted.
+   endpoint, with field names. Identical texts are sent once; pure numbers/dates
+   and already-anonymized values are not sent. The model returns
+   `{segment, type, text}`; the plugin locates the exact text in the source.
+   Model coordinates are never trusted.
+   **Format check:** a result that cannot be of its type is not replaced and is
+   listed as a hint — e.g. `01` in an ID-card column, or a department name such
+   as `内一科(肾脏病科)(11病区)` returned as a hospital.
+   **Document-wide expansion:** a found value is also replaced where it recurs,
+   but never inside a longer run of letters/digits (`01` does not hit
+   `2001017`), and codes shorter than 6 characters are replaced only where they
+   were detected.
 4. **Pseudonymization.** `HMAC-SHA256(salt, type + value)` produces a stable
    token per value and type. Only the matched span changes.
-5. **Verification.** Model re-check, rule re-scan, original-value absence, and a
-   structure diff (line count, CSV shape/header, JSON key/type shape, Excel
-   non-text cells).
+5. **Verification.** Model re-check, rule re-scan, original-value absence (with
+   the masked value and field names), embedded-pseudonym check (a pseudonym glued
+   to letters/digits means a longer value was partly replaced), numbers/dates in
+   structured data replaced only as a whole, and a structure diff (line count,
+   CSV shape/header, JSON key/type shape, Excel non-text cells).
 6. **Bounded repair.** Errors go back to discovery for another round, up to
    `maxRounds`. If no progress is made, the file is marked `review` and listed
    for manual review.
@@ -195,6 +208,17 @@ handled deterministically after identifiers, without the model:
   offset never appears in reports. Do not re-run shifting on its own output.
 - Only text values change: Excel numeric/date cells and JSON numbers are left
   as-is, and the report says so.
+
+### Excluding false positives
+
+When the report shows a false positive, add it under Settings → Anonymization
+rules → Exclude false positives (one item per line) and run again:
+
+- `allowValues`: never treated as identifiers, e.g. `01`, `居民身份证`, a
+  department name. Mappings an earlier run stored for them are removed from the
+  vault on the next run.
+- `skipFields`: column or JSON key names (case-insensitive) that are not
+  scanned, replaced, or sent to the model, e.g. `ADMN_BED_NO`.
 
 ## DICOM images
 
@@ -308,6 +332,8 @@ layer:
     identifierPolicy: { name: pseudonym, phone: mask, hospital: keep }  # unlisted types: pseudonym
     quasiIdentifiers: false
     quasiPolicy: { date: shift, age: band10, sex: keep, postalCode: prefix3 }
+    allowValues: ['01', '居民身份证']
+    skipFields: [ADMN_BED_NO]
 ```
 
 - `maxFiles` caps a batch; `maxLlmCalls` caps model calls per batch.

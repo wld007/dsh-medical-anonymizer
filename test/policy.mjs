@@ -62,4 +62,29 @@ assert.equal(dateShiftDays('a'), dateShiftDays('a'))
 assert.notEqual(dateShiftDays('a'), 0)
 assert.ok(Math.abs(dateShiftDays('b')) <= 365)
 
+// False-positive exclusions.
+assert.deepEqual(defaults.allowValues, [])
+assert.deepEqual(defaults.skipFields, [])
+assert.deepEqual(resolvePolicy({ allowValues: ['01', ' 01 ', '', '居民身份证'] }).allowValues, ['01', '居民身份证'])
+assert.deepEqual(normalizePolicyPatch({ skipFields: 'ADMN_BED_NO\n\nDCT_GRP_NO\n' }).skipFields, ['ADMN_BED_NO', 'DCT_GRP_NO'])
+assert.throws(() => normalizePolicyPatch({ allowValues: 5 }), /格式不正确/)
+assert.throws(() => normalizePolicyPatch({ allowValues: ['x'.repeat(201)] }), /200/)
+
+// Format plausibility of detections.
+{
+  const { plausible } = await import('../lib/rules.js')
+  assert.ok(plausible('身份证号', '01', 'header'), 'a category code is not an ID')
+  assert.ok(plausible('身份证号', '居民身份证', 'header'))
+  assert.equal(plausible('身份证号', '11010519491231002X', 'header'), null)
+  assert.equal(plausible('身份证号', 'E12345678', 'llm'), null)
+  assert.ok(plausible('医院', '内一科(肾脏病科)(11病区)', 'llm'), 'a ward is not a hospital')
+  assert.equal(plausible('医院', '北京示范第一人民医院', 'llm'), null)
+  assert.equal(plausible('医院', '某某医院心内科', 'llm'), null)
+  assert.ok(plausible('住院号', '12S', 'llm'))
+  assert.equal(plausible('住院号', '20230045', 'llm'), null)
+  assert.ok(plausible('医生', 'AUTO', 'header'))
+  assert.ok(plausible('姓名', '1234', 'llm'))
+  assert.equal(plausible('医生', '1234', 'header'), null, 'a staff code in a doctor column is still replaced')
+}
+
 console.log('POLICY PASS')

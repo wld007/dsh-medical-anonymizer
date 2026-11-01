@@ -41,7 +41,20 @@ const cases = {
   // record/linkage keys: masked as record identifiers
   PRM_KEY: '病历号',
   RCD_NO: '病历号',
+  // staff codes and signatures
+  ADMN_DCT_CD: '医生',
+  RSPSBLT_NUS_CD: '医生',
+  RSPSBLT_NUS_SGNT: '医生',
   // non-identifiers that must stay untouched
+  ID_CRD_CGY_CD: null,
+  ID_CRD_CGY_NM: null,
+  CRD_TP_CD: null,
+  CRD_TP_NM: null,
+  INHOS_CGY_CD: null,
+  INHOS_STTS_CD: null,
+  ADMN_BED_NO: null,
+  DCT_GRP_NO: null,
+  ADMN_DPT_CD: null,
   _id: null,
   DPT_NM: null,
   WRD_NM: null,

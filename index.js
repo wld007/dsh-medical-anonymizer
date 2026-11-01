@@ -95,6 +95,7 @@ export function apply(ctx, config = {}) {
             warnings: (file.issues ?? []).filter((issue) => issue.severity === 'warn').length,
           })),
           batchWarnings: run.warnings ?? [],
+          ...(run.current ? { current: run.current } : {}),
           ...(run.error ? { error: run.error } : {}),
         },
       }
@@ -107,6 +108,10 @@ export function apply(ctx, config = {}) {
         `文件 ${run.totals?.files ?? 0} 个，实体 ${run.totals?.entities ?? 0} 处，待复核 ${run.totals?.unresolved ?? 0} 项`,
         `模型 ${run.config?.model || '未配置'}，调用 ${run.totals?.modelCalls ?? 0} 次`,
       ]
+      if (run.status === 'running' && run.current) {
+        const current = run.current
+        lines.push(`进行中：${current.file}${current.round ? ` 第 ${current.round} 轮` : ''}·${current.step}（已调用模型 ${current.modelCalls ?? 0} 次）`)
+      }
       for (const warning of run.batchWarnings ?? []) lines.push(`⚠️ ${warning}`)
       for (const file of run.files ?? []) {
         lines.push(`- ${file.relPath}: ${file.status}，${file.entities} 处，${file.issues} 个错误 / ${file.warnings} 个提示`)
