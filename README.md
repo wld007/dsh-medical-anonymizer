@@ -8,6 +8,12 @@
 
 > 这是数据处理工具，不是合规认证。发布任何输出之前，请对照适用法律和本机构的政策进行审查。
 
+![处理流水线看板](https://raw.githubusercontent.com/wld007/dsh-medical-anonymizer/main/assets/dashboard.png)
+
+<p align="center"><img src="https://raw.githubusercontent.com/wld007/dsh-medical-anonymizer/main/assets/pipeline.gif" alt="处理流程实时动画" width="820"></p>
+
+<sub>截图使用合成数据，不含真实患者信息。</sub>
+
 ## 特点
 
 - **结构天然保持。** 模型只负责标注文本；插件定位精确片段，只替换这些片段。
@@ -76,17 +82,30 @@ Agent 工具。
 - **本地模型**：端点、模型、API Key、关闭思考模式、单次调用超时、温度、**测试连接**（端点上没有该模型名时会提示）。
 - **批次默认值**：输出根目录、最大轮次、每组文件数、同时处理的文件数、单批 DICOM 上限。
 - **映射库加密**：设置/修改/清除 `vaultPassphrase`（两次输入确认，保存后不再显示）。改口令或取消加密后，用旧口令加密的映射库将无法读取。
-- **匿名化规则**：每类标识符的处理方式、准标识符开关、每类准标识符的处理方式，均附实时示例；可选识别无区号座机号。
+- **匿名化规则**：每类标识符的处理方式、准标识符开关、每类准标识符的处理方式，均附实时示例；不匹配的值与不处理的字段。
 - **界面**：在左侧栏显示或隐藏 **医疗数据匿名化** 入口。隐藏后 `/anonymize` 和 Agent 工具仍可使用。
 - 保存栏列出未保存的字段；**保存** 会写入该 profile 自己的配置层，重启和插件更新后依然保留。
   API Key 只在你输入或清除时保存，之后不再显示，存放在 profile 配置文件中（权限 600）。
   批次运行期间不允许保存，因为保存会重新加载插件。
 
-### 左侧栏 → 医疗数据匿名化（运行批次）
+### 左侧栏 → 医疗数据匿名化（处理流水线看板）
 
-1. 选择输入目录（也可直接填写单个文件或 `.zip` 的路径）；可选覆盖输出根目录。
-2. 启动批次。模型、端点和轮次取自已保存的设置。
-3. 点击批次查看文件明细和报告、复制输出路径，或取消正在运行的批次。
+一屏展示整批处理过程，左侧输入、中间流程、右侧监控与参数：
+
+| 区域 | 内容 |
+| --- | --- |
+| A1 数据输入 | 选文件夹，或选单个文件 / `.zip`（macOS 原生选择框）；可覆盖输出根目录 |
+| A2 批次记录 | 历史批次、状态与来源（面板 / `/anonymize` / Agent 会话，可跳回会话）；可删除记录，可选同时删除交付数据 |
+| B1 处理流程 | 8 个环节的产线示意图：预扫描 → 解析 → 识别 → 核验 → 修正 → 批次复扫 → DICOM → 输出；处理中的环节高亮，文件在传送带上移动；下方文件队列逐个文件着色 |
+| B2 / B3 | 按类型的标识符替换统计；核验结果比例（通过 / 待复核 / 失败）与交付数据路径 |
+| 底部标签页 | 文件、日志（自动滚动）、模型调用（耗时分布条 + 逐次记录，只记元数据）、提示、报告（Markdown 渲染，可全屏） |
+| C1 运行监控 | 完成度、处理速率曲线、剩余文件与预计剩余时间、替换标识符、模型调用、待复核、Token 消耗、内存 |
+| C2 处理参数 | 轮次、并发、分组、超时、温度、思考模式、准标识符开关；运行中锁定；其余配置在「全部设置」弹框 |
+| C3 改进建议 | 批次结束后按统计给出可一键采纳的参数建议；参数解决不了的问题生成不含原值的插件改进草稿 |
+
+点击左上角标题可打开「处理说明」：处理范围、当前标识符处理方式、流程图与各环节方法、处理原则、输出结构和结果判定。
+
+<p align="center"><img src="https://raw.githubusercontent.com/wld007/dsh-medical-anonymizer/main/assets/help.png" alt="处理说明" width="640"></p>
 
 ### `/anonymize` 命令
 
@@ -97,7 +116,7 @@ Agent 工具。
 直接写出匿名化文件（源文件只读，不会被修改）。
 
 输入也可以是单个文件，例如 `/anonymize /path/to/note.txt` 或 `/anonymize /path/to/记录.zip`：只处理该文件，
-输出为 `runs/<批次号>/output/note.txt`，默认输出根目录在该文件旁边的 `.medical-anonymizer`。
+交付数据为输出根目录下的 `note.txt`，默认输出根目录在该文件旁边的 `_medical-anonymizer`。
 
 选项：`--rounds N`、`--output DIR`、`--no-think`、`--think`。
 
@@ -229,22 +248,35 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
 
 ```text
 <outputRoot>/
-  vault.json                 # 原值 <-> 假名，权限 0600
-  index.json                 # 最近的批次
-  runs/<runId>/
-    output/...               # 匿名化副本，相对目录结构不变（含标识符的文件名/目录名已替换）
-    report.md
-    report.json
-    path-map.json            # 原路径 <-> 新路径，仅在有路径被替换时生成，权限 0600，与映射库同样敏感
+  <输入目录名>/              # 交付数据：只含匿名化后的数据，结构与输入相同（名称中的标识符已替换），可整个拿走
+  <输入目录名> (2)/          # 同一输入再跑一次：加序号，不覆盖旧结果
+  note.txt                   # 单个文件输入的交付数据
+  _records/
+    vault.json               # 原值 <-> 假名，权限 0600
+    index.json               # 最近的批次
+    runs/<runId>/
+      report.md
+      report.json
+      path-map.json          # 原路径 <-> 新路径，仅在有路径被替换时生成，权限 0600，与映射库同样敏感
+      advice.json            # 改进建议（含「不匹配的值」候选原值，权限 0600）；看板「改进建议」面板读取它
+      calls.json             # 模型调用记录：时间、文件、环节、耗时、Token、结果（不含提示词和回复）
+      review/                # 待复核文件的匿名化副本（zip 里的也已取出，x.zip 显示为 x (zip)/），不用解压交付数据即可检查
+      output/                # 运行中的暂存区；批次完成后整体移到输出根目录。取消/失败时部分结果留在这里
 ```
+
+批次完成（含「待复核」）后，交付数据才会出现在输出根目录，所以根目录里看到的都是完整结果。
+0.7 及更早版本放在输出根目录下的 `vault.json`、`index.json`、`runs/` 会在下次运行时自动移入
+`_records`，映射库照常沿用，假名保持一致。
 
 `vault.json` 是还原身份的钥匙。请与输出分开存放并妥善保护。报告刻意不包含任何原值。
 在设置页（批次与界面 → 映射库加密）或插件配置中设置 `vaultPassphrase` 可用 AES-256-GCM 加密映射库；不设置时映射库为
 权限 0600 的明文 JSON。
 
-未显式指定也未配置 `outputRoot` 时，输出写到输入目录**旁边**的隐藏目录
-`.medical-anonymizer`，因此相邻的批次（例如每位患者一个文件夹）共享同一个映射库，
-假名保持一致。输出根不能与输入目录相同。如果放在输入目录内部，它会被排除在扫描之外，
+未显式指定也未配置 `outputRoot` 时，输出写到输入目录**旁边**的
+`_medical-anonymizer` 文件夹（访达里可见），因此相邻的批次（例如每位患者一个文件夹）共享同一个映射库，
+假名保持一致。以后对上级目录做匿名化时，名为 `_medical-anonymizer` 或含 `_records/vault.json` 的文件夹
+会自动跳过，映射库不会被当作病历读入。0.7 及更早版本使用隐藏目录 `.medical-anonymizer`，
+下次运行时如果旁边还没有 `_medical-anonymizer`，会把它改名沿用。输出根不能与输入目录相同。如果放在输入目录内部，它会被排除在扫描之外，
 映射库和之前的输出不会被当作病历重新读入。
 
 扩展名不受支持的文件、无法解压的压缩包会列在报告的 **注意** 部分；有压缩包无法解压的批次
@@ -285,7 +317,7 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
 - `visits/mzh_3444733_check.json` → `visits/mzh_就诊-XXXXXX_check.json`
 
 分类目录（住院、门诊、检验……）、年月目录、表名（`p_doc_gehr_*_rcd`）、院区代码（`h5650`）
-和序号保持不变。原路径与新路径的对照写入 `runs/<runId>/path-map.json`（权限 0600），
+和序号保持不变。原路径与新路径的对照写入 `_records/runs/<runId>/path-map.json`（权限 0600），
 报告和批次列表中只显示替换后的路径。
 
 ## 隐私与安全
@@ -320,7 +352,6 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
     temperature: 0
     disableThinking: true
     vaultPassphrase: ''
-    landline: false
     identifierPolicy: { name: pseudonym, phone: mask, hospital: keep }  # 未列出的类型：pseudonym
     quasiIdentifiers: false
     quasiPolicy: { date: shift, age: band10, sex: keep, postalCode: prefix3 }
@@ -330,9 +361,9 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
 
 - `maxFiles` 是自动分组的每组文件数（超出不会丢弃）；`concurrency` 是同时处理的文件数。
   模型调用次数不设上限。
-- `landline` 开启后识别带“电话：”等标签的 7–8 位无区号座机号（医院总机号也会被替换）。
+- 带“电话：”等标签的 7–8 位无区号座机号属于电话，总是识别（医院总机号也会被替换；不想替换的号码加入 `allowValues`）。旧配置里的 `landline` 不再生效。
 - `timeoutMs` 是单次模型调用的超时。
-- `outputRoot` 为空表示 `<输入目录的上级>/.medical-anonymizer`。
+- `outputRoot` 为空表示 `<输入目录的上级>/_medical-anonymizer`。
 
 ## 支持的格式与限制
 
@@ -348,7 +379,7 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
 
 ```bash
 npm test                      # 字段提示、规则策略、zip、路径、端到端流程、DICOM
-node scripts/build.mjs 0.7.0  # 为本地 profile 构建带版本号的 dist/
+node scripts/build.mjs 0.8.0  # 为本地 profile 构建带版本号的 dist/
 ```
 
 `npm test` 使用确定性的模拟模型，不需要网络或真实数据。本地安装仅用于开发；

@@ -4,7 +4,33 @@
  * Registers six agent tools, one /anonymize command, and one authenticated
  * browser RPC channel. Every caller shares the same service methods.
  */
+import { execFile } from 'node:child_process'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { createService } from './lib/service.js'
+
+/**
+ * Native "choose file" dialog on the machine running the Harness (macOS).
+ * The browser's own folder picker cannot select a single file, and a file
+ * input would only give the page a name, not a path. Returns null on cancel.
+ */
+function pickFile() {
+  if (process.platform !== 'darwin') {
+    return Promise.reject(new Error('选择单个文件目前只支持 macOS；请直接在输入框里填写文件的完整路径'))
+  }
+  const script = 'POSIX path of (choose file with prompt "选择要匿名化的文件（txt/md/csv/json/xlsx/zip/DICOM）")'
+  return new Promise((resolve, reject) => {
+    execFile('osascript', ['-e', script], { timeout: 10 * 60 * 1000 }, (error, stdout, stderr) => {
+      if (error) {
+        // -128: the user pressed Cancel.
+        if (/-128/.test(String(stderr)) || /-128/.test(String(error.message))) resolve(null)
+        else reject(new Error(String(stderr || error.message).trim()))
+        return
+      }
+      resolve(String(stdout).replace(/\n$/, '').trim() || null)
+    })
+  })
+}
 
 export const name = 'medical-anonymizer'
 export const inject = ['tools']
@@ -15,22 +41,27 @@ const ENTRY_ID = 'medical-anonymizer'
 export function apply(ctx, config = {}) {
   const workingDirectory = ctx.get('workingDirectory')
   const defaultDirectory = workingDirectory?.defaultDirectory ?? process.cwd()
-  const service = createService({ config, defaultDirectory })
+  // Small plugin state (remembered output roots) lives with the profile.
+  const stateDir = process.env.DSH_PROFILE_DIR
+    ? join(process.env.DSH_PROFILE_DIR, 'plugin-data', 'medical-anonymizer')
+    : join(homedir(), '.dsh', 'plugin-data', 'medical-anonymizer')
+  const service = createService({ config, defaultDirectory, stateDir })
 
   ctx.tools.register(tool({
     name: 'anonymize_start',
-    description: 'dsh-medical-anonymizer 插件：批量匿名化医疗数据（txt/md/csv/json/xlsx，以及 zip 压缩包：解压到临时目录处理后重新打包，原包只读），把直接标识符替换为稳定假名并生成报告，文件结构不变；文件名和目录名里的姓名、证件号、病人编号、住院号/门诊号也会替换；文件很多时自动分组，不丢文件；绝不修改源文件。DICOM 影像（如 CT）只处理元数据：删除姓名与各类 ID、PatientID 换成不可回查的随机编号、UID 重新生成、日期整体平移，像素原样保留，且不经过模型。病历原文只发往用户在插件设置中配置的模型端点（通常为本机或内网）；未配置模型时只在本机用规则处理。立即返回批次 id。',
+    description: 'dsh-medical-anonymizer 插件：批量匿名化医疗数据（txt/md/csv/json/xlsx，以及 zip 压缩包：解压到临时目录处理后重新打包，原包只读），把直接标识符替换为稳定假名并生成报告，文件结构不变；文件名和目录名里的姓名、证件号、病人编号、住院号/门诊号也会替换；文件很多时自动分组，不丢文件；绝不修改源文件。DICOM 影像（如 CT）只处理元数据：删除姓名与各类 ID、PatientID 换成不可回查的随机编号、UID 重新生成、日期整体平移，像素原样保留，且不经过模型。完成后交付数据（与输入同名、名称中的标识符已替换的文件夹或文件）直接放在输出根目录下，报告、映射库等记录统一放在输出根目录的 _records 里。病历原文只发往用户在插件设置中配置的模型端点（通常为本机或内网）；未配置模型时只在本机用规则处理。立即返回批次 id。',
     parameters: {
       inputDir: { type: 'string', required: true, description: '待处理的目录或单个文件（含 .zip）的绝对路径（或相对当前工作区的路径）。传单个文件时只处理该文件。' },
-      outputRoot: { type: 'string', description: '输出根目录，不能与输入目录相同；省略时用设置里的默认值，再缺省则为输入目录（或输入文件）旁的 .medical-anonymizer。' },
+      outputRoot: { type: 'string', description: '输出根目录，不能与输入目录相同；交付数据直接放在它下面，记录放在其中的 _records。省略时用设置里的默认值，再缺省则为输入目录（或输入文件）旁的 _medical-anonymizer。' },
       maxRounds: { type: 'number', description: '发现-复核的最大轮次（1–6）；省略时用设置里的默认值。' },
     },
     // Model endpoint, model, key and thinking mode always come from the user's
     // saved settings: the agent cannot redirect patient text elsewhere.
-    execute: async (args) => service.start({
+    execute: async (args, exec) => service.start({
       inputDir: args.inputDir,
       outputRoot: args.outputRoot,
       maxRounds: args.maxRounds,
+      source: { kind: 'agent', sessionId: sessionIdOf(exec?.agent) },
     }),
     render: (args, value) => [{
       type: 'text',
@@ -42,7 +73,7 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(tool({
     name: 'anonymize_cancel',
-    description: '取消正在运行的匿名化批次（省略 runId 时取消当前批次）。已写出的文件保留，报告状态记为已取消。',
+    description: '取消正在运行的匿名化批次（省略 runId 时取消当前批次）。已写出的部分结果保留在 _records/runs/<批次>/output（不放到输出根目录），报告状态记为已取消。',
     parameters: {
       runId: { type: 'string', description: '批次 id；省略则取消当前正在运行的批次。' },
     },
@@ -93,6 +124,7 @@ export function apply(ctx, config = {}) {
           finishedAt: run.finishedAt,
           inputDir: run.inputDir,
           runDir: run.runDir,
+          output: run.output ?? null,
           config: run.config,
           totals: run.totals,
           filesOmitted: allFiles.length - listed.length,
@@ -172,7 +204,7 @@ export function apply(ctx, config = {}) {
         const tokens = String(invocation.rawInput ?? '').trim().split(/\s+/).filter(Boolean)
         const inputDir = tokens.shift()
         if (!inputDir) return { kind: 'error', text: usage }
-        const request = { inputDir }
+        const request = { inputDir, source: { kind: 'command', sessionId: sessionIdOf(invocation.agent) } }
         while (tokens.length > 0) {
           const token = tokens.shift()
           if (token === '--no-think') { request.disableThinking = true; continue }
@@ -293,8 +325,6 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.ping(request) }
         case 'list':
           return { ok: true, value: await service.list() }
-        case 'start':
-          return { ok: true, value: await service.start(request) }
         case 'status':
           return { ok: true, value: await service.status(request.runId) }
         case 'report':
@@ -303,6 +333,17 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.cancel(request.runId) }
         case 'undoMappings':
           return { ok: true, value: await service.undoMappings(request.runId) }
+        case 'deleteRun':
+          return { ok: true, value: await service.deleteRun(request.runId, { deliverable: request.deliverable === true }) }
+        case 'calls':
+          return { ok: true, value: await service.calls(request.runId, request.since) }
+        case 'start':
+          // The page is the only RPC caller that starts batches.
+          return { ok: true, value: await service.start({ ...request, source: { kind: 'panel' } }) }
+        case 'advice':
+          return { ok: true, value: await service.advice(request.runId) }
+        case 'pickFile':
+          return { ok: true, value: { path: await pickFile() } }
         case 'saveDefaults':
           return { ok: true, value: await saveDefaults(request) }
         default:
@@ -320,6 +361,15 @@ export function apply(ctx, config = {}) {
     }
   }
 
+}
+
+function sessionIdOf(agent) {
+  try {
+    const id = agent?.session?.id
+    return typeof id === 'string' ? id : undefined
+  } catch {
+    return undefined
+  }
 }
 
 function tool(def) {

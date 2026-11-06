@@ -13,6 +13,7 @@ import { dateShiftDays } from '../lib/policy.js'
 import {
   writeDicomFixtures, GBK, STUDY, SERIES, SOP2, FOR,
 } from './dicom-fixtures.mjs'
+import { outDirOf, outJoin } from './outputs.mjs'
 import { snapshotTree } from './snapshot.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -38,7 +39,7 @@ const value = (parsed, tag) => {
 const has = (parsed, tag) => parsed.dataset.some((item) => item.tag === tag)
 
 async function readOut(runId, rel) {
-  const buffer = await readFile(join(outRoot, 'runs', runId, 'output', rel))
+  const buffer = await readFile(outJoin(await outDirOf(outRoot, runId), rel))
   return { buffer, parsed: parseDicomBuffer(buffer, { dict: dictVr }) }
 }
 
@@ -63,7 +64,7 @@ async function main() {
   })
 
   const run = await runBatch({ inputDir: input, outputRoot: outRoot, options: { runId: 'd1' } })
-  const vault = JSON.parse(await readFile(join(outRoot, 'vault.json'), 'utf8'))
+  const vault = JSON.parse(await readFile(join(outRoot, '_records', 'vault.json'), 'utf8'))
   const shiftDays = dateShiftDays(vault.salt)
 
   await check('识别 DICOM（含无扩展名、数字扩展名），跳过 DICOMDIR，大端文件失败', async () => {
@@ -73,7 +74,7 @@ async function main() {
     const big = run.files.find((file) => file.relPath === 'patientB/big.dcm')
     assert.equal(big.status, 'failed')
     assert.match(big.issues[0].detail, /大端/)
-    await assert.rejects(stat(join(outRoot, 'runs', 'd1', 'output', 'DICOMDIR')))
+    await assert.rejects(stat(outJoin(await outDirOf(outRoot, 'd1'), 'DICOMDIR')))
     // the text note in the same folder is still processed by the text pipeline
     assert.ok(run.files.some((file) => file.relPath === 'note.txt' && file.kind === 'text'))
   })
@@ -189,8 +190,8 @@ async function main() {
   })
 
   await check('报告不含原始值，DICOM 汇总存在', async () => {
-    const markdown = await readFile(join(outRoot, 'runs', 'd1', 'report.md'), 'utf8')
-    const json = await readFile(join(outRoot, 'runs', 'd1', 'report.json'), 'utf8')
+    const markdown = await readFile(join(outRoot, '_records', 'runs', 'd1', 'report.md'), 'utf8')
+    const json = await readFile(join(outRoot, '_records', 'runs', 'd1', 'report.json'), 'utf8')
     for (const text of [markdown, json]) {
       for (const needle of ['P0012345', 'ZHANG', '19790315', STUDY]) assert.equal(text.includes(needle), false, needle)
     }
@@ -205,7 +206,7 @@ async function main() {
     assert.equal(value(next.parsed, '0020000D'), value(a1.parsed, '0020000D'))
     assert.equal(value(next.parsed, '00080020'), value(a1.parsed, '00080020'))
     assert.notEqual(value(next.parsed, '00100020'), value(a1.parsed, '00100020'))
-    const vaultText = await readFile(join(outRoot, 'vault.json'), 'utf8')
+    const vaultText = await readFile(join(outRoot, '_records', 'vault.json'), 'utf8')
     assert.equal(vaultText.includes('P0012345'), false)
   })
 
@@ -227,7 +228,7 @@ async function main() {
       },
     })
     assert.equal(quasi.totals.filesFailed, 1) // only the big-endian file
-    const buffer = await readFile(join(tmp, 'quasi', 'runs', 'q', 'output', 'patientA', 'CT1', 'IM0001.dcm'))
+    const buffer = await readFile(outJoin(await outDirOf(join(tmp, 'quasi'), 'q'), 'patientA', 'CT1', 'IM0001.dcm'))
     const parsed = parseDicomBuffer(buffer, { dict: dictVr })
     assert.equal(value(parsed, '00101010'), '040Y')
     assert.equal(value(parsed, '00080020'), '')

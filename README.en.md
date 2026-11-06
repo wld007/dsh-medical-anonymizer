@@ -10,6 +10,12 @@ structure intact, and writes an audit report plus a re-identification vault.
 > This is a data-processing tool, not a compliance certification. Review the
 > applicable law and your institution's policy before publishing any output.
 
+![Pipeline dashboard](https://raw.githubusercontent.com/wld007/dsh-medical-anonymizer/main/assets/dashboard.png)
+
+<p align="center"><img src="https://raw.githubusercontent.com/wld007/dsh-medical-anonymizer/main/assets/pipeline.gif" alt="Live pipeline animation" width="820"></p>
+
+<sub>Screenshots use synthetic data; no real patient information.</sub>
+
 ## Why this one
 
 - **Structure is preserved by construction.** The model only annotates text;
@@ -90,8 +96,7 @@ Configuration only, with a collapsible **How it works** guide at the top:
 - **Batch defaults**: output root, max rounds, files per chunk, files processed at the same time, DICOM cap per batch.
 - **Vault encryption**: set, change, or clear `vaultPassphrase` (entered twice, never shown again). After changing or clearing it, vaults encrypted with the old passphrase can no longer be read.
 - **Anonymization rules**: treatment per identifier type, the quasi-identifier
-  switch, and treatment per quasi-identifier type, each with a live example;
-  optional detection of landline numbers without an area code.
+  switch, and treatment per quasi-identifier type, each with a live example.
 - **Interface**: show or hide the **Medical Anonymization** entry in the left
   sidebar. When hidden, `/anonymize` and the agent tools still work.
 - The save bar lists unsaved fields; **Save** writes them into the profile's own
@@ -100,13 +105,26 @@ Configuration only, with a collapsible **How it works** guide at the top:
   profile config file (mode 600). Saving is refused while a batch is running,
   because it re-applies the plugin.
 
-### Left sidebar → Medical Anonymization (running batches)
+### Left sidebar → Medical Anonymization (pipeline dashboard)
 
-1. Choose the input directory (or type the path of a single file or a `.zip`);
-   optionally override the output root.
-2. Start the batch. Model, endpoint, and rounds come from the saved settings.
-3. Click a batch to see per-file results and the report, copy the output path,
-   or cancel a running batch.
+One screen for the whole batch: input on the left, the pipeline in the middle,
+monitoring and settings on the right. The interface is in Chinese or English
+following the Harness locale.
+
+| Area | Content |
+| --- | --- |
+| A1 Input | Choose a folder, or a single file / `.zip` (native macOS dialog); optional output root |
+| A2 Batches | History with status and origin (page / `/anonymize` / agent session, linked back); delete a record, optionally with its deliverable |
+| B1 Pipeline | Eight stations on a conveyor: prescan → parse → detect → verify → remediate → batch rescan → DICOM → output; active stations light up and files move along; a file queue colours every file |
+| B2 / B3 | Identifiers replaced by type; verification outcome (clean / review / failed) and the deliverable path |
+| Bottom tabs | Files, log (auto-scroll), model calls (duration strip + per-call metadata), notices, report (rendered Markdown, full screen) |
+| C1 Monitor | Progress, throughput curve, files left and ETA, identifiers, model calls, review items, tokens, memory |
+| C2 Settings | Rounds, concurrency, chunk size, timeout, temperature, thinking, quasi-identifier switch; locked while running; everything else under All settings |
+| C3 Improvements | One-click setting suggestions after each batch; a value-free plugin-improvement draft for what settings cannot fix |
+
+Click the title to open the processing reference: scope, current identifier
+treatments, pipeline diagram with each stage's method, principles, output
+layout, and outcomes.
 
 ### `/anonymize` command
 
@@ -118,9 +136,9 @@ Anonymized files are written directly (source files are read-only and never
 modified).
 
 The input may also be a single file, e.g. `/anonymize /path/to/note.txt` or
-`/anonymize /path/to/records.zip`: only that file is processed, the output is
-`runs/<runId>/output/note.txt`, and the default output root is a
-`.medical-anonymizer` folder next to the file.
+`/anonymize /path/to/records.zip`: only that file is processed, the result is
+`note.txt` directly in the output root, and the default output root is a
+`_medical-anonymizer` folder next to the file.
 
 Options: `--rounds N`, `--output DIR`, `--no-think`, `--think`.
 
@@ -292,24 +310,39 @@ byte for byte: never decoded, modified, or sent to a model.
 
 ```text
 <outputRoot>/
-  vault.json                 # original <-> pseudonym, mode 0600
-  index.json                 # recent batches
-  runs/<runId>/
-    output/...               # anonymized copy, same relative layout (identifiers in file/folder names replaced)
-    report.md
-    report.json
-    path-map.json            # original <-> new path, only when a path was renamed; mode 0600, as sensitive as the vault
+  <input folder name>/       # result: anonymized data only, same layout (identifiers in names replaced); take it as is
+  <input folder name> (2)/   # the same input run again: numbered, earlier results are never overwritten
+  note.txt                   # result of a single-file input
+  _records/
+    vault.json               # original <-> pseudonym, mode 0600
+    index.json               # recent batches
+    runs/<runId>/
+      report.md
+      report.json
+      path-map.json          # original <-> new path, only when a path was renamed; mode 0600, as sensitive as the vault
+      advice.json            # improvement suggestions (allow-list candidates hold original values; mode 0600), shown in the Improvements panel
+      calls.json             # model-call log: time, file, stage, duration, tokens, outcome (no prompts or replies)
+      review/                # anonymized copies of files that need review, taken out of zips too (x.zip becomes x (zip)/)
+      output/                # staging while running; moved to the output root when the batch finishes. Partial results of a cancelled/failed batch stay here
 ```
+
+A result appears in the output root only once its batch has finished
+(including Needs review), so everything there is complete. `vault.json`,
+`index.json`, and `runs/` left in the output root by 0.7 and earlier move into
+`_records` on the next run; the vault keeps working and pseudonyms stay the same.
 
 `vault.json` is the re-identification key. Keep it separate from the output and
 protect it accordingly. The report deliberately contains no original values.
 Set `vaultPassphrase` on the settings page (Batches & UI → Vault encryption) or in the plugin config to encrypt the vault with
 AES-256-GCM; without it the vault is plaintext JSON with mode 0600.
 
-Without an explicit or configured `outputRoot`, output goes to a hidden
-`.medical-anonymizer` directory **beside** the input directory, so sibling
+Without an explicit or configured `outputRoot`, output goes to a
+`_medical-anonymizer` folder (visible in Finder) **beside** the input directory, so sibling
 batches (for example one folder per patient) share one vault and keep
-consistent pseudonyms. The output root may not equal the input directory. If
+consistent pseudonyms. When a parent directory is anonymized later, folders
+named `_medical-anonymizer` or holding `_records/vault.json` are skipped, so the
+vault is never read in as records. 0.7 and earlier used the hidden
+`.medical-anonymizer`; if no `_medical-anonymizer` exists yet, it is renamed and reused. The output root may not equal the input directory. If
 you place it inside the input directory, it is excluded from scanning, so the
 vault and earlier outputs are never read back in as records.
 
@@ -369,7 +402,7 @@ in the text:
 Category folders (inpatient, outpatient, lab, …), year/month folders, table
 names (`p_doc_gehr_*_rcd`), campus codes (`h5650`), and sequence numbers are
 kept. The mapping from original to new paths is written to
-`runs/<runId>/path-map.json` (mode 0600); reports and the batch list show only
+`_records/runs/<runId>/path-map.json` (mode 0600); reports and the batch list show only
 the replaced paths.
 
 ## Privacy and security
@@ -411,7 +444,6 @@ layer:
     temperature: 0
     disableThinking: true
     vaultPassphrase: ''
-    landline: false
     identifierPolicy: { name: pseudonym, phone: mask, hospital: keep }  # unlisted types: pseudonym
     quasiIdentifiers: false
     quasiPolicy: { date: shift, age: band10, sex: keep, postalCode: prefix3 }
@@ -422,11 +454,12 @@ layer:
 - `maxFiles` is the chunk size for automatic grouping (files beyond it are not
   dropped); `concurrency` is the number of files processed at a time. Model
   calls are not capped.
-- `landline` enables detection of 7–8 digit landline numbers without an area
-  code when labeled (e.g. `电话：`); hospital switchboard numbers are replaced
-  too.
+- Labeled 7–8 digit landline numbers without an area code (e.g. `电话：`)
+  are phone numbers and always detected; hospital switchboard numbers are
+  replaced too (exempt them with `allowValues`). An old `landline` setting no
+  longer has an effect.
 - `timeoutMs` is the per-call model timeout.
-- `outputRoot` empty means `<parent of input>/.medical-anonymizer`.
+- `outputRoot` empty means `<parent of input>/_medical-anonymizer`.
 
 ## Supported formats and limits
 
@@ -446,7 +479,7 @@ layer:
 
 ```bash
 npm test                      # field hints, rule policy, zip, paths, end-to-end pipeline, DICOM
-node scripts/build.mjs 0.7.0  # build a versioned dist/ for a local profile
+node scripts/build.mjs 0.8.0  # build a versioned dist/ for a local profile
 ```
 
 `npm test` uses a deterministic mock model; no network or real data is needed.

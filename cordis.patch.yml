@@ -14,8 +14,6 @@
         maxDicomFiles: 50000
         disableThinking: true
         showSidebarEntry: true
-        # Labelled local landline numbers without area code ("电话：66809363").
-        landline: false
         # Anonymization rules. Defaults: every identifier -> stable pseudonym;
         # quasi-identifiers untouched. Strategies:
         #   identifiers: pseudonym | mask | redact | keep
