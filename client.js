@@ -1551,14 +1551,14 @@ window.__ModuleLoader__.load({
       .ws-heap-warn .ws-membar-fill{background:var(--dsw-alias-state-warn-primary)}
       .ws-heap-bad b{color:var(--dsw-alias-state-error-primary)}
       .ws-heap-bad .ws-membar-fill{background:var(--dsw-alias-state-error-primary)}
-      .ws-params{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base);overflow:hidden}
+      .ws-params{position:relative;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base)}
       .ws-params-head{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 8px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
       .ws-params-head:disabled{cursor:default}
       .ws-params-title{font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-      .ws-psum{display:flex;flex-wrap:wrap;gap:0 4px;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;min-width:0}
+      .ws-psum{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;min-width:0}
       .ws-psum i{font-style:normal;opacity:.6}
       .ws-psum .ws-psum-mod{color:var(--dsw-alias-state-warn-primary);font-weight:600}
-      .ws-params-body{display:flex;flex-direction:column;gap:6px;padding:4px 8px 8px;border-top:1px dashed var(--dsw-alias-border-l1)}
+      .ws-params-body{position:absolute;z-index:30;left:-1px;top:calc(100% + 4px);width:max(100%,300px);display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 10px 28px rgba(0,0,0,.22)}
       .ws-params-actions{flex-wrap:nowrap}
       .ws-cross .ws-x-line{display:flex;align-items:baseline;gap:6px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
       .ws-cross .ws-x-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-size:13px}
@@ -3124,13 +3124,19 @@ window.__ModuleLoader__.load({
 
       // Params block in A1: folded to a one-line summary; values apply to the
       // next batch directly, "设为默认" also saves them as defaults.
-      const [paramsOpen, setParamsOpen] = React.useState(() => {
-        try { return window.localStorage.getItem('ma-ws-params-open') === '1' } catch { return false }
-      })
-      const toggleParams = () => setParamsOpen((value) => {
-        try { window.localStorage.setItem('ma-ws-params-open', value ? '0' : '1') } catch { /* private mode */ }
-        return !value
-      })
+      // The editor opens as a floating panel over the history, so the
+      // left column never grows; outside click or Esc closes it.
+      const [paramsOpen, setParamsOpen] = React.useState(false)
+      const paramsRef = React.useRef(null)
+      const toggleParams = () => setParamsOpen((value) => !value)
+      React.useEffect(() => {
+        if (!paramsOpen) return undefined
+        const onDown = (event) => { if (paramsRef.current && !paramsRef.current.contains(event.target)) setParamsOpen(false) }
+        const onKey = (event) => { if (event.key === 'Escape') setParamsOpen(false) }
+        document.addEventListener('mousedown', onDown)
+        document.addEventListener('keydown', onKey)
+        return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
+      }, [paramsOpen])
       const runParams = running && current?.config ? {
         maxRounds: Number(current.config.maxRounds ?? draft?.maxRounds),
         concurrency: Number(current.config.concurrency ?? draft?.concurrency),
@@ -3154,10 +3160,10 @@ window.__ModuleLoader__.load({
           item('disableThinking', shown.disableThinking ? t('ws.ps.noThink') : t('ws.ps.think')),
           shown.quasiIdentifiers || differs('quasiIdentifiers') ? item('quasiIdentifiers', shown.quasiIdentifiers ? t('ws.ps.quasi') : t('ws.ps.noQuasi')) : null,
         ].filter(Boolean)
-        return h('div', { className: `ws-params${paramsOpen && !running ? ' ws-params-open' : ''}` },
+        return h('div', { className: `ws-params${paramsOpen && !running ? ' ws-params-open' : ''}`, ref: paramsRef, title: running ? '' : summary.map((node) => node.props.children).join(' · ') },
           h('button', { type: 'button', className: 'ws-params-head', onClick: toggleParams, disabled: running, 'aria-expanded': paramsOpen && !running ? 'true' : 'false', title: running ? t('ws.paramsLocked') : '' },
             h('span', { className: 'ws-params-title' }, t('ws.params'), changed.length && !running ? h('i', { className: 'ws-mod' }) : null),
-            h('span', { className: 'ws-psum' }, summary.flatMap((node, index) => (index ? [h('i', { key: `d${index}` }, '·'), node] : [node]))),
+            h('span', { className: 'ws-psum' }, summary.flatMap((node, index) => (index ? [h('i', { key: `d${index}` }, ' · '), node] : [node]))),
             running ? h('span', { className: 'ws-tag' }, t('ws.locked')) : h('span', { className: 'ws-fold-arrow' }, paramsOpen ? '▾' : '▸')),
           paramsOpen && !running ? h('div', { className: 'ws-params-body' },
             paramRow('maxRounds', t('run.rounds'), stepper('maxRounds', 1, 6)),
