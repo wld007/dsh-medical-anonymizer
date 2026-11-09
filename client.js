@@ -259,6 +259,12 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.m.splitHint': '请求去向：实际调用 {sent} · 复用调用 {replayed} · 免送段落 {skipped}（免送按段落计，比例仅供参考）',
+      'ws.m.ctxDist': '上下文分布',
+      'ws.m.ctxDistHint': '单次调用上下文长度的分布：<0.5k、0.5–1k、1–2k、2–4k、4–8k、8–16k、≥16k（红色为 8k 以上）。悬停可看各档次数。',
+      'ws.m.busy': '模型忙闲',
+      'ws.m.busyLimit': '虚线 = 上限 {limit}',
+      'ws.m.busySpan': '最近约 {minutes} 分钟',
       'ws.overview': '运行概况',
       'ws.expand': '展开',
       'ws.collapse': '收起',
@@ -752,6 +758,12 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.m.splitHint': 'Where requests went: sent {sent} · replayed {replayed} · skipped segments {skipped} (skipped counts segments; proportions are approximate)',
+      'ws.m.ctxDist': 'Context spread',
+      'ws.m.ctxDistHint': 'Context length per call: <0.5k, 0.5–1k, 1–2k, 2–4k, 4–8k, 8–16k, ≥16k (red above 8k). Hover for counts.',
+      'ws.m.busy': 'Model load',
+      'ws.m.busyLimit': 'dashed = limit {limit}',
+      'ws.m.busySpan': 'last ~{minutes} min',
       'ws.overview': 'Run overview',
       'ws.expand': 'Expand',
       'ws.collapse': 'Collapse',
@@ -1367,6 +1379,27 @@ window.__ModuleLoader__.load({
       .ws-adv-findings i{display:block;font-style:normal;color:var(--dsw-alias-label-secondary);font-size:11.5px}
       .ws-adv-sec{margin:6px 0 0;font-size:12px;color:var(--dsw-alias-label-secondary)}
       .ws-mon-spark{flex:1;min-width:0}
+      .ws-split{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:1px;margin:2px 0 4px;background:var(--dsw-alias-bg-layer-2)}
+      .ws-split i{display:block;min-width:2px}
+      .ws-split-sent{background:var(--ws-accent)}
+      .ws-split-replayed{background:var(--dsw-alias-state-success-primary)}
+      .ws-split-skipped{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 45%,transparent)}
+      .ws-hist{display:inline-flex;align-items:flex-end;gap:1px;height:14px;width:56px;justify-content:flex-end}
+      .ws-hist i{display:block;width:6px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 45%,transparent);border-radius:1px 1px 0 0}
+      .ws-hist i.ws-hist-hot{background:var(--dsw-alias-state-error-primary)}
+      .ws-busy{display:flex;flex-direction:column;gap:2px;margin-top:6px;flex:1;min-height:70px}
+      .ws-busy-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-busy-legend{display:inline-flex;align-items:center;gap:4px;font-size:10px}
+      .ws-busy-legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-left:4px}
+      .ws-busy svg{flex:1;width:100%;min-height:44px;display:block;border-bottom:1px solid color-mix(in srgb,var(--ws-ink) 25%,transparent)}
+      .ws-busy-d,.ws-busy-ld{background:var(--ws-accent);stroke:var(--ws-accent)}
+      .ws-busy-v,.ws-busy-lv{background:#3b82c4;stroke:#3b82c4}
+      .ws-busy-q{background:color-mix(in srgb,var(--dsw-alias-label-primary) 22%,transparent)}
+      .ws-busy-ld,.ws-busy-lv{fill:none;stroke-width:1.6;vector-effect:non-scaling-stroke}
+      .ws-busy-qd{fill:color-mix(in srgb,var(--ws-accent) 18%,transparent)}
+      .ws-busy-qv{fill:color-mix(in srgb,#3b82c4 18%,transparent)}
+      .ws-busy-limit{stroke:var(--dsw-alias-label-secondary);stroke-dasharray:3 3;stroke-width:1;vector-effect:non-scaling-stroke}
+      .ws-res{display:flex;flex-direction:column}
       /* The column fills the height: C2 takes the spare space (C1 when C2 is folded). */
       .ws-col-right>.ws-res{flex:1 0 auto}
       .ws-col-right>.ws-res.ws-collapsed{flex:none}
@@ -3940,6 +3973,16 @@ window.__ModuleLoader__.load({
                       extra.bar.peak > extra.bar.pct ? h('i', { className: 'ws-membar-peak', style: { left: `${Math.min(100, extra.bar.peak)}%` } }) : null)
                     : null))
                 // Totals (both models): calls, reuse, tokens, memory.
+                // Where the work went: sent to a model / replayed / skipped.
+                const sent = Number(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0))
+                const replayed = Number(totals.replayedCalls ?? 0)
+                const skipped = Number(totals.memoHits ?? 0)
+                const whole = sent + replayed + skipped
+                const splitBar = whole > 0
+                  ? h('div', { className: 'ws-split', title: t('ws.m.splitHint', { sent, replayed, skipped }) },
+                    [['sent', sent], ['replayed', replayed], ['skipped', skipped]].filter(([, value]) => value > 0)
+                      .map(([kind, value]) => h('i', { key: kind, className: `ws-split-${kind}`, style: { flexGrow: value } })))
+                  : null
                 // Row 1: what was sent (calls, tokens); row 2: what was saved.
                 row(t('ws.m.calls'), compact(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0)), { title: t('ws.m.callsHint') })
                 row(t('ws.m.tokens'), totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0'), { title: t('ws.m.tokensHint') })
@@ -3973,12 +4016,21 @@ window.__ModuleLoader__.load({
                   const split = fit.gen === null ? t('ws.m.speedFew') : t('ws.m.speedSplit', { prompt: fmtSpeed(fit.prompt), gen: fmtSpeed(fit.gen) })
                   return `${t('ws.m.speedHint')}\n${split}`
                 }
+                // Context distribution: 7 buckets, bar heights relative to the largest.
+                const HIST_LABELS = ['<0.5k', '0.5–1k', '1–2k', '2–4k', '4–8k', '8–16k', '≥16k']
+                const histBar = (hist) => {
+                  if (!hist?.some((value) => value > 0)) return '—'
+                  const top = Math.max(...hist)
+                  return h('span', { className: 'ws-hist', title: hist.map((value, index) => `${HIST_LABELS[index]}: ${value}`).join('\n') },
+                    hist.map((value, index) => h('i', { key: index, className: index >= 5 ? 'ws-hist-hot' : '', style: { height: `${value ? Math.max(12, (value / top) * 100) : 0}%` } })))
+                }
                 const avgCtx = (m) => (m?.ctxN ? compact(Math.round(m.ctxSum / m.ctxN)) : '—')
                 const lines = [
                   ...(running ? [[t('ws.m.mReq'), (key) => slots(current?.requests?.[key]), t('ws.m.reqHint'), (key) => slotTone(current?.requests?.[key])]] : []),
                   [t('ws.m.mCalls'), (key) => compact(models[key]?.calls ?? 0), t('ws.m.callsHint')],
                   [t('ws.m.ctx'), (key) => (models[key]?.ctxN ? `${avgCtx(models[key])} / ${compact(models[key].ctxMax)}` : '—'), t('ws.m.ctxHint')],
                   [t('ws.m.speed'), (key) => fmtSpeed(speedOf(key)), (key) => speedHint(key)],
+                  [t('ws.m.ctxDist'), (key) => histBar(models[key]?.ctxHist), t('ws.m.ctxDistHint')],
                 ]
                 const table = h('div', { className: `ws-mtable${separate ? '' : ' ws-mtable-one'}` },
                   h('span', { className: 'ws-mt-head' }),
@@ -3993,7 +4045,38 @@ window.__ModuleLoader__.load({
                     h('span', { key: `l${label}`, className: 'ws-mt-label', title: typeof hint === 'function' ? hint(cols[0]) : hint }, label),
                     ...cols.map((key) => h('b', { key: `${label}${key}`, className: tone?.(key) ? `ws-mt-${tone(key)}` : '', title: typeof hint === 'function' ? hint(key) : hint }, value(key))),
                   ]))
-                return h(React.Fragment, {}, h('div', { className: 'ws-minor' }, rows), table)
+                // Busy chart: requests in flight per model over time; the
+                // queued part is shaded above each line, the dashed line is the limit.
+                const series = current?.loadSeries
+                const busy = (() => {
+                  const points = series?.points ?? []
+                  if (points.length < 2) return null
+                  const limit = Number(current?.requests?.detect?.limit ?? current?.config?.concurrency ?? config?.concurrency ?? 4)
+                  const top = Math.max(limit, ...points.map((p) => Math.max(p[0] + p[1], (p[2] ?? 0) + (p[3] ?? 0))))
+                  const W = 300
+                  const H = 60
+                  const x = (index) => (index / (points.length - 1)) * W
+                  const y = (value) => H - (Math.min(value, top) / top) * (H - 2)
+                  const line = (pick) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${y(pick(p)).toFixed(1)}`).join(' ')
+                  const band = (low, high) => `${line(high)} ${points.map((_, i) => points.length - 1 - i).map((index) => `L${x(index).toFixed(1)} ${y(low(points[index])).toFixed(1)}`).join(' ')} Z`
+                  const hasVerify = points.some((p) => p.length > 2)
+                  const minutes = Math.round(((points.length - 1) * (series.step ?? 2000)) / 60000)
+                  return h('div', { className: 'ws-busy' },
+                    h('div', { className: 'ws-busy-head' },
+                      h('span', {}, t('ws.m.busy')),
+                      h('span', { className: 'ws-busy-legend' },
+                        h('i', { className: 'ws-busy-d' }), t('ws.model'),
+                        hasVerify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel')) : null,
+                        h('i', { className: 'ws-busy-q' }), t('ws.m.queued'))),
+                    h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.m.busy') },
+                      h('path', { className: 'ws-busy-qd', d: band((p) => p[0], (p) => p[0] + p[1]) }),
+                      hasVerify ? h('path', { className: 'ws-busy-qv', d: band((p) => p[2] ?? 0, (p) => (p[2] ?? 0) + (p[3] ?? 0)) }) : null,
+                      h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: y(limit), y2: y(limit) }),
+                      h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
+                      hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0) }) : null),
+                    h('div', { className: 'ws-spark-foot' }, h('span', {}, t('ws.m.busyLimit', { limit })), h('span', {}, t('ws.m.busySpan', { minutes: Math.max(1, minutes) }))))
+                })()
+                return h(React.Fragment, {}, splitBar, h('div', { className: 'ws-minor' }, rows), table, busy)
               })()),
             h('section', { className: 'ws-panel' },
               h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C3' }, t('ws.params')), anyRunning
