@@ -1396,6 +1396,8 @@ window.__ModuleLoader__.load({
       .ws-split-legend span{display:inline-flex;align-items:center;gap:4px}
       .ws-split-legend i{display:inline-block;width:8px;height:8px;border-radius:2px}
       .ws-ctxcell{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;max-width:100%}
+      .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
+      .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
       .ws-busy .ws-busy-qsvg{flex:none;height:16px;min-height:16px}
       .ws-split-sent{background:var(--ws-accent)}
@@ -4052,7 +4054,6 @@ window.__ModuleLoader__.load({
                 const kTok = (value) => (value >= 1000 ? `${(value / 1000).toFixed(value >= 100000 ? 0 : 1)}k` : String(Math.round(value)))
                 const avgCtx = (m) => (m?.ctxN ? compact(Math.round(m.ctxSum / m.ctxN)) : '—')
                 const lines = [
-                  ...(running ? [[t('ws.m.mReq'), (key) => slots(current?.requests?.[key]), t('ws.m.reqHint'), (key) => slotTone(current?.requests?.[key])]] : []),
                   [t('ws.m.mCalls'), (key) => compact(models[key]?.calls ?? 0), t('ws.m.callsHint')],
                   [t('ws.m.ctx'), (key) => (models[key]?.ctxN
                     ? h('span', { className: 'ws-ctxcell' }, histBar(models[key].ctxHist), `${kTok(models[key].ctxSum / models[key].ctxN)} / ${kTok(models[key].ctxMax)}`)
@@ -4075,9 +4076,20 @@ window.__ModuleLoader__.load({
                 // Busy chart: requests in flight per model over time; the
                 // queued part is shaded above each line, the dashed line is the limit.
                 const series = current?.loadSeries
+                // Current slots per model sit in the chart legend.
+                const legendSlot = (key) => (running && current?.requests?.[key]
+                  ? h('b', { className: `ws-busy-now${slotTone(current.requests[key]) ? ' ws-mt-warn' : ''}`, title: t('ws.m.reqHint') }, slots(current.requests[key]))
+                  : null)
                 const busy = (() => {
                   const points = series?.points ?? []
-                  if (points.length < 2) return null
+                  if (points.length < 2) {
+                    if (!running || !current?.requests?.detect) return null
+                    return h('div', { className: 'ws-busy', title: t('ws.m.busyHint') },
+                      h('div', { className: 'ws-busy-head' }, h('span', {}, t('ws.m.busy')),
+                        h('span', { className: 'ws-busy-legend' },
+                          h('i', { className: 'ws-busy-d' }), t('ws.model'), legendSlot('detect'),
+                          current.requests.verify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel'), legendSlot('verify')) : null)))
+                  }
                   const limit = Number(current?.requests?.detect?.limit ?? current?.config?.concurrency ?? config?.concurrency ?? 4)
                   const hasVerify = points.some((p) => p.length > 2)
                   const W = 300
@@ -4096,8 +4108,8 @@ window.__ModuleLoader__.load({
                     h('div', { className: 'ws-busy-head' },
                       h('span', {}, t('ws.m.busy')),
                       h('span', { className: 'ws-busy-legend' },
-                        h('i', { className: 'ws-busy-d' }), t('ws.model'),
-                        hasVerify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel')) : null)),
+                        h('i', { className: 'ws-busy-d' }), t('ws.model'), legendSlot('detect'),
+                        hasVerify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel'), legendSlot('verify')) : null)),
                     h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.m.busy') },
                       h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: y(limit), y2: y(limit) }),
                       h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
