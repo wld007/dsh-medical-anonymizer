@@ -259,10 +259,11 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.m.peakHint': '本批次的峰值：进行中 / 上限，+N 为排队峰值',
       'ws.m.busyIdle': '批次运行时显示',
       'ws.m.busyCollect': '正在采样…',
-      'ws.m.inflightTag': '进行 {limit}',
-      'ws.m.queueTag': '排队 {max}',
+      'ws.m.inflightTag': '进行',
+      'ws.m.queueTag': '排队',
       'ws.m.busyAxis': '横轴以上：进行中的请求（虚线 = 模型并发 {limit}）；横轴以下：插件内排队（峰值 {max}）。覆盖最近约 {minutes} 分钟。',
       'ws.m.queueChart': '插件内排队',
       'ws.m.queuePeak': '排队峰值 {max}',
@@ -768,10 +769,11 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.m.peakHint': 'Peaks over this batch: in flight / limit, +N queued',
       'ws.m.busyIdle': 'Shown while a batch runs',
       'ws.m.busyCollect': 'Sampling…',
-      'ws.m.inflightTag': 'run {limit}',
-      'ws.m.queueTag': 'queue {max}',
+      'ws.m.inflightTag': 'run',
+      'ws.m.queueTag': 'queue',
       'ws.m.busyAxis': 'Above the axis: requests in flight (dashed = concurrency {limit}); below: queued in the plugin (peak {max}). Covers about the last {minutes} min.',
       'ws.m.queueChart': 'Queued in plugin',
       'ws.m.queuePeak': 'queue peak {max}',
@@ -1409,7 +1411,7 @@ window.__ModuleLoader__.load({
       .ws-split-legend i{display:inline-block;width:8px;height:8px;border-radius:2px}
       .ws-ctxcell{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;max-width:100%}
       .ws-busy-plot{position:relative;flex:1;display:flex;gap:4px;min-height:50px}
-      .ws-busy-gutter{flex:none;width:40px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font-size:9.5px;line-height:11px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
+      .ws-busy-gutter{flex:none;width:26px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font-size:9.5px;line-height:11px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
       .ws-busy-zero{opacity:.7}
       .ws-busy-plot svg{flex:1;border-bottom:0!important}
       .ws-busy-axis{stroke:color-mix(in srgb,var(--ws-ink) 35%,transparent);stroke-width:1;vector-effect:non-scaling-stroke}
@@ -4099,9 +4101,19 @@ window.__ModuleLoader__.load({
                 // queued part is shaded above each line, the dashed line is the limit.
                 const series = current?.loadSeries
                 // Current slots per model sit in the chart legend.
-                const legendSlot = (key) => (running && current?.requests?.[key]
-                  ? h('b', { className: `ws-busy-now${slotTone(current.requests[key]) ? ' ws-mt-warn' : ''}`, title: t('ws.m.reqHint') }, slots(current.requests[key]))
-                  : null)
+                const legendSlot = (key) => {
+                  if (running && current?.requests?.[key]) {
+                    return h('b', { className: `ws-busy-now${slotTone(current.requests[key]) ? ' ws-mt-warn' : ''}`, title: t('ws.m.reqHint') }, slots(current.requests[key]))
+                  }
+                  // Finished batch: peaks over the run (in flight / limit, +queue).
+                  const pts = current?.loadSeries?.points ?? []
+                  if (pts.length === 0) return null
+                  const [ai, qi] = key === 'verify' ? [2, 3] : [0, 1]
+                  const peakA = Math.max(...pts.map((p) => p[ai] ?? 0))
+                  const peakQ = Math.max(...pts.map((p) => p[qi] ?? 0))
+                  const lim = Number(current?.requests?.[key]?.limit ?? current?.requests?.detect?.limit ?? config?.concurrency ?? 4)
+                  return h('b', { className: 'ws-busy-now', title: t('ws.m.peakHint') }, `${peakA}/${lim}${peakQ > 0 ? ` +${peakQ}` : ''}`)
+                }
                 const busy = (() => {
                   const points = series?.points ?? []
                   // Before any data the frame (axis, limit line, legend) is still drawn.
@@ -4132,9 +4144,9 @@ window.__ModuleLoader__.load({
                     h('div', { className: 'ws-busy-plot' },
                       // Scale labels sit in a gutter left of the plot, never over the lines.
                       h('div', { className: 'ws-busy-gutter', 'aria-hidden': 'true' },
-                        h('span', {}, t('ws.m.inflightTag', { limit })),
+                        h('span', {}, t('ws.m.inflightTag')),
                         h('span', { className: 'ws-busy-zero' }, '0'),
-                        h('span', {}, t('ws.m.queueTag', { max: qMax }))),
+                        h('span', {}, t('ws.m.queueTag'))),
                       h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.m.busy') },
                         h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: up(limit), y2: up(limit) }),
                         // Queue drawn like the lines above, mirrored; dashed = queue peak.
