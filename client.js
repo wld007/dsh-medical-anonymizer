@@ -240,7 +240,8 @@ window.__ModuleLoader__.load({
       'ws.m.chunks': '分组',
       'ws.m.chunksHint': '文件较多时本批次自动拆成的组数',
       'ws.m.groupResult': '处理结果',
-      'ws.m.groupTech': '模型与资源',
+      'ws.m.groupTech': '模型',
+      'ws.m.memoryPeak': '堆内存峰值',
       'ws.model': '识别',
       'ws.modelShared': '识别·核验',
       'ws.rulesOnly': '仅规则',
@@ -259,6 +260,41 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.feedParams': '数据输入与参数',
+      'ws.ps.rounds': '轮次 {n}',
+      'ws.ps.concurrency': '并发 {n}',
+      'ws.ps.chunk': '每组 {n}',
+      'ws.ps.temp': '温度 {n}',
+      'ws.ps.noThink': '思考关',
+      'ws.ps.think': '思考开',
+      'ws.ps.quasi': '准标识符',
+      'ws.ps.noQuasi': '准标识符关',
+      'ws.paramsReset': '恢复默认',
+      'ws.paramsResetHint': '恢复为已保存的默认值',
+      'ws.paramsDefault': '设为默认',
+      'ws.paramsDefaultHint': '保存为默认值，以后的批次（含 Agent 与 /anonymize）都用这些值',
+      'ws.paramsBatchOnly': '橙色项与默认值不同，只用于下一批；点「设为默认」才会保存。',
+      'ws.paramsHint2': '这里的值用于下一批。',
+      'ws.x.title': '交叉核验',
+      'ws.x.reported': '盲审报出',
+      'ws.x.calls': '{flagged}/{calls} 次调用有报出',
+      'ws.x.reportedHint': '独立盲审（核验模型）报出的可疑项数，按次数计，不去重。',
+      'ws.x.confirmed': '确认',
+      'ws.x.dismissed': '误报',
+      'ws.x.disputed': '分歧',
+      'ws.x.unjudged': '未复判',
+      'ws.x.splitHint': '盲审报出的每一项最后的去向：确认 = 识别模型复判为标识符并补替换；误报 = 复判为不是，保留原文；分歧 = 误报后核验又报出，转人工；未复判 = 最后一轮报出或过短，直接转人工。四项之和 = 盲审报出。',
+      'ws.x.agree': '一致率',
+      'ws.x.agreeShort': '一致 {pct}%',
+      'ws.x.agreeHint': '确认 ÷（确认 + 误报 + 分歧）：识别模型同意核验模型判断的比例。',
+      'ws.x.disputeRate': '分歧率 {pct}%',
+      'ws.x.human': '人工裁定',
+      'ws.x.humanVal': '核验对 {v} · 识别对 {d}',
+      'ws.x.humanHint': '分歧项和未复判项的人工处理：替换为假名 = 核验对；不是标识符 / 确认保留 = 识别对。',
+      'ws.x.pending': '待裁定 {n} →',
+      'ws.x.none': '本批次没有盲审数据。',
+      'ws.x.waiting': '批次运行后显示。',
+      'ws.x.shared': '未配置独立核验模型，盲审由识别模型兼任，一致性参考意义有限。',
       'ws.calls.r.bad-shape': '格式不符',
       'ws.calls.retries': '重试',
       'ws.calls.dropped': '丢弃条目',
@@ -772,7 +808,8 @@ window.__ModuleLoader__.load({
       'ws.m.chunks': 'Chunks',
       'ws.m.chunksHint': 'Number of groups this batch was split into when there are many files',
       'ws.m.groupResult': 'Results',
-      'ws.m.groupTech': 'Model & resources',
+      'ws.m.groupTech': 'Models',
+      'ws.m.memoryPeak': 'Heap peak',
       'ws.model': 'Detector',
       'ws.modelShared': 'Detect & verify',
       'ws.rulesOnly': 'Rules only',
@@ -791,6 +828,41 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.feedParams': 'Input & settings',
+      'ws.ps.rounds': 'rounds {n}',
+      'ws.ps.concurrency': 'conc {n}',
+      'ws.ps.chunk': 'chunk {n}',
+      'ws.ps.temp': 'temp {n}',
+      'ws.ps.noThink': 'no think',
+      'ws.ps.think': 'think',
+      'ws.ps.quasi': 'quasi',
+      'ws.ps.noQuasi': 'no quasi',
+      'ws.paramsReset': 'Defaults',
+      'ws.paramsResetHint': 'Back to the saved defaults',
+      'ws.paramsDefault': 'Set as default',
+      'ws.paramsDefaultHint': 'Save as defaults for later batches (agent and /anonymize too)',
+      'ws.paramsBatchOnly': 'Orange values differ from the defaults and apply to the next batch only; "Set as default" saves them.',
+      'ws.paramsHint2': 'These values apply to the next batch.',
+      'ws.x.title': 'Cross-check',
+      'ws.x.reported': 'Blind review reported',
+      'ws.x.calls': '{flagged}/{calls} calls with findings',
+      'ws.x.reportedHint': 'Suspects reported by the blind review (verification model), counted per report.',
+      'ws.x.confirmed': 'confirmed',
+      'ws.x.dismissed': 'false alarm',
+      'ws.x.disputed': 'dispute',
+      'ws.x.unjudged': 'not re-judged',
+      'ws.x.splitHint': 'Where each blind-review finding ended: confirmed = detector agreed, replaced; false alarm = detector disagreed, kept; dispute = reported again after that, to manual review; not re-judged = last round or too short, to manual review. The four add up to the reported count.',
+      'ws.x.agree': 'Agreement',
+      'ws.x.agreeShort': 'agree {pct}%',
+      'ws.x.agreeHint': 'confirmed ÷ (confirmed + false alarm + dispute).',
+      'ws.x.disputeRate': 'dispute rate {pct}%',
+      'ws.x.human': 'Human verdict',
+      'ws.x.humanVal': 'verifier {v} · detector {d}',
+      'ws.x.humanHint': 'Manual decisions on disputed / not re-judged items: replaced = verifier right; kept = detector right.',
+      'ws.x.pending': '{n} pending →',
+      'ws.x.none': 'No blind-review data for this batch.',
+      'ws.x.waiting': 'Shown once the batch runs.',
+      'ws.x.shared': 'No separate verification model: the detector also reviews, so agreement means little.',
       'ws.calls.r.bad-shape': 'Wrong shape',
       'ws.calls.retries': 'retries',
       'ws.calls.dropped': 'dropped items',
@@ -1257,7 +1329,7 @@ window.__ModuleLoader__.load({
       .ws-s-review .ws-lamp{background:var(--dsw-alias-state-warn-primary)}
       .ws-s-failed .ws-lamp,.ws-s-cancelled .ws-lamp{background:var(--dsw-alias-state-error-primary)}
       @keyframes ws-blink{50%{opacity:.35}}
-      .ws-grid{flex:1;min-height:0;display:grid;grid-template-columns:minmax(230px,270px) minmax(0,1fr) minmax(270px,300px);gap:10px;align-items:stretch}
+      .ws-grid{flex:1;min-height:0;display:grid;grid-template-columns:minmax(260px,290px) minmax(0,1fr) minmax(270px,300px);gap:10px;align-items:stretch}
       .ws-col{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0}
       .ws-col-right{overflow:auto;min-height:0;scrollbar-width:none}
       .ws-page .ws-col-right::-webkit-scrollbar{display:none}
@@ -1472,6 +1544,29 @@ window.__ModuleLoader__.load({
       .ws-call-mark{font-style:normal;margin-left:4px;font-size:10.5px;color:var(--dsw-alias-state-warn-primary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
       .ws-call-drop{color:var(--dsw-alias-label-secondary)}
       .ws-fail-bad{color:var(--dsw-alias-state-error-primary)}
+      .ws-heap{min-width:96px}
+      .ws-heap b small{font-size:10.5px;font-weight:500;color:var(--dsw-alias-label-secondary);letter-spacing:0}
+      .ws-heap .ws-membar{display:block;width:100%;margin-top:2px}
+      .ws-heap-warn b{color:var(--dsw-alias-state-warn-primary)}
+      .ws-heap-warn .ws-membar-fill{background:var(--dsw-alias-state-warn-primary)}
+      .ws-heap-bad b{color:var(--dsw-alias-state-error-primary)}
+      .ws-heap-bad .ws-membar-fill{background:var(--dsw-alias-state-error-primary)}
+      .ws-params{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base);overflow:hidden}
+      .ws-params-head{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 8px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+      .ws-params-head:disabled{cursor:default}
+      .ws-params-title{font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+      .ws-psum{display:flex;flex-wrap:wrap;gap:0 4px;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;min-width:0}
+      .ws-psum i{font-style:normal;opacity:.6}
+      .ws-psum .ws-psum-mod{color:var(--dsw-alias-state-warn-primary);font-weight:600}
+      .ws-params-body{display:flex;flex-direction:column;gap:6px;padding:4px 8px 8px;border-top:1px dashed var(--dsw-alias-border-l1)}
+      .ws-params-actions{flex-wrap:nowrap}
+      .ws-cross .ws-x-line{display:flex;align-items:baseline;gap:6px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-cross .ws-x-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-size:13px}
+      .ws-x-sub{margin-left:auto;font-size:10.5px}
+      .ws-x-confirmed{background:var(--dsw-alias-state-success-primary)}
+      .ws-x-dismissed{background:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
+      .ws-x-disputed{background:var(--dsw-alias-state-warn-primary)}
+      .ws-x-unjudged{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 40%,transparent)}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
       .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
@@ -2938,9 +3033,19 @@ window.__ModuleLoader__.load({
         }
         setBusy(true)
         try {
+          // Parameters shown in A1 apply to this batch, saved as defaults or not.
+          const batchParams = draft ? {
+            maxRounds: draft.maxRounds,
+            concurrency: draft.concurrency,
+            maxFiles: draft.maxFiles,
+            timeoutMs: Math.round(Number(draft.timeoutSec) * 1000),
+            temperature: draft.temperature,
+            disableThinking: draft.disableThinking,
+            quasiIdentifiers: draft.quasiIdentifiers,
+          } : {}
           const result = await call('start', pickedInputs.length > 0
-            ? { inputs: pickedInputs, outputRoot: outputRoot.trim() }
-            : { inputDir: inputDir.trim(), outputRoot: outputRoot.trim() })
+            ? { ...batchParams, inputs: pickedInputs, outputRoot: outputRoot.trim() }
+            : { ...batchParams, inputDir: inputDir.trim(), outputRoot: outputRoot.trim() })
           setNotice(t('notice.started'))
           reportLoaded.current.delete(result.runId)
           setActiveRunId(result.runId)
@@ -3016,6 +3121,63 @@ window.__ModuleLoader__.load({
       const saved = config ? paramsFrom(config) : null
       const changed = draft && saved ? PARAM_KEYS.filter((key) => draft[key] !== saved[key]) : []
       const setParam = (key, value) => { setDraft({ ...draft, [key]: value }); setParamNote(null) }
+
+      // Params block in A1: folded to a one-line summary; values apply to the
+      // next batch directly, "设为默认" also saves them as defaults.
+      const [paramsOpen, setParamsOpen] = React.useState(() => {
+        try { return window.localStorage.getItem('ma-ws-params-open') === '1' } catch { return false }
+      })
+      const toggleParams = () => setParamsOpen((value) => {
+        try { window.localStorage.setItem('ma-ws-params-open', value ? '0' : '1') } catch { /* private mode */ }
+        return !value
+      })
+      const runParams = running && current?.config ? {
+        maxRounds: Number(current.config.maxRounds ?? draft?.maxRounds),
+        concurrency: Number(current.config.concurrency ?? draft?.concurrency),
+        maxFiles: Number(current.config.chunkSize ?? draft?.maxFiles),
+        timeoutSec: current.config.timeoutMs ? Math.round(current.config.timeoutMs / 1000) : draft?.timeoutSec,
+        temperature: Number(current.config.temperature ?? draft?.temperature ?? 0),
+        disableThinking: current.config.disableThinking === true,
+        quasiIdentifiers: current.config.policy?.quasiIdentifiers === true || current.config.policy?.quasiEnabled === true,
+      } : null
+      const paramsBlock = () => {
+        if (!draft) return null
+        const shown = runParams ?? draft
+        const differs = (key) => !runParams && saved && draft[key] !== saved[key]
+        const item = (key, text) => h('span', { key, className: differs(key) ? 'ws-psum-mod' : '' }, text)
+        const summary = [
+          item('maxRounds', t('ws.ps.rounds', { n: shown.maxRounds })),
+          item('concurrency', t('ws.ps.concurrency', { n: shown.concurrency })),
+          item('maxFiles', t('ws.ps.chunk', { n: shown.maxFiles })),
+          item('timeoutSec', `${shown.timeoutSec}s`),
+          item('temperature', t('ws.ps.temp', { n: Number(shown.temperature).toFixed(1) })),
+          item('disableThinking', shown.disableThinking ? t('ws.ps.noThink') : t('ws.ps.think')),
+          shown.quasiIdentifiers || differs('quasiIdentifiers') ? item('quasiIdentifiers', shown.quasiIdentifiers ? t('ws.ps.quasi') : t('ws.ps.noQuasi')) : null,
+        ].filter(Boolean)
+        return h('div', { className: `ws-params${paramsOpen && !running ? ' ws-params-open' : ''}` },
+          h('button', { type: 'button', className: 'ws-params-head', onClick: toggleParams, disabled: running, 'aria-expanded': paramsOpen && !running ? 'true' : 'false', title: running ? t('ws.paramsLocked') : '' },
+            h('span', { className: 'ws-params-title' }, t('ws.params'), changed.length && !running ? h('i', { className: 'ws-mod' }) : null),
+            h('span', { className: 'ws-psum' }, summary.flatMap((node, index) => (index ? [h('i', { key: `d${index}` }, '·'), node] : [node]))),
+            running ? h('span', { className: 'ws-tag' }, t('ws.locked')) : h('span', { className: 'ws-fold-arrow' }, paramsOpen ? '▾' : '▸')),
+          paramsOpen && !running ? h('div', { className: 'ws-params-body' },
+            paramRow('maxRounds', t('run.rounds'), stepper('maxRounds', 1, 6)),
+            paramRow('concurrency', t('ws.p.concurrency'), stepper('concurrency', 1, 16)),
+            paramRow('maxFiles', t('ws.p.maxFiles'), stepper('maxFiles', 1, 2000, 50)),
+            paramRow('timeoutSec', t('ws.p.timeout'), stepper('timeoutSec', 10, 1800, 10)),
+            paramRow('temperature', t('ws.p.temperature'), h('div', { className: 'ws-slider' },
+              h('input', { type: 'range', min: 0, max: 2, step: 0.1, value: draft.temperature, disabled: anyRunning, onChange: (event) => setParam('temperature', Number(event.target.value)) }),
+              h('b', { className: 'ma-mono' }, Number(draft.temperature).toFixed(1)))),
+            toggle('disableThinking', t('ws.p.noThinking')),
+            toggle('quasiIdentifiers', t('ws.p.quasi')),
+            h('div', { className: 'ma-actions ws-params-actions' },
+              h('button', { className: 'ma-link ws-more', onClick: () => setModal('settings') }, `${t('ws.allSettings')} →`),
+              h('span', { style: { flex: 1 } }),
+              h('button', { className: 'ma-btn ma-small', disabled: changed.length === 0 || savingParams, onClick: () => { setDraft(saved); setParamNote(null) }, title: t('ws.paramsResetHint') }, t('ws.paramsReset')),
+              h('button', { className: 'ma-btn ma-small', disabled: changed.length === 0 || savingParams || anyRunning, onClick: saveParams, title: t('ws.paramsDefaultHint') },
+                savingParams ? t('save.saving') : t('ws.paramsDefault'))),
+            h('p', { className: 'ma-hint' }, changed.length ? t('ws.paramsBatchOnly') : t('ws.paramsHint2')),
+            paramNote ? h('p', { className: paramNote.ok ? 'ma-hint ma-ok' : 'ma-hint ma-error' }, paramNote.text) : null) : null)
+      }
 
       async function saveParams() {
         if (changed.length === 0) return
@@ -3813,6 +3975,55 @@ window.__ModuleLoader__.load({
             h('div', { className: 'ws-cmp-pane' }, pane())))
       }
 
+      // C3: blind review findings and how the detector re-judged them.
+      const [crossCollapsed, setCrossCollapsed] = React.useState(() => {
+        try { return window.localStorage.getItem('ma-ws-cross-collapsed') === '1' } catch { return false }
+      })
+      const toggleCross = () => setCrossCollapsed((value) => {
+        try { window.localStorage.setItem('ma-ws-cross-collapsed', value ? '0' : '1') } catch { /* private mode */ }
+        return !value
+      })
+      const crossCheckPanel = () => {
+        const blind = current?.totals?.blind ?? null
+        const verifierName = current?.config ? String(current.config.verifyModel ?? '') : String(config?.verifyModel ?? '')
+        const parts = [
+          ['confirmed', Number(blind?.confirmed ?? 0)],
+          ['dismissed', Number(blind?.dismissed ?? 0)],
+          ['disputed', Number(blind?.disputed ?? 0)],
+          ['unjudged', Number(blind?.unjudged ?? 0)],
+        ]
+        const reported = Number(blind?.reported ?? 0)
+        const judged = parts[0][1] + parts[1][1] + parts[2][1]
+        // Human verdicts on verifier findings (disputed / not re-judged), live.
+        const judgedItems = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => item.code === 'disputed' || item.code === 'model-residual')
+        const verifierRight = judgedItems.filter((item) => item.decision?.action === 'replace').length
+        const detectorRight = judgedItems.filter((item) => item.decision && item.decision.action !== 'replace' && item.decision.action !== 'remove').length
+        const waiting = judgedItems.filter((item) => !item.decision).length
+        return h('section', { className: `ws-panel ws-cross${crossCollapsed ? ' ws-collapsed' : ''}` },
+          h('div', { className: 'ws-panel-head' },
+            h('button', { type: 'button', className: 'ws-fold', onClick: toggleCross, 'aria-expanded': crossCollapsed ? 'false' : 'true', title: crossCollapsed ? t('ws.expand') : t('ws.collapse') },
+              h('h3', { 'data-code': 'C3' }, t('ws.x.title')),
+              h('span', { className: 'ws-fold-arrow' }, crossCollapsed ? '▸' : '▾')),
+            crossCollapsed && judged > 0 ? h('span', { className: 'ma-mono ws-res-mini' }, t('ws.x.agreeShort', { pct: Math.round((parts[0][1] / judged) * 100) })) : null),
+          crossCollapsed ? null : !blind || (!reported && !blind.calls)
+            ? h('p', { className: 'ma-empty' }, !verifierName ? t('ws.x.shared') : (running ? t('ws.x.waiting') : t('ws.x.none')))
+            : h(React.Fragment, {},
+              h('div', { className: 'ws-x-line', title: t('ws.x.reportedHint') },
+                h('span', {}, t('ws.x.reported')), h('b', {}, String(reported)),
+                h('span', { className: 'ws-x-sub' }, t('ws.x.calls', { flagged: blind.flaggedCalls ?? 0, calls: blind.calls ?? 0 }))),
+              reported > 0 ? h('div', { className: 'ws-splitbox', title: t('ws.x.splitHint') },
+                h('div', { className: 'ws-split' }, parts.filter(([, value]) => value > 0).map(([kind, value]) => h('i', { key: kind, className: `ws-x-${kind}`, style: { flexGrow: value } }))),
+                h('div', { className: 'ws-split-legend' }, parts.map(([kind, value]) => h('span', { key: kind }, h('i', { className: `ws-x-${kind}` }), `${t(`ws.x.${kind}`)} ${value}`)))) : null,
+              judged > 0 ? h('div', { className: 'ws-x-line', title: t('ws.x.agreeHint') },
+                h('span', {}, t('ws.x.agree')), h('b', {}, `${Math.round((parts[0][1] / judged) * 100)}%`),
+                h('span', { className: 'ws-x-sub' }, t('ws.x.disputeRate', { pct: reported ? Math.round((parts[2][1] / reported) * 100) : 0 }))) : null,
+              judgedItems.length > 0 ? h('div', { className: 'ws-x-line', title: t('ws.x.humanHint') },
+                h('span', {}, t('ws.x.human')),
+                h('b', {}, t('ws.x.humanVal', { v: verifierRight, d: detectorRight })),
+                waiting ? h('button', { type: 'button', className: 'ma-link ws-x-sub', onClick: () => openCompare({ filter: 'review' }) }, t('ws.x.pending', { n: waiting })) : null) : null,
+              !verifierName ? h('p', { className: 'ma-hint ws-warn-line' }, t('ws.x.shared')) : null))
+      }
+
       const adviceCount = (() => {
         const advice = adviceRunId ? adviceByRun[adviceRunId] : undefined
         if (!advice) return 0
@@ -3886,6 +4097,19 @@ window.__ModuleLoader__.load({
               current?.resumedFrom
                 ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
                 : (current?.source ? sourceLabel(current.source) : null))),
+          // Heap of the plugin process: a global safety readout, always visible.
+          current?.memory?.heapLimit ? (() => {
+            const m = current.memory
+            const used = running ? m.heapUsed : m.peakHeap
+            const ratio = m.peakHeap / m.heapLimit
+            const tone = ratio >= 0.85 ? ' ws-heap-bad' : ratio >= 0.7 ? ' ws-heap-warn' : ''
+            return h('div', { className: `ws-clock ws-heap${tone}`, title: `${t('ws.m.mem', { now: (used / 1024 ** 3).toFixed(1), peak: (m.peakHeap / 1024 ** 3).toFixed(1), limit: (m.heapLimit / 1024 ** 3).toFixed(1), pct: Math.round(ratio * 100) })}\n${t('ws.m.memHint')}` },
+              h('span', {}, running ? t('ws.m.memory') : t('ws.m.memoryPeak')),
+              h('b', {}, `${(used / 1024 ** 3).toFixed(1)}`, h('small', {}, ` / ${(m.heapLimit / 1024 ** 3).toFixed(1)} GB`)),
+              h('i', { className: 'ws-membar', 'aria-hidden': 'true' },
+                h('i', { className: 'ws-membar-fill', style: { width: `${Math.min(100, (used / m.heapLimit) * 100)}%` } }),
+                ratio * 100 > (used / m.heapLimit) * 100 ? h('i', { className: 'ws-membar-peak', style: { left: `${Math.min(100, ratio * 100)}%` } }) : null))
+          })() : null,
           h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           running
             ? null
@@ -3902,7 +4126,7 @@ window.__ModuleLoader__.load({
           // ── Left: feed + history ──
           h('aside', { className: 'ws-col' },
             h('section', { className: 'ws-panel' },
-              h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'A1' }, t('ws.feed')), h('span', { className: 'ws-tag' }, 'INPUT')),
+              h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'A1' }, t('ws.feedParams')), h('span', { className: 'ws-tag' }, 'INPUT')),
               h('label', { className: 'ma-field' }, t('form.input'),
                 h('div', { className: 'ma-inline' },
                   pickedInputs.length > 0
@@ -3920,6 +4144,7 @@ window.__ModuleLoader__.load({
                   h('button', { className: 'ma-btn ma-small', onClick: browseFile }, t('ws.pickFile')))),
               h('label', { className: 'ma-field' }, t('form.output'),
                 h('input', { className: 'ma-input', value: outputRoot, onChange: (event) => setOutputRoot(event.target.value), placeholder: t('run.outputDefault') })),
+              paramsBlock(),
               h('button', { className: 'ma-btn ma-primary ws-start', onClick: start, disabled: busy || anyRunning },
                 busy ? t('form.starting') : (anyRunning ? t('ws.lineBusy') : `▶ ${t('form.start')}`)),
               notice ? h('span', { className: 'ma-hint ma-ok' }, notice) : null),
@@ -4097,15 +4322,6 @@ window.__ModuleLoader__.load({
                 row(t('ws.m.tokens'), totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0'), { title: t('ws.m.tokensHint') })
                 row(t('ws.m.replayed'), compact(totals.replayedCalls ?? 0), { title: t('ws.m.replayedHint') })
                 row(t('ws.m.memo'), compact(totals.memoHits ?? 0), { title: t('ws.m.memoHint') })
-                if (current?.memory?.heapLimit) {
-                  const m = current.memory
-                  const ratio = m.peakHeap / m.heapLimit
-                  row(t('ws.m.memory'), `${((running ? m.heapUsed : m.peakHeap) / 1024 ** 3).toFixed(1)} / ${(m.heapLimit / 1024 ** 3).toFixed(1)} GB`, {
-                    tone: ratio >= 0.85 ? 'bad' : ratio >= 0.7 ? 'warn' : '',
-                    bar: { pct: (((running ? m.heapUsed : m.peakHeap) / m.heapLimit) * 100), peak: ratio * 100 },
-                    title: `${t('ws.m.mem', { now: ((running ? m.heapUsed : m.peakHeap) / 1024 ** 3).toFixed(1), peak: (m.peakHeap / 1024 ** 3).toFixed(1), limit: (m.heapLimit / 1024 ** 3).toFixed(1), pct: Math.round(ratio * 100) })}\n${t('ws.m.memHint')}`,
-                  })
-                }
                 // Per model: detector on the left, verifier on the right.
                 const models = totals.models ?? {}
                 const separate = Boolean(models.verify || current?.requests?.verify || (current?.config ? current.config.verifyModel : config?.verifyModel))
@@ -4238,28 +4454,7 @@ window.__ModuleLoader__.load({
                 })()
                 return h(React.Fragment, {}, splitBar, h('div', { className: 'ws-minor' }, rows), table, busy)
               })()),
-            h('section', { className: 'ws-panel' },
-              h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C3' }, t('ws.params')), anyRunning
-                  ? h('span', { className: 'ws-tag' }, t('ws.locked'))
-                  : h('button', { className: 'ma-link ws-more', onClick: () => setModal('settings') }, `${t('ws.allSettings')} →`)),
-              !draft
-                ? h('p', { className: 'ma-empty' }, t('detail.loading'))
-                : h(React.Fragment, {},
-                  paramRow('maxRounds', t('run.rounds'), stepper('maxRounds', 1, 6)),
-                  paramRow('concurrency', t('ws.p.concurrency'), stepper('concurrency', 1, 16)),
-                  paramRow('maxFiles', t('ws.p.maxFiles'), stepper('maxFiles', 1, 2000, 50)),
-                  paramRow('timeoutSec', t('ws.p.timeout'), stepper('timeoutSec', 10, 1800, 10)),
-                  paramRow('temperature', t('ws.p.temperature'), h('div', { className: 'ws-slider' },
-                    h('input', { type: 'range', min: 0, max: 2, step: 0.1, value: draft.temperature, disabled: anyRunning, onChange: (event) => setParam('temperature', Number(event.target.value)) }),
-                    h('b', { className: 'ma-mono' }, Number(draft.temperature).toFixed(1)))),
-                  toggle('disableThinking', t('ws.p.noThinking')),
-                  toggle('quasiIdentifiers', t('ws.p.quasi')),
-                  h('div', { className: 'ma-actions' },
-                    h('span', { className: 'ma-hint', style: { flex: 1, minWidth: 0 }, title: t('page.settingsHint') }, anyRunning ? t('ws.paramsLocked') : t('ws.paramsHint')),
-                    h('button', { className: 'ma-btn ma-small', disabled: changed.length === 0 || savingParams, onClick: () => { setDraft(saved); setParamNote(null) } }, t('save.revert')),
-                    h('button', { className: 'ma-btn ma-small ma-primary', disabled: changed.length === 0 || savingParams || anyRunning, onClick: saveParams },
-                      savingParams ? t('save.saving') : t('ws.paramsSave'))),
-                  paramNote ? h('p', { className: paramNote.ok ? 'ma-hint ma-ok' : 'ma-hint ma-error' }, paramNote.text) : null)),
+            crossCheckPanel(),
             null)),
         deleting ? h('div', { className: 'ws-modal-back', onMouseDown: (event) => { if (event.target === event.currentTarget && !deleting.busy) setDeleting(null) } },
           h('div', { className: 'ws-modal ws-modal-del', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': t('ws.del.title') },

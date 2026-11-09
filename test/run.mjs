@@ -956,6 +956,15 @@ async function main() {
     assert.ok(adj1.files[0].issues.some((issue) => issue.code === 'verify-dismissed'))
   })
   const adj2 = await runBatch({ inputDir: join(adjIn, 'note.txt'), outputRoot: join(tmp, 'adj-out-2'), options: { runId: 'adj-2', llm: adjModel(true), maxRounds: 3 } })
+  await check('交叉核验统计：确认 + 误报 + 分歧 + 未复判 = 盲审报出', () => {
+    for (const run of [adj1, adj2]) {
+      const b = run.totals.blind
+      assert.equal(b.confirmed + b.dismissed + b.disputed + b.unjudged, b.reported, JSON.stringify(b))
+      assert.ok(b.calls >= b.flaggedCalls && b.flaggedCalls > 0, JSON.stringify(b))
+    }
+    assert.ok(adj1.totals.blind.confirmed >= 1 && adj1.totals.blind.dismissed >= 1, JSON.stringify(adj1.totals.blind))
+    assert.ok(adj2.totals.blind.disputed >= 1, JSON.stringify(adj2.totals.blind))
+  })
   await check('第二轮复判：核验坚持而识别否定时转人工复核', () => {
     assert.equal(adj2.status, 'review')
     assert.ok(adj2.files[0].issues.some((issue) => issue.code === 'disputed' && issue.severity === 'error'))
@@ -1197,6 +1206,27 @@ async function main() {
     const bad = log.filter((entry) => entry.result === 'bad-shape')
     assert.ok(bad.length >= 1 && bad.every((entry) => entry.attempts === 2), JSON.stringify(log))
     assert.ok(shapeRun.totals.models.detect.fails['bad-shape'] >= 1)
+  })
+
+  // Parameters from the page apply to that batch only; defaults stay.
+  const ovIn = join(tmp, 'ov-in')
+  await mkdir(ovIn, { recursive: true })
+  await writeFile(join(ovIn, 'n.txt'), await readFile(join(fixtures, 'note1.txt')))
+  const ovService = createService({ config: { model: '', maxRounds: 3, concurrency: 4, maxFiles: 200 }, defaultDirectory: tmp })
+  const ovStart = await ovService.start({ inputDir: join(ovIn, 'n.txt'), maxRounds: 2, concurrency: 7, maxFiles: 50, timeoutMs: 60000, temperature: 0.3 })
+  for (let i = 0; i < 200 && (await ovService.status(ovStart.runId)).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 50))
+  const ovRun = (await ovService.status(ovStart.runId)).run
+  await check('本批参数只作用于本批，默认值不变，报告注明与默认不同的项', async () => {
+    assert.equal(ovRun.config.maxRounds, 2)
+    assert.equal(ovRun.config.concurrency, 7)
+    assert.equal(ovRun.config.chunkSize, 50)
+    assert.equal(ovRun.config.timeoutMs, 60000)
+    assert.deepEqual([...ovRun.config.overridden].sort(), ['concurrency', 'maxFiles', 'maxRounds', 'temperature', 'timeoutMs'])
+    const info = ovService.configInfo()
+    assert.equal(info.maxRounds, 3)
+    assert.equal(info.concurrency, 4)
+    const report = await readFile(join(ovRun.runDir, 'report.md'), 'utf8')
+    assert.match(report, /本批单独设置/)
   })
 
   mock.kill('SIGTERM')
