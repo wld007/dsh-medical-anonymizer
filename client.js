@@ -1302,6 +1302,12 @@ window.__ModuleLoader__.load({
       .ws-kv{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent);padding:1px 0}
       .ws-kv span{white-space:nowrap}
       .ws-kv b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .ws-kv-bar{grid-column:1 / -1;flex-wrap:wrap;row-gap:3px}
+      .ws-membar{position:relative;flex-basis:100%;height:5px;border-radius:3px;background:linear-gradient(90deg,transparent 0 70%,color-mix(in srgb,var(--dsw-alias-state-warn-primary) 18%,transparent) 70% 85%,color-mix(in srgb,var(--dsw-alias-state-error-primary) 18%,transparent) 85%),var(--dsw-alias-bg-layer-2);overflow:visible}
+      .ws-membar-fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--dsw-alias-state-success-primary);transition:width .6s ease}
+      .ws-kv-warn .ws-membar-fill{background:var(--dsw-alias-state-warn-primary)}
+      .ws-kv-bad .ws-membar-fill{background:var(--dsw-alias-state-error-primary)}
+      .ws-membar-peak{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;border-radius:1px;background:var(--dsw-alias-label-secondary);opacity:.7}
       .ws-kv-warn b{color:var(--dsw-alias-state-warn-primary)}
       .ws-kv-bad b{color:var(--dsw-alias-state-error-primary)}
       .ws-spark-avg{stroke:var(--dsw-alias-label-secondary);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
@@ -3828,7 +3834,14 @@ window.__ModuleLoader__.load({
                 // Secondary readouts: one aligned label/value grid instead of
                 // a wrapping run of text.
                 const rows = []
-                const row = (label, value, extra = {}) => rows.push(h('div', { key: label, className: `ws-kv${extra.tone ? ` ws-kv-${extra.tone}` : ''}`, title: extra.title ?? '' }, h('span', {}, label), h('b', {}, value)))
+                const row = (label, value, extra = {}) => rows.push(h('div', { key: label, className: `ws-kv${extra.tone ? ` ws-kv-${extra.tone}` : ''}${extra.bar ? ' ws-kv-bar' : ''}`, title: extra.title ?? '' },
+                  h('span', {}, label), h('b', {}, value),
+                  // Usage bar: current fill, peak tick, 70% / 85% thresholds.
+                  extra.bar
+                    ? h('i', { className: 'ws-membar', 'aria-hidden': 'true' },
+                      h('i', { className: 'ws-membar-fill', style: { width: `${Math.min(100, extra.bar.pct)}%` } }),
+                      extra.bar.peak > extra.bar.pct ? h('i', { className: 'ws-membar-peak', style: { left: `${Math.min(100, extra.bar.peak)}%` } }) : null)
+                    : null))
                 // Request slots first, so 识别 and 核验 share the first row of
                 // the two-column grid. Value: in flight/limit, "+N" queued.
                 const slots = (r) => `${r.active}/${r.limit}${r.queued > 0 ? ` +${r.queued}` : ''}`
@@ -3857,6 +3870,7 @@ window.__ModuleLoader__.load({
                   const ratio = m.peakHeap / m.heapLimit
                   row(t('ws.m.memory'), `${((running ? m.heapUsed : m.peakHeap) / 1024 ** 3).toFixed(1)} / ${(m.heapLimit / 1024 ** 3).toFixed(1)} GB`, {
                     tone: ratio >= 0.85 ? 'bad' : ratio >= 0.7 ? 'warn' : '',
+                    bar: { pct: (((running ? m.heapUsed : m.peakHeap) / m.heapLimit) * 100), peak: ratio * 100 },
                     title: `${t('ws.m.mem', { now: ((running ? m.heapUsed : m.peakHeap) / 1024 ** 3).toFixed(1), peak: (m.peakHeap / 1024 ** 3).toFixed(1), limit: (m.heapLimit / 1024 ** 3).toFixed(1), pct: Math.round(ratio * 100) })}\n${t('ws.m.memHint')}`,
                   })
                 }
