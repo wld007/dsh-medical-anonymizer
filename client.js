@@ -259,6 +259,9 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.overview': '运行概况',
+      'ws.expand': '展开',
+      'ws.collapse': '收起',
       'ws.m.speed': '处理速度 tok/s',
       'ws.m.speedHint': '该模型每次调用的输入 + 输出 token 之和 ÷ 调用耗时之和（不含排队）。',
       'ws.m.speedSplit': '拆分估算：提示处理（预填充）约 {prompt} tok/s · 生成（解码）约 {gen} tok/s。提示处理慢可提高模型并发或开启前缀缓存；生成慢才需要换更快的模型。',
@@ -749,6 +752,9 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.overview': 'Run overview',
+      'ws.expand': 'Expand',
+      'ws.collapse': 'Collapse',
       'ws.m.speed': 'Speed tok/s',
       'ws.m.speedHint': 'Input + output tokens of all calls of this model ÷ their total time (queueing excluded).',
       'ws.m.speedSplit': 'Split estimate: prompt (prefill) about {prompt} tok/s · generation (decode) about {gen} tok/s. Slow prefill: raise model concurrency or enable prefix caching; slow decode: consider a faster model.',
@@ -1360,6 +1366,15 @@ window.__ModuleLoader__.load({
       .ws-adv-findings b{margin-right:6px}
       .ws-adv-findings i{display:block;font-style:normal;color:var(--dsw-alias-label-secondary);font-size:11.5px}
       .ws-adv-sec{margin:6px 0 0;font-size:12px;color:var(--dsw-alias-label-secondary)}
+      .ws-mon-spark{flex:1;min-width:0}
+      .ws-fold{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer}
+      .ws-fold-arrow{font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-res-mini{font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-panel.ws-collapsed{gap:0}
+      .ws-mt-head{display:flex;flex-direction:column;align-items:flex-end;min-width:0;gap:1px}
+      .ws-mt-head em{font-style:normal;font-size:10.5px}
+      .ws-mt-name{display:flex;align-items:center;gap:4px;max-width:100%;min-width:0;font-weight:500;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-secondary)}
+      .ws-mt-name i{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .ws-kv-warn b{color:var(--dsw-alias-state-warn-primary)}
       .ws-kv-bad b{color:var(--dsw-alias-state-error-primary)}
       .ws-spark-avg{stroke:var(--dsw-alias-label-secondary);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
@@ -3110,6 +3125,14 @@ window.__ModuleLoader__.load({
         if (config && !running) checkModels()
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [config?.model, config?.baseURL, config?.verifyModel, config?.verifyBaseURL])
+      // C2 (model & resources) can be folded; remembered across visits.
+      const [resCollapsed, setResCollapsed] = React.useState(() => {
+        try { return window.localStorage.getItem('ma-ws-res-collapsed') === '1' } catch { return false }
+      })
+      const toggleRes = () => setResCollapsed((value) => {
+        try { window.localStorage.setItem('ma-ws-res-collapsed', value ? '0' : '1') } catch { /* private mode */ }
+        return !value
+      })
       const modelDot = (state, name) => {
         if (!state) return null
         const ok = state.ok && (state.models ?? []).includes(name)
@@ -3871,16 +3894,13 @@ window.__ModuleLoader__.load({
           // ── Right: monitor + parameters ──
           h('aside', { className: 'ws-col ws-col-right' },
             h('section', { className: 'ws-panel' },
-              h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C1' }, t('ws.monitor')), h('span', { className: `ws-tag${running ? ' ws-live' : ''}` }, running ? 'LIVE' : 'IDLE')),
+              h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C1' }, t('ws.overview')), h('span', { className: `ws-tag${running ? ' ws-live' : ''}` }, running ? 'LIVE' : 'IDLE')),
               h('div', { className: 'ws-mon-top' },
                 h('div', { className: 'ws-gauge-wrap', title: plannedBytes > 0 ? t('ws.gaugeHint') : t('ws.gaugeHintFiles') },
                   h('div', { className: 'ws-gauge', style: { '--ws-pct': `${bytePercent * 3.6}deg` } },
                     h('div', { className: 'ws-gauge-in' }, h('b', {}, `${bytePercent}`), h('span', {}, '%'))),
                   h('div', { className: 'ws-gauge-cap' }, plannedBytes > 0 ? `${fmtBytes(Math.min(processedBytes, plannedBytes))} / ${fmtBytes(plannedBytes)}` : t('ws.byFiles'))),
-                h('div', { className: 'ws-model' },
-                h('div', {}, h('span', {}, config?.model ? modelDot(ping?.detect, config.model) : null, config?.verifyModel ? t('ws.model') : t('ws.modelShared')), h('b', { className: 'ma-mono', title: config?.baseURL ?? '' }, modelName)),
-                config?.verifyModel ? h('div', {}, h('span', {}, modelDot(ping?.verify, config.verifyModel), t('ws.verifyModel')), h('b', { className: 'ma-mono', title: config.verifyBaseURL || config.baseURL || '' }, config.verifyModel)) : null)),
-              spark(),
+                h('div', { className: 'ws-mon-spark' }, spark())),
               // Business results: what the batch produced.
               h('div', { className: 'ws-subhead' }, h('span', {}, t('ws.m.groupResult')),
                 h('span', { className: 'ma-mono', title: t('ws.m.chunksHint') }, `${t('ws.m.chunks')} ${current?.chunks ?? '—'}`)),
@@ -3889,9 +3909,17 @@ window.__ModuleLoader__.load({
                 readout(t('ws.m.entities'), compact(totals.entities ?? 0), '', t('ws.m.entitiesHint')),
                 readout(t('ws.m.review'), String(totals.unresolved ?? 0), (totals.unresolved ?? 0) > 0 ? 'warn' : ''),
                 readout(t('ws.m.failed'), String(totals.filesFailed ?? 0), (totals.filesFailed ?? 0) > 0 ? 'bad' : '')),
-              // Technical: model usage, throughput and process resources.
-              h('div', { className: 'ws-subhead' }, h('span', {}, t('ws.m.groupTech'))),
-              (() => {
+            ),
+            // C2: model usage, throughput and process resources (collapsible).
+            h('section', { className: `ws-panel ws-res${resCollapsed ? ' ws-collapsed' : ''}` },
+              h('div', { className: 'ws-panel-head' },
+                h('button', { type: 'button', className: 'ws-fold', onClick: toggleRes, 'aria-expanded': resCollapsed ? 'false' : 'true', title: resCollapsed ? t('ws.expand') : t('ws.collapse') },
+                  h('h3', { 'data-code': 'C2' }, t('ws.m.groupTech')),
+                  h('span', { className: 'ws-fold-arrow' }, resCollapsed ? '▸' : '▾')),
+                resCollapsed && running && current?.requests?.detect
+                  ? h('span', { className: 'ma-mono ws-res-mini', title: t('ws.m.reqHint') }, `${current.requests.detect.active}/${current.requests.detect.limit}${current.requests.verify ? ` · ${current.requests.verify.active}/${current.requests.verify.limit}` : ''}`)
+                  : null),
+              resCollapsed ? null : (() => {
                 // Secondary readouts: one aligned label/value grid instead of
                 // a wrapping run of text.
                 const rows = []
@@ -3945,8 +3973,13 @@ window.__ModuleLoader__.load({
                 ]
                 const table = h('div', { className: `ws-mtable${separate ? '' : ' ws-mtable-one'}` },
                   h('span', { className: 'ws-mt-head' }),
-                  ...cols.map((key) => h('span', { key: `h${key}`, className: 'ws-mt-head', title: key === 'verify' ? (current?.config?.verifyModel ?? '') : (current?.config?.model ?? config?.model ?? '') },
-                    key === 'detect' ? (separate ? t('ws.model') : t('ws.modelShared')) : t('ws.verifyModel'))),
+                  ...cols.map((key) => {
+                    const name = key === 'verify' ? (current?.config?.verifyModel ?? config?.verifyModel ?? '') : (current?.config?.model ?? config?.model ?? '')
+                    const role = key === 'detect' ? (separate ? t('ws.model') : t('ws.modelShared')) : t('ws.verifyModel')
+                    return h('span', { key: `h${key}`, className: 'ws-mt-head', title: `${role} · ${name}` },
+                      h('em', {}, role),
+                      h('span', { className: 'ws-mt-name' }, name ? modelDot(ping?.[key], name) : null, h('i', {}, name || '—')))
+                  }),
                   ...lines.flatMap(([label, value, hint, tone]) => [
                     h('span', { key: `l${label}`, className: 'ws-mt-label', title: typeof hint === 'function' ? hint(cols[0]) : hint }, label),
                     ...cols.map((key) => h('b', { key: `${label}${key}`, className: tone?.(key) ? `ws-mt-${tone(key)}` : '', title: typeof hint === 'function' ? hint(key) : hint }, value(key))),
@@ -3954,7 +3987,7 @@ window.__ModuleLoader__.load({
                 return h(React.Fragment, {}, h('div', { className: 'ws-minor' }, rows), table)
               })()),
             h('section', { className: 'ws-panel' },
-              h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C2' }, t('ws.params')), anyRunning
+              h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C3' }, t('ws.params')), anyRunning
                   ? h('span', { className: 'ws-tag' }, t('ws.locked'))
                   : h('button', { className: 'ma-link ws-more', onClick: () => setModal('settings') }, `${t('ws.allSettings')} →`)),
               !draft
