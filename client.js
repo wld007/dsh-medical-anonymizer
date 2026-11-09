@@ -259,6 +259,18 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.calls.r.bad-shape': '格式不符',
+      'ws.calls.retries': '重试',
+      'ws.calls.dropped': '丢弃条目',
+      'ws.calls.retryHint': '这次调用内部重试了 {n} 次（输出不是 JSON / 格式不符 / 网络或 5xx 错误）',
+      'ws.calls.dropHint': '回复中有 {n} 条被丢弃：格式不对、类型不在允许范围、或原文在段落中找不到',
+      'ws.calls.retrySumHint': '调用内部的重试次数合计',
+      'ws.calls.dropSumHint': '回复中被丢弃的条目合计',
+      'ws.m.failRate': '失败率',
+      'ws.m.failHint': '失败的调用 ÷ 调用次数（已取消的不计）。↻ 为调用内部的重试次数。失败的段落会拆分重发，仍失败的转人工复核。',
+      'ws.m.failNone': '没有失败',
+      'ws.m.retryLine': '内部重试 {n} 次',
+      'ws.rv.code.model-unchecked': '未经模型检查',
       'ws.m.outPer': '输出 / 次',
       'ws.m.perCall': '每次 输出/耗时',
       'ws.m.outPerHint': '每次调用平均输出多少 token。模型生成文字比读入慢得多，输出越多，单次耗时越长。',
@@ -779,6 +791,18 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.calls.r.bad-shape': 'Wrong shape',
+      'ws.calls.retries': 'retries',
+      'ws.calls.dropped': 'dropped items',
+      'ws.calls.retryHint': 'Retried {n} times inside this call (not JSON / wrong shape / network or 5xx)',
+      'ws.calls.dropHint': '{n} items of the reply were dropped: malformed, unknown type, or text not found in the segment',
+      'ws.calls.retrySumHint': 'Total retries inside calls',
+      'ws.calls.dropSumHint': 'Total dropped reply items',
+      'ws.m.failRate': 'Failure rate',
+      'ws.m.failHint': 'Failed calls ÷ calls (cancelled ones excluded). ↻ = retries inside calls. Failed segments are split and resent; still failing ones go to manual review.',
+      'ws.m.failNone': 'No failures',
+      'ws.m.retryLine': '{n} retries inside calls',
+      'ws.rv.code.model-unchecked': 'Not checked by the model',
       'ws.m.outPer': 'Output / call',
       'ws.m.perCall': 'Per call out/time',
       'ws.m.outPerHint': 'Average output tokens per call. Generating is much slower than reading the prompt; more output means longer calls.',
@@ -1445,6 +1469,9 @@ window.__ModuleLoader__.load({
       .ws-version{font-style:normal;margin-left:8px;padding:0 5px;border-radius:4px;border:1px solid var(--dsw-alias-border-l2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0;color:var(--dsw-alias-label-secondary)}
       .ws-busy-fd{fill:color-mix(in srgb,var(--ws-accent) 11%,transparent);stroke:none}
       .ws-busy-fv{fill:color-mix(in srgb,#3b82c4 11%,transparent);stroke:none}
+      .ws-call-mark{font-style:normal;margin-left:4px;font-size:10.5px;color:var(--dsw-alias-state-warn-primary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+      .ws-call-drop{color:var(--dsw-alias-label-secondary)}
+      .ws-fail-bad{color:var(--dsw-alias-state-error-primary)}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
       .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
@@ -3569,6 +3596,8 @@ window.__ModuleLoader__.load({
               h('span', { className: timeouts ? 'ws-c-bad' : '' }, `${t('ws.calls.timeout')} ${timeouts}`),
               h('span', { className: failed ? 'ws-c-bad' : '' }, `${t('ws.calls.failed')} ${failed}`),
               replayed ? h('span', {}, `${t('ws.calls.r.cached')} ${replayed}`) : null,
+              (() => { const retries = entries.reduce((sum, entry) => sum + Math.max(0, (entry.attempts ?? 1) - 1), 0); return retries ? h('span', { title: t('ws.calls.retrySumHint') }, `${t('ws.calls.retries')} ${retries}`) : null })(),
+              (() => { const dropped = entries.reduce((sum, entry) => sum + (entry.dropped ?? 0), 0); return dropped ? h('span', { title: t('ws.calls.dropSumHint') }, `${t('ws.calls.dropped')} ${dropped}`) : null })(),
               entries.length > shown.length ? h('span', {}, t('ws.calls.latest', { count: shown.length })) : null)),
             h('table', { className: 'ma-table ws-table ws-calls' },
               h('thead', {}, h('tr', {},
@@ -3583,7 +3612,9 @@ window.__ModuleLoader__.load({
                 h('td', { className: 'ma-mono' }, secs(entry.ms)),
                 h('td', { className: 'ma-mono' }, entry.tokens ? compact(entry.tokens) : '—'),
                 h('td', { className: 'ma-mono' }, entry.out ? `${compact(entry.in || 0)} / ${entry.out}` : '—'),
-                h('td', {}, h('span', { className: entry.result === 'ok' ? 'ma-chip ma-ok' : (entry.result === 'cancelled' || entry.result === 'cached') ? 'ma-chip' : 'ma-chip ma-bad' }, t(`ws.calls.r.${entry.result}`) === `ws.calls.r.${entry.result}` ? entry.result : t(`ws.calls.r.${entry.result}`))))))))
+                h('td', {}, h('span', { className: entry.result === 'ok' ? 'ma-chip ma-ok' : (entry.result === 'cancelled' || entry.result === 'cached') ? 'ma-chip' : 'ma-chip ma-bad' }, t(`ws.calls.r.${entry.result}`) === `ws.calls.r.${entry.result}` ? entry.result : t(`ws.calls.r.${entry.result}`,
+                  entry.attempts > 1 ? h('i', { className: 'ws-call-mark', title: t('ws.calls.retryHint', { n: entry.attempts - 1 }) }, `↻${entry.attempts - 1}`) : null,
+                  entry.dropped ? h('i', { className: 'ws-call-mark ws-call-drop', title: t('ws.calls.dropHint', { n: entry.dropped }) }, `−${entry.dropped}`) : null))))))))
         }
         if (drawer === 'advice') return advicePanel()
         if (drawer === 'warn') {
@@ -4104,12 +4135,25 @@ window.__ModuleLoader__.load({
                 }
                 // Token counts as 2.3k / 4.6k so a cell stays narrow.
                 const kTok = (value) => (value >= 1000 ? `${(value / 1000).toFixed(value >= 100000 ? 0 : 1)}k` : String(Math.round(value)))
+                // Failed calls (cancelled ones excluded) and retries per model.
+                const FAIL_LABEL = (code) => (t(`ws.calls.r.${code}`) === `ws.calls.r.${code}` ? code : t(`ws.calls.r.${code}`))
+                const failCell = (m) => {
+                  if (!m?.calls) return '—'
+                  const fails = Object.values(m.fails ?? {}).reduce((a, b) => a + b, 0)
+                  const pct = (fails / m.calls) * 100
+                  return h('span', { className: fails ? 'ws-fail-bad' : '' }, `${pct < 10 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%${m.retries ? ` ↻${m.retries}` : ''}`)
+                }
+                const failHint = (m) => {
+                  const parts = Object.entries(m?.fails ?? {}).map(([code, count]) => `${FAIL_LABEL(code)} ${count}`)
+                  return `${t('ws.m.failHint')}\n${parts.length ? parts.join(' · ') : t('ws.m.failNone')}${m?.retries ? `\n${t('ws.m.retryLine', { n: m.retries })}` : ''}`
+                }
                 const avgCtx = (m) => (m?.ctxN ? compact(Math.round(m.ctxSum / m.ctxN)) : '—')
                 const lines = [
                   [t('ws.m.mCalls'), (key) => compact(models[key]?.calls ?? 0), t('ws.m.callsHint')],
                   [t('ws.m.ctx'), (key) => (models[key]?.ctxN
                     ? h('span', { className: 'ws-ctxcell' }, histBar(models[key].ctxHist), `${kTok(models[key].ctxSum / models[key].ctxN)} / ${kTok(models[key].ctxMax)}`)
                     : '—'), `${t('ws.m.ctxHint')}\n${t('ws.m.ctxDistHint')}`],
+                  [t('ws.m.failRate'), (key) => failCell(models[key]), (key) => failHint(models[key])],
                   // One row: average output tokens / average time per call.
                   [t('ws.m.perCall'), (key) => (models[key]?.okN ? `${models[key].outSum ? kTok(models[key].outSum / models[key].okN) : '—'} / ${(models[key].msSum / models[key].okN / 1000).toFixed(1)}s` : '—'),
                     (key) => `${t('ws.m.outPerHint')}\n${t('ws.m.msPerHint')}\n${t('ws.m.speed')} ${fmtSpeed(speedOf(key))}\n${speedHint(key)}`],

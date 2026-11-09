@@ -777,7 +777,7 @@ async function main() {
     const stages = new Set(log.map((entry) => entry.stage))
     assert.ok(stages.has('识别·替换') && stages.has('盲审'), [...stages].join())
     for (const entry of log) {
-      assert.deepEqual(Object.keys(entry).filter((key) => !['in', 'out', 'model'].includes(key)).sort(), ['at', 'file', 'ms', 'result', 'round', 'segments', 'seq', 'stage', 'tokens'])
+      assert.deepEqual(Object.keys(entry).filter((key) => !['in', 'out', 'model', 'attempts', 'dropped'].includes(key)).sort(), ['at', 'file', 'ms', 'result', 'round', 'segments', 'seq', 'stage', 'tokens'])
     }
     const raw = JSON.stringify(log)
     for (const secret of ['张三', '11010519491231002X', '13800138000', '刘建国']) assert.ok(!raw.includes(secret), secret)
@@ -1173,6 +1173,30 @@ async function main() {
     assert.ok(detectPromptSeen.includes('{"e":[["段id","类型","原文片段"]]}') && !detectPromptSeen.includes('context'), detectPromptSeen.slice(0, 400))
     const out = await readFile(cmpRun.output, 'utf8')
     assert.ok(!out.includes('司徒远航') && /化名-[0-9A-F]{6}/.test(out), out)
+  })
+
+  // Valid JSON of the wrong shape is not "nothing found": retried, split,
+  // and segments still unanswered go to manual review.
+  const shapeIn = join(tmp, 'shape-in')
+  await mkdir(shapeIn, { recursive: true })
+  await writeFile(join(shapeIn, 'n.txt'), '病程记录：患者由其子欧阳峻陪同来院，诉头痛三天。\n')
+  let shapeCalls = 0
+  const shapeModel = { model: 's', async chatJson(messages, opts = {}) {
+    shapeCalls += 1
+    const p = messages.map((m) => m.content).join('\n')
+    const json = p.includes('独立的数据安全审查员') ? { issues: [] } : {}
+    // Imitate the real client: validation failure → bad-shape error.
+    if (opts.validate && !opts.validate(json)) throw Object.assign(new Error('模型输出格式不符'), { code: 'bad-shape', attempts: 2 })
+    return { json, attempts: 1 }
+  } }
+  const shapeRun = await runBatch({ inputDir: join(shapeIn, 'n.txt'), outputRoot: join(tmp, 'shape-out'), options: { runId: 'shape-1', llm: shapeModel, maxRounds: 1 } })
+  await check('输出格式不符（如 {}）记为失败、记录重试，未识别的段落转人工复核', async () => {
+    assert.equal(shapeRun.status, 'review')
+    assert.ok(shapeRun.files[0].issues.some((issue) => issue.code === 'model-unchecked' && issue.severity === 'error'), JSON.stringify(shapeRun.files[0].issues))
+    const log = JSON.parse(await readFile(join(tmp, 'shape-out', '_records', 'runs', 'shape-1', 'calls.json'), 'utf8'))
+    const bad = log.filter((entry) => entry.result === 'bad-shape')
+    assert.ok(bad.length >= 1 && bad.every((entry) => entry.attempts === 2), JSON.stringify(log))
+    assert.ok(shapeRun.totals.models.detect.fails['bad-shape'] >= 1)
   })
 
   mock.kill('SIGTERM')
