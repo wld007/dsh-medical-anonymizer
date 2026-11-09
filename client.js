@@ -3932,10 +3932,11 @@ window.__ModuleLoader__.load({
                       extra.bar.peak > extra.bar.pct ? h('i', { className: 'ws-membar-peak', style: { left: `${Math.min(100, extra.bar.peak)}%` } }) : null)
                     : null))
                 // Totals (both models): calls, reuse, tokens, memory.
+                // Row 1: what was sent (calls, tokens); row 2: what was saved.
                 row(t('ws.m.calls'), compact(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0)), { title: t('ws.m.callsHint') })
+                row(t('ws.m.tokens'), totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0'), { title: t('ws.m.tokensHint') })
                 row(t('ws.m.replayed'), compact(totals.replayedCalls ?? 0), { title: t('ws.m.replayedHint') })
                 row(t('ws.m.memo'), compact(totals.memoHits ?? 0), { title: t('ws.m.memoHint') })
-                row(t('ws.m.tokens'), totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0'), { title: t('ws.m.tokensHint') })
                 if (current?.memory?.heapLimit) {
                   const m = current.memory
                   const ratio = m.peakHeap / m.heapLimit
