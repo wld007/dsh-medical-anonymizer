@@ -1411,7 +1411,7 @@ window.__ModuleLoader__.load({
       .ws-busy-plot{position:relative;flex:1;display:flex;gap:4px;min-height:50px}
       .ws-busy-gutter{flex:none;width:40px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font-size:9.5px;line-height:11px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
       .ws-busy-zero{opacity:.7}
-      .ws-busy-plot svg{flex:1}
+      .ws-busy-plot svg{flex:1;border-bottom:0!important}
       .ws-busy-axis{stroke:color-mix(in srgb,var(--ws-ink) 35%,transparent);stroke-width:1;vector-effect:non-scaling-stroke}
       .ws-busy-tag{position:absolute;left:2px;font-size:9.5px;color:var(--dsw-alias-label-secondary);pointer-events:none}
       .ws-busy-tag-up{top:0}
@@ -4120,6 +4120,7 @@ window.__ModuleLoader__.load({
                   const qMax = Math.max(1, ...points.map((p) => Math.max(p[1], p[3] ?? 0)))
                   void qMax
                   const down = (value) => AX + (value / qMax) * (AX - 3)
+                  const qLine = (pick) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${down(pick(p)).toFixed(1)}`).join(' ')
                   const qArea = (pick) => `M0 ${AX} ${points.map((p, index) => `L${x(index).toFixed(1)} ${down(pick(p)).toFixed(1)}`).join(' ')} L${W} ${AX} Z`
                   const minutes = empty ? 0 : Math.round(((points.length - 1) * (series.step ?? 2000)) / 60000)
                   return h('div', { className: `ws-busy${empty ? ' ws-busy-empty' : ''}`, title: `${t('ws.m.busyHint')}\n${t('ws.m.busyAxis', { limit, max: qMax, minutes: Math.max(1, minutes) })}` },
@@ -4136,8 +4137,10 @@ window.__ModuleLoader__.load({
                         h('span', {}, t('ws.m.queueTag', { max: qMax }))),
                       h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.m.busy') },
                         h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: up(limit), y2: up(limit) }),
-                        empty ? null : h('path', { className: 'ws-busy-qd', d: qArea((p) => p[1]) }),
-                        !empty && hasVerify ? h('path', { className: 'ws-busy-qv', d: qArea((p) => p[3] ?? 0) }) : null,
+                        // Queue drawn like the lines above, mirrored; dashed = queue peak.
+                        h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: down(qMax), y2: down(qMax) }),
+                        empty ? null : h('path', { className: 'ws-busy-ld', d: qLine((p) => p[1]) }),
+                        !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: qLine((p) => p[3] ?? 0) }) : null,
                         h('line', { className: 'ws-busy-axis', x1: 0, x2: W, y1: AX, y2: AX }),
                         empty ? null : h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
                         !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0) }) : null),
