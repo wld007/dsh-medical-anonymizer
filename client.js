@@ -260,6 +260,7 @@ window.__ModuleLoader__.load({
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
       'ws.m.outPer': '输出 / 次',
+      'ws.m.perCall': '每次 输出/耗时',
       'ws.m.outPerHint': '每次调用平均输出多少 token。模型生成文字比读入慢得多，输出越多，单次耗时越长。',
       'ws.m.msPer': '耗时 / 次',
       'ws.m.msPerHint': '每次调用平均耗时（从拿到名额开始，不含排队）。',
@@ -779,6 +780,7 @@ window.__ModuleLoader__.load({
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
       'ws.m.outPer': 'Output / call',
+      'ws.m.perCall': 'Per call out/time',
       'ws.m.outPerHint': 'Average output tokens per call. Generating is much slower than reading the prompt; more output means longer calls.',
       'ws.m.msPer': 'Time / call',
       'ws.m.msPerHint': 'Average time per call (from getting a slot, queueing excluded).',
@@ -4108,8 +4110,9 @@ window.__ModuleLoader__.load({
                   [t('ws.m.ctx'), (key) => (models[key]?.ctxN
                     ? h('span', { className: 'ws-ctxcell' }, histBar(models[key].ctxHist), `${kTok(models[key].ctxSum / models[key].ctxN)} / ${kTok(models[key].ctxMax)}`)
                     : '—'), `${t('ws.m.ctxHint')}\n${t('ws.m.ctxDistHint')}`],
-                  [t('ws.m.outPer'), (key) => (models[key]?.okN && models[key].outSum ? kTok(models[key].outSum / models[key].okN) : '—'), t('ws.m.outPerHint')],
-                  [t('ws.m.msPer'), (key) => (models[key]?.okN ? `${(models[key].msSum / models[key].okN / 1000).toFixed(1)} s` : '—'), (key) => `${t('ws.m.msPerHint')}\n${t('ws.m.speed')} ${fmtSpeed(speedOf(key))}\n${speedHint(key)}`],
+                  // One row: average output tokens / average time per call.
+                  [t('ws.m.perCall'), (key) => (models[key]?.okN ? `${models[key].outSum ? kTok(models[key].outSum / models[key].okN) : '—'} / ${(models[key].msSum / models[key].okN / 1000).toFixed(1)}s` : '—'),
+                    (key) => `${t('ws.m.outPerHint')}\n${t('ws.m.msPerHint')}\n${t('ws.m.speed')} ${fmtSpeed(speedOf(key))}\n${speedHint(key)}`],
                 ]
                 const table = h('div', { className: `ws-mtable${separate ? '' : ' ws-mtable-one'}` },
                   h('span', { className: 'ws-mt-head' }),
