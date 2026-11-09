@@ -293,7 +293,7 @@ window.__ModuleLoader__.load({
       'ws.x.humanHint': '分歧项和未复判项的人工处理：替换为假名 = 核验对；不是标识符 / 确认保留 = 识别对。',
       'ws.x.pending': '待裁定 {n} →',
       'ws.x.none': '本批次没有盲审数据。',
-      'ws.x.waiting': '批次运行后显示。',
+      'ws.x.waiting': '采集中…',
       'ws.x.shared': '未配置独立核验模型，盲审由识别模型兼任，一致性参考意义有限。',
       'ws.calls.r.bad-shape': '格式不符',
       'ws.calls.retries': '重试',
@@ -861,7 +861,7 @@ window.__ModuleLoader__.load({
       'ws.x.humanHint': 'Manual decisions on disputed / not re-judged items: replaced = verifier right; kept = detector right.',
       'ws.x.pending': '{n} pending →',
       'ws.x.none': 'No blind-review data for this batch.',
-      'ws.x.waiting': 'Shown once the batch runs.',
+      'ws.x.waiting': 'collecting…',
       'ws.x.shared': 'No separate verification model: the detector also reviews, so agreement means little.',
       'ws.calls.r.bad-shape': 'Wrong shape',
       'ws.calls.retries': 'retries',
@@ -4011,23 +4011,22 @@ window.__ModuleLoader__.load({
               h('h3', { 'data-code': 'C3' }, t('ws.x.title')),
               h('span', { className: 'ws-fold-arrow' }, crossCollapsed ? '▸' : '▾')),
             crossCollapsed && judged > 0 ? h('span', { className: 'ma-mono ws-res-mini' }, t('ws.x.agreeShort', { pct: Math.round((parts[0][1] / judged) * 100) })) : null),
-          crossCollapsed ? null : !blind || (!reported && !blind.calls)
-            ? h('p', { className: 'ma-empty' }, !verifierName ? t('ws.x.shared') : (running ? t('ws.x.waiting') : t('ws.x.none')))
-            : h(React.Fragment, {},
-              h('div', { className: 'ws-x-line', title: t('ws.x.reportedHint') },
-                h('span', {}, t('ws.x.reported')), h('b', {}, String(reported)),
-                h('span', { className: 'ws-x-sub' }, t('ws.x.calls', { flagged: blind.flaggedCalls ?? 0, calls: blind.calls ?? 0 }))),
-              reported > 0 ? h('div', { className: 'ws-splitbox', title: t('ws.x.splitHint') },
-                h('div', { className: 'ws-split' }, parts.filter(([, value]) => value > 0).map(([kind, value]) => h('i', { key: kind, className: `ws-x-${kind}`, style: { flexGrow: value } }))),
-                h('div', { className: 'ws-split-legend' }, parts.map(([kind, value]) => h('span', { key: kind }, h('i', { className: `ws-x-${kind}` }), `${t(`ws.x.${kind}`)} ${value}`)))) : null,
-              judged > 0 ? h('div', { className: 'ws-x-line', title: t('ws.x.agreeHint') },
-                h('span', {}, t('ws.x.agree')), h('b', {}, `${Math.round((parts[0][1] / judged) * 100)}%`),
-                h('span', { className: 'ws-x-sub' }, t('ws.x.disputeRate', { pct: reported ? Math.round((parts[2][1] / reported) * 100) : 0 }))) : null,
-              judgedItems.length > 0 ? h('div', { className: 'ws-x-line', title: t('ws.x.humanHint') },
-                h('span', {}, t('ws.x.human')),
-                h('b', {}, t('ws.x.humanVal', { v: verifierRight, d: detectorRight })),
-                waiting ? h('button', { type: 'button', className: 'ma-link ws-x-sub', onClick: () => openCompare({ filter: 'review' }) }, t('ws.x.pending', { n: waiting })) : null) : null,
-              !verifierName ? h('p', { className: 'ma-hint ws-warn-line' }, t('ws.x.shared')) : null))
+          // Always the full layout: values are "—" / 0 until a batch has data.
+          crossCollapsed ? null : h(React.Fragment, {},
+            h('div', { className: 'ws-x-line', title: t('ws.x.reportedHint') },
+              h('span', {}, t('ws.x.reported')), h('b', {}, blind ? String(reported) : '—'),
+              h('span', { className: 'ws-x-sub' }, blind ? t('ws.x.calls', { flagged: blind.flaggedCalls ?? 0, calls: blind.calls ?? 0 }) : (running ? t('ws.x.waiting') : ''))),
+            h('div', { className: 'ws-splitbox', title: t('ws.x.splitHint') },
+              h('div', { className: 'ws-split' }, reported > 0 ? parts.filter(([, value]) => value > 0).map(([kind, value]) => h('i', { key: kind, className: `ws-x-${kind}`, style: { flexGrow: value } })) : null),
+              h('div', { className: 'ws-split-legend' }, parts.map(([kind, value]) => h('span', { key: kind }, h('i', { className: `ws-x-${kind}` }), `${t(`ws.x.${kind}`)} ${blind ? value : '—'}`)))),
+            h('div', { className: 'ws-x-line', title: t('ws.x.agreeHint') },
+              h('span', {}, t('ws.x.agree')), h('b', {}, judged > 0 ? `${Math.round((parts[0][1] / judged) * 100)}%` : '—'),
+              h('span', { className: 'ws-x-sub' }, t('ws.x.disputeRate', { pct: reported ? Math.round((parts[2][1] / reported) * 100) : '—' }))),
+            h('div', { className: 'ws-x-line', title: t('ws.x.humanHint') },
+              h('span', {}, t('ws.x.human')),
+              h('b', {}, judgedItems.length ? t('ws.x.humanVal', { v: verifierRight, d: detectorRight }) : '—'),
+              waiting ? h('button', { type: 'button', className: 'ma-link ws-x-sub', onClick: () => openCompare({ filter: 'review' }) }, t('ws.x.pending', { n: waiting })) : null),
+            !verifierName ? h('p', { className: 'ma-hint ws-warn-line' }, t('ws.x.shared')) : null))
       }
 
       const adviceCount = (() => {
