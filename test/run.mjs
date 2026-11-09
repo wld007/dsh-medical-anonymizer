@@ -1156,6 +1156,25 @@ async function main() {
     assert.ok(again.totals.newMappings < again.totals.distinctIds, `new ${again.totals.newMappings} distinct ${again.totals.distinctIds}`)
   })
 
+  // Compact detection output: {"e":[["段id","类型","原文"]]}, no context field.
+  const cmpIn = join(tmp, 'compact-in')
+  await mkdir(cmpIn, { recursive: true })
+  await writeFile(join(cmpIn, 'n.txt'), '病程记录：患者由其子司徒远航陪同来院。\n')
+  let detectPromptSeen = ''
+  const compactModel = { model: 'c', async chatJson(messages) {
+    const p = messages.map((m) => m.content).join('\n')
+    if (p.includes('独立的数据安全审查员')) return { json: { issues: [] } }
+    detectPromptSeen = p
+    const segs = JSON.parse(p.slice(p.lastIndexOf('段落：') + 3))
+    return { json: { e: segs.filter((seg) => seg.text.includes('司徒远航')).map((seg) => [seg.id, '姓名', '司徒远航']) } }
+  } }
+  const cmpRun = await runBatch({ inputDir: join(cmpIn, 'n.txt'), outputRoot: join(tmp, 'compact-out'), options: { runId: 'cmp-1', llm: compactModel } })
+  await check('识别输出用紧凑三元数组格式，不再要求 context 字段', async () => {
+    assert.ok(detectPromptSeen.includes('{"e":[["段id","类型","原文片段"]]}') && !detectPromptSeen.includes('context'), detectPromptSeen.slice(0, 400))
+    const out = await readFile(cmpRun.output, 'utf8')
+    assert.ok(!out.includes('司徒远航') && /化名-[0-9A-F]{6}/.test(out), out)
+  })
+
   mock.kill('SIGTERM')
   console.log(failures === 0 ? '\nPASS' : `\n${failures} FAILURE(S)`)
   process.exit(failures === 0 ? 0 : 1)
