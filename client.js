@@ -1367,6 +1367,11 @@ window.__ModuleLoader__.load({
       .ws-adv-findings i{display:block;font-style:normal;color:var(--dsw-alias-label-secondary);font-size:11.5px}
       .ws-adv-sec{margin:6px 0 0;font-size:12px;color:var(--dsw-alias-label-secondary)}
       .ws-mon-spark{flex:1;min-width:0}
+      /* The column fills the height: C2 takes the spare space (C1 when C2 is folded). */
+      .ws-col-right>.ws-res{flex:1 0 auto}
+      .ws-col-right>.ws-res.ws-collapsed{flex:none}
+      .ws-col-right:has(>.ws-res.ws-collapsed)>.ws-panel:first-child{flex:1 0 auto}
+      .ws-col-right>.ws-panel:last-child{margin-bottom:0}
       .ws-fold{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer}
       .ws-fold-arrow{font-size:11px;color:var(--dsw-alias-label-secondary)}
       .ws-res-mini{font-size:11px;color:var(--dsw-alias-label-secondary)}
@@ -1378,7 +1383,8 @@ window.__ModuleLoader__.load({
       .ws-kv-warn b{color:var(--dsw-alias-state-warn-primary)}
       .ws-kv-bad b{color:var(--dsw-alias-state-error-primary)}
       .ws-spark-avg{stroke:var(--dsw-alias-label-secondary);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
-      .ws-spark-foot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-spark-foot{display:flex;justify-content:space-between;gap:6px;font-size:10px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
+      .ws-spark-foot>*{overflow:hidden;text-overflow:ellipsis;min-width:0}
       .ws-strip{margin-bottom:4px}
       .ws-strip svg{display:block;width:100%;height:40px;border-bottom:1px solid var(--dsw-alias-border-l2)}
       .ws-strip rect{cursor:pointer}
@@ -3193,7 +3199,9 @@ window.__ModuleLoader__.load({
       // share; batches from before 0.8.1 have no byte counts and use files.
       const plannedBytes = Number(current?.plannedBytes ?? 0)
       const inflightBytes = running ? inflight.reduce((sum, state) => sum + (Number(state.bytes) || 0) * Math.min(1, Number(state.fraction) || 0), 0) : 0
-      const processedBytes = running ? Number(current?.doneBytes ?? 0) + inflightBytes : plannedBytes
+      // Finished batches: all of it; stopped / failed ones: what was done.
+      const processedBytes = running ? Number(current?.doneBytes ?? 0) + inflightBytes
+        : (current?.status === 'completed' || current?.status === 'review' ? plannedBytes : Number(current?.doneBytes ?? 0))
       const bytePercent = plannedBytes > 0
         ? (running ? Math.min(99, Math.floor((processedBytes / plannedBytes) * 100)) : (current?.status === 'completed' || current?.status === 'review' ? 100 : Math.round((Number(current?.doneBytes ?? 0) / plannedBytes) * 100)))
         : percent
