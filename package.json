@@ -53,7 +53,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "node test/hints.mjs && node test/layers.mjs && node test/advisor.mjs && node test/policy.mjs && node test/zip.mjs && node test/paths.mjs && node test/run.mjs && node test/archive.mjs && node test/dicom.mjs && node test/fix-layers.mjs && node test/fix-text-csv.mjs && node test/fix-xlsx-json.mjs && node test/fix-misc.mjs",
+    "test": "node test/hints.mjs && node test/layers.mjs && node test/advisor.mjs && node test/policy.mjs && node test/zip.mjs && node test/paths.mjs && node test/run.mjs && node test/archive.mjs && node test/dicom.mjs && node test/fix-layers.mjs && node test/fix-text-csv.mjs && node test/fix-xlsx-json.mjs && node test/fix-misc.mjs && node test/fix2-pipeline.mjs && node test/fix2-rules.mjs && node test/fix2-formats.mjs && node test/fix2-dicom-zip.mjs && node test/fix2-paths.mjs && node test/fix2-host.mjs && node test/fix2-client.mjs",
     "check:public": "node scripts/check-public.mjs"
   },
   "dsh": {
