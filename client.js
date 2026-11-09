@@ -261,8 +261,8 @@ window.__ModuleLoader__.load({
       'ws.unitFiles': '文件',
       'ws.m.busyIdle': '批次运行时显示',
       'ws.m.busyCollect': '正在采样…',
-      'ws.m.inflightTag': '进行中 ≤{limit}',
-      'ws.m.queueTag': '排队 ≤{max}',
+      'ws.m.inflightTag': '进行 {limit}',
+      'ws.m.queueTag': '排队 {max}',
       'ws.m.busyAxis': '横轴以上：进行中的请求（虚线 = 模型并发 {limit}）；横轴以下：插件内排队（峰值 {max}）。覆盖最近约 {minutes} 分钟。',
       'ws.m.queueChart': '插件内排队',
       'ws.m.queuePeak': '排队峰值 {max}',
@@ -770,8 +770,8 @@ window.__ModuleLoader__.load({
       'ws.unitFiles': 'files',
       'ws.m.busyIdle': 'Shown while a batch runs',
       'ws.m.busyCollect': 'Sampling…',
-      'ws.m.inflightTag': 'in flight ≤{limit}',
-      'ws.m.queueTag': 'queued ≤{max}',
+      'ws.m.inflightTag': 'run {limit}',
+      'ws.m.queueTag': 'queue {max}',
       'ws.m.busyAxis': 'Above the axis: requests in flight (dashed = concurrency {limit}); below: queued in the plugin (peak {max}). Covers about the last {minutes} min.',
       'ws.m.queueChart': 'Queued in plugin',
       'ws.m.queuePeak': 'queue peak {max}',
@@ -1408,7 +1408,9 @@ window.__ModuleLoader__.load({
       .ws-split-legend span{display:inline-flex;align-items:center;gap:4px}
       .ws-split-legend i{display:inline-block;width:8px;height:8px;border-radius:2px}
       .ws-ctxcell{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;max-width:100%}
-      .ws-busy-plot{position:relative;flex:1;display:flex;min-height:50px}
+      .ws-busy-plot{position:relative;flex:1;display:flex;gap:4px;min-height:50px}
+      .ws-busy-gutter{flex:none;width:40px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;font-size:9.5px;line-height:11px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
+      .ws-busy-zero{opacity:.7}
       .ws-busy-plot svg{flex:1}
       .ws-busy-axis{stroke:color-mix(in srgb,var(--ws-ink) 35%,transparent);stroke-width:1;vector-effect:non-scaling-stroke}
       .ws-busy-tag{position:absolute;left:2px;font-size:9.5px;color:var(--dsw-alias-label-secondary);pointer-events:none}
@@ -4127,6 +4129,11 @@ window.__ModuleLoader__.load({
                         h('i', { className: 'ws-busy-d' }), t('ws.model'), legendSlot('detect'),
                         hasVerify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel'), legendSlot('verify')) : null)),
                     h('div', { className: 'ws-busy-plot' },
+                      // Scale labels sit in a gutter left of the plot, never over the lines.
+                      h('div', { className: 'ws-busy-gutter', 'aria-hidden': 'true' },
+                        h('span', {}, t('ws.m.inflightTag', { limit })),
+                        h('span', { className: 'ws-busy-zero' }, '0'),
+                        h('span', {}, t('ws.m.queueTag', { max: qMax }))),
                       h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.m.busy') },
                         h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: up(limit), y2: up(limit) }),
                         empty ? null : h('path', { className: 'ws-busy-qd', d: qArea((p) => p[1]) }),
@@ -4135,8 +4142,7 @@ window.__ModuleLoader__.load({
                         empty ? null : h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
                         !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0) }) : null),
                       empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null,
-                      h('span', { className: 'ws-busy-tag ws-busy-tag-up' }, t('ws.m.inflightTag', { limit })),
-                      h('span', { className: 'ws-busy-tag ws-busy-tag-down' }, t('ws.m.queueTag', { max: qMax }))))
+                    ))
                 })()
                 return h(React.Fragment, {}, splitBar, h('div', { className: 'ws-minor' }, rows), table, busy)
               })()),
