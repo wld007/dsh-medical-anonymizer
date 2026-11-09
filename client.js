@@ -4371,10 +4371,10 @@ window.__ModuleLoader__.load({
                 const avgCtx = (m) => (m?.ctxN ? compact(Math.round(m.ctxSum / m.ctxN)) : '—')
                 const lines = [
                   [t('ws.m.mCalls'), (key) => compact(models[key]?.calls ?? 0), t('ws.m.callsHint')],
+                  [t('ws.m.failRate'), (key) => failCell(models[key]), (key) => failHint(models[key])],
                   [t('ws.m.ctx'), (key) => (models[key]?.ctxN
                     ? h('span', { className: 'ws-ctxcell' }, histBar(models[key].ctxHist), `${kTok(models[key].ctxSum / models[key].ctxN)} / ${kTok(models[key].ctxMax)}`)
                     : '—'), `${t('ws.m.ctxHint')}\n${t('ws.m.ctxDistHint')}`],
-                  [t('ws.m.failRate'), (key) => failCell(models[key]), (key) => failHint(models[key])],
                   // One row: average output tokens / average time per call.
                   [t('ws.m.perCall'), (key) => (models[key]?.okN ? `${models[key].outSum ? kTok(models[key].outSum / models[key].okN) : '—'} / ${(models[key].msSum / models[key].okN / 1000).toFixed(1)}s` : '—'),
                     (key) => `${t('ws.m.outPerHint')}\n${t('ws.m.msPerHint')}\n${t('ws.m.speed')} ${fmtSpeed(speedOf(key))}\n${speedHint(key)}`],
