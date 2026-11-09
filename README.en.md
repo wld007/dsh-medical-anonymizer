@@ -328,6 +328,7 @@ byte for byte: never decoded, modified, or sent to a model.
       model-cache.jsonl      # model replies of an unfinished batch, replayed by Resume; quotes originals, mode 0600, deleted once a batch finishes
       resume.json            # original input path of an unfinished batch, for Resume (mode 0600)
       review-items.json      # review items with original context (holds originals, mode 0600)
+      cross-check.json       # cross-check detail: each blind-review finding, its outcome and both models' reasons (holds originals, mode 0600)
       compare/               # per-file comparison: changed segments, original and result (holds originals, mode 0600)
       review/                # anonymized copies of files that need review, taken out of zips too (x.zip becomes x (zip)/)
       output/                # staging while running; moved to the output root when the batch finishes. Partial results of a cancelled/failed batch stay here

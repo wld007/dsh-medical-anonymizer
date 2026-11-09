@@ -350,6 +350,8 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.deleteRun(request.runId, { deliverable: request.deliverable === true }) }
         case 'clearRuns':
           return { ok: true, value: await service.clearRuns({ deliverable: request.deliverable === true }) }
+        case 'crossCheck':
+          return { ok: true, value: await service.crossCheck(request.runId) }
         case 'compareList':
           return { ok: true, value: await service.compareList(request.runId) }
         case 'compareFile':

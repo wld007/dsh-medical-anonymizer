@@ -965,6 +965,22 @@ async function main() {
     assert.ok(adj1.totals.blind.confirmed >= 1 && adj1.totals.blind.dismissed >= 1, JSON.stringify(adj1.totals.blind))
     assert.ok(adj2.totals.blind.disputed >= 1, JSON.stringify(adj2.totals.blind))
   })
+  await check('交叉核验明细：逐条记录去向与理由，条数与汇总一致，写入 cross-check.json（600）', async () => {
+    for (const [run, root] of [[adj1, 'adj-out-1'], [adj2, 'adj-out-2']]) {
+      const file = join(tmp, root, '_records', 'runs', run.id, 'cross-check.json')
+      const list = JSON.parse(await readFile(file, 'utf8'))
+      assert.equal(list.length, run.totals.blind.reported)
+      for (const key of ['confirmed', 'dismissed', 'disputed', 'unjudged']) {
+        assert.equal(list.filter((entry) => entry.outcome === key).length, run.totals.blind[key] ?? 0, key)
+      }
+      assert.ok(list.every((entry) => entry.text && entry.file && entry.outcome !== 'pending'))
+      assert.equal((await stat(file)).mode & 0o777, 0o600)
+      assert.ok(!(await readFile(join(tmp, root, '_records', 'runs', run.id, 'report.json'), 'utf8')).includes('黄芪颗粒'))
+    }
+    const dismissed = JSON.parse(await readFile(join(tmp, 'adj-out-1', '_records', 'runs', adj1.id, 'cross-check.json'), 'utf8')).find((entry) => entry.outcome === 'dismissed')
+    assert.equal(dismissed.text, '黄芪')
+    assert.match(dismissed.judge, /药材/)
+  })
   await check('第二轮复判：核验坚持而识别否定时转人工复核', () => {
     assert.equal(adj2.status, 'review')
     assert.ok(adj2.files[0].issues.some((issue) => issue.code === 'disputed' && issue.severity === 'error'))

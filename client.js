@@ -260,6 +260,24 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.tab.cross': '交叉核验',
+      'ws.xt.none': '该批次没有交叉核验明细（新版本之前运行的批次，或没有独立盲审）。',
+      'ws.xt.empty': '没有符合条件的记录。',
+      'ws.xt.all': '全部',
+      'ws.xt.byType': '按类型',
+      'ws.xt.where': '文件 · 字段',
+      'ws.xt.type': '类型',
+      'ws.xt.text': '可疑文字（上下文）',
+      'ws.xt.reason': '核验理由',
+      'ws.xt.judge': '复判理由',
+      'ws.xt.outcome': '去向',
+      'ws.xt.verdict': '人工裁定',
+      'ws.xt.vVerifier': '核验对',
+      'ws.xt.vDetector': '识别对',
+      'ws.xt.vPending': '待裁定',
+      'ws.xt.more': '共 {n} 条，只显示前 2000 条',
+      'ws.xt.detail': '明细',
+      'ws.x.pending': '进行中',
       'ws.feedParams': '数据输入与参数',
       'ws.ps.rounds': '轮次 {n}',
       'ws.ps.concurrency': '并发 {n}',
@@ -828,6 +846,24 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.tab.cross': 'Cross-check',
+      'ws.xt.none': 'No cross-check detail for this batch (run before this version, or no blind review).',
+      'ws.xt.empty': 'Nothing matches.',
+      'ws.xt.all': 'All',
+      'ws.xt.byType': 'By type',
+      'ws.xt.where': 'File · field',
+      'ws.xt.type': 'Type',
+      'ws.xt.text': 'Suspect (context)',
+      'ws.xt.reason': 'Verifier reason',
+      'ws.xt.judge': 'Re-judge reason',
+      'ws.xt.outcome': 'Outcome',
+      'ws.xt.verdict': 'Human verdict',
+      'ws.xt.vVerifier': 'verifier',
+      'ws.xt.vDetector': 'detector',
+      'ws.xt.vPending': 'pending',
+      'ws.xt.more': '{n} rows, first 2000 shown',
+      'ws.xt.detail': 'Detail',
+      'ws.x.pending': 'in progress',
       'ws.feedParams': 'Input & settings',
       'ws.ps.rounds': 'rounds {n}',
       'ws.ps.concurrency': 'conc {n}',
@@ -1567,6 +1603,27 @@ window.__ModuleLoader__.load({
       .ws-x-dismissed{background:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
       .ws-x-disputed{background:var(--dsw-alias-state-warn-primary)}
       .ws-x-unjudged{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 40%,transparent)}
+      .ws-x-click{cursor:pointer}
+      .ws-x-detail{margin-left:6px;font-size:10.5px}
+      .ws-xt{display:flex;flex-direction:column;gap:8px}
+      .ws-xt-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+      .ws-xt-bar .ws-cmp-filter{flex:none;padding:0 10px;gap:5px}
+      .ws-xt-dot{display:inline-block;width:8px;height:8px;border-radius:2px}
+      .ws-xt-types{margin-left:auto}
+      .ws-xt-table td{vertical-align:top}
+      .ws-xt-where{max-width:220px}
+      .ws-xt-where>*{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ws-xt-where small{font-size:10.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+      .ws-xt-ctx{min-width:220px;font-size:12px;line-height:18px;white-space:pre-wrap;word-break:break-all}
+      .ws-xt-ctx mark{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 30%,transparent);color:inherit;border-radius:3px;padding:0 1px;font-weight:600}
+      .ws-xt-reason{max-width:200px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-xt-chip{display:inline-block;padding:0 6px;border-radius:4px;font-size:11px;color:#fff;white-space:nowrap}
+      .ws-xt-chip.ws-xt-confirmed{background:var(--dsw-alias-state-success-primary)}
+      .ws-xt-chip.ws-xt-dismissed{background:color-mix(in srgb,var(--dsw-alias-label-primary) 45%,transparent)}
+      .ws-xt-chip.ws-xt-disputed{background:var(--dsw-alias-state-warn-primary)}
+      .ws-xt-chip.ws-xt-unjudged{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 60%,transparent)}
+      .ws-xt-chip.ws-xt-pending{background:var(--dsw-alias-label-secondary)}
+      .ws-x-pending{background:var(--dsw-alias-label-secondary)}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
       .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
@@ -3457,6 +3514,25 @@ window.__ModuleLoader__.load({
         if (row && body) body.scrollTop = row.offsetTop - body.clientHeight / 2
       }, [callFocus, drawer])
 
+      // Cross-check detail: fetched while its tab is open (polled while running).
+      const [crossData, setCrossData] = React.useState({ id: null, entries: undefined })
+      const [crossFilter, setCrossFilter] = React.useState('all')
+      React.useEffect(() => {
+        if (drawer !== 'cross' || !current?.id) return undefined
+        const id = current.id
+        let alive = true
+        const pull = async () => {
+          try {
+            const value = await call('crossCheck', { runId: id })
+            if (alive) setCrossData({ id, entries: value?.entries ?? null })
+          } catch { if (alive) setCrossData({ id, entries: null }) }
+        }
+        pull()
+        const timer = running ? setInterval(pull, 3000) : null
+        return () => { alive = false; if (timer) clearInterval(timer) }
+      }, [drawer, current?.id, running, current?.status, reviewData])
+      const openCross = (filter = 'all') => { setCrossFilter(filter); setDrawer('cross') }
+
       // Model-call log: fetched incrementally while its tab is open.
       React.useEffect(() => {
         if (drawer !== 'calls' || !current?.id) return undefined
@@ -3784,6 +3860,47 @@ window.__ModuleLoader__.load({
                   entry.attempts > 1 ? h('i', { className: 'ws-call-mark', title: t('ws.calls.retryHint', { n: entry.attempts - 1 }) }, `↻${entry.attempts - 1}`) : null,
                   entry.dropped ? h('i', { className: 'ws-call-mark ws-call-drop', title: t('ws.calls.dropHint', { n: entry.dropped }) }, `−${entry.dropped}`) : null))))))))
         }
+        if (drawer === 'cross') {
+          const list = crossData.id === current?.id ? crossData.entries : undefined
+          if (list === undefined) return h('p', { className: 'ma-empty' }, t('detail.loading'))
+          if (list === null) return h('p', { className: 'ma-empty' }, t('ws.xt.none'))
+          const OUTCOMES = ['confirmed', 'dismissed', 'disputed', 'unjudged', 'pending']
+          const counts = Object.fromEntries(OUTCOMES.map((key) => [key, list.filter((entry) => entry.outcome === key).length]))
+          const shown = crossFilter === 'all' ? list : list.filter((entry) => entry.outcome === crossFilter)
+          // Where the shown findings concentrate, by identifier type.
+          const byType = new Map()
+          for (const entry of shown) byType.set(entry.type, (byType.get(entry.type) ?? 0) + 1)
+          const types = [...byType].sort((a, b) => b[1] - a[1]).slice(0, 6)
+          const verdictLabel = (entry) => (entry.verdict === 'verifier' ? t('ws.xt.vVerifier') : entry.verdict === 'detector' ? t('ws.xt.vDetector') : entry.verdict === 'pending' ? t('ws.xt.vPending') : '—')
+          return h('div', { className: 'ws-xt' },
+            h('div', { className: 'ws-xt-bar' },
+              ['all', ...OUTCOMES].filter((key) => key === 'all' || counts[key] > 0 || key !== 'pending').map((key) => h('button', {
+                key, type: 'button', className: `ws-cmp-filter${crossFilter === key ? ' ws-on' : ''}`, onClick: () => setCrossFilter(key),
+              }, key === 'all' ? null : h('i', { className: `ws-xt-dot ws-x-${key}` }), key === 'all' ? t('ws.xt.all') : t(`ws.x.${key}`), h('i', {}, String(key === 'all' ? list.length : counts[key])))),
+              types.length ? h('span', { className: 'ma-hint ws-xt-types' }, `${t('ws.xt.byType')}：${types.map(([type, count]) => `${type} ${count}`).join(' · ')}`) : null),
+            shown.length === 0
+              ? h('p', { className: 'ma-empty' }, t('ws.xt.empty'))
+              : h('table', { className: 'ma-table ws-table ws-xt-table' },
+                h('thead', {}, h('tr', {},
+                  h('th', {}, t('runs.rounds')), h('th', {}, t('ws.xt.where')), h('th', {}, t('ws.xt.type')), h('th', {}, t('ws.xt.text')),
+                  h('th', {}, t('ws.xt.reason')), h('th', {}, t('ws.xt.judge')), h('th', {}, t('ws.xt.outcome')), h('th', {}, t('ws.xt.verdict')))),
+                h('tbody', {}, shown.slice(0, 2000).map((entry) => h('tr', { key: entry.n },
+                  h('td', {}, `R${entry.round}`),
+                  h('td', { className: 'ws-xt-where', title: `${entry.file}${entry.field ? ` · ${entry.field}` : ''}` },
+                    adviceRunId
+                      ? h('button', { type: 'button', className: 'ma-link', onClick: () => openCompare({ relPath: entry.file }) }, baseName(entry.file))
+                      : h('span', {}, baseName(entry.file)),
+                    entry.field ? h('small', {}, entry.field) : null),
+                  h('td', {}, entry.type),
+                  h('td', { className: 'ws-xt-ctx' }, entry.before, h('mark', {}, entry.text), entry.after),
+                  h('td', { className: 'ws-xt-reason' }, entry.reason || '—'),
+                  h('td', { className: 'ws-xt-reason' }, entry.judge || '—'),
+                  h('td', {}, h('span', { className: `ws-xt-chip ws-xt-${entry.outcome}` }, t(`ws.x.${entry.outcome}`))),
+                  h('td', {}, entry.reviewId && entry.verdict === 'pending' && adviceRunId
+                    ? h('button', { type: 'button', className: 'ma-link', onClick: () => openCompare({ relPath: entry.file }) }, `${verdictLabel(entry)} →`)
+                    : verdictLabel(entry)))))),
+            shown.length > 2000 ? h('p', { className: 'ma-hint' }, t('ws.xt.more', { n: shown.length })) : null)
+        }
         if (drawer === 'advice') return advicePanel()
         if (drawer === 'warn') {
           const warnings = current.warnings ?? []
@@ -4015,10 +4132,11 @@ window.__ModuleLoader__.load({
           crossCollapsed ? null : h(React.Fragment, {},
             h('div', { className: 'ws-x-line', title: t('ws.x.reportedHint') },
               h('span', {}, t('ws.x.reported')), h('b', {}, blind ? String(reported) : '—'),
+              reported > 0 ? h('button', { type: 'button', className: 'ma-link ws-x-detail', onClick: () => openCross('all') }, `${t('ws.xt.detail')} →`) : null,
               h('span', { className: 'ws-x-sub' }, blind ? t('ws.x.calls', { flagged: blind.flaggedCalls ?? 0, calls: blind.calls ?? 0 }) : (running ? t('ws.x.waiting') : ''))),
             h('div', { className: 'ws-splitbox', title: t('ws.x.splitHint') },
-              h('div', { className: 'ws-split' }, reported > 0 ? parts.filter(([, value]) => value > 0).map(([kind, value]) => h('i', { key: kind, className: `ws-x-${kind}`, style: { flexGrow: value } })) : null),
-              h('div', { className: 'ws-split-legend' }, parts.map(([kind, value]) => h('span', { key: kind }, h('i', { className: `ws-x-${kind}` }), `${t(`ws.x.${kind}`)} ${blind ? value : '—'}`)))),
+              h('div', { className: 'ws-split' }, reported > 0 ? parts.filter(([, value]) => value > 0).map(([kind, value]) => h('i', { key: kind, className: `ws-x-${kind} ws-x-click`, style: { flexGrow: value }, onClick: () => openCross(kind) })) : null),
+              h('div', { className: 'ws-split-legend' }, parts.map(([kind, value]) => h('span', { key: kind, className: value > 0 ? 'ws-x-click' : '', onClick: value > 0 ? () => openCross(kind) : undefined }, h('i', { className: `ws-x-${kind}` }), `${t(`ws.x.${kind}`)} ${blind ? value : '—'}`)))),
             h('div', { className: 'ws-x-line', title: t('ws.x.agreeHint') },
               h('span', {}, t('ws.x.agree')), h('b', {}, judged > 0 ? `${Math.round((parts[0][1] / judged) * 100)}%` : '—'),
               h('span', { className: 'ws-x-sub' }, t('ws.x.disputeRate', { pct: reported ? Math.round((parts[2][1] / reported) * 100) : '—' }))),
@@ -4246,7 +4364,7 @@ window.__ModuleLoader__.load({
                     h('button', { className: 'ma-btn ma-small', onClick: copyPath }, copied ? t('detail.copied') : t('detail.copy')))
                   : null)),
             h('section', { className: 'ws-panel ws-drawer' },
-              h('div', { className: 'ma-tabs', role: 'tablist' }, ['parts', 'log', 'calls', 'warn', 'advice', 'report'].map((id) => h('button', {
+              h('div', { className: 'ma-tabs', role: 'tablist' }, ['parts', 'log', 'calls', 'cross', 'warn', 'advice', 'report'].map((id) => h('button', {
                 key: id, type: 'button', role: 'tab', className: 'ma-tab',
                 'aria-selected': drawer === id ? 'true' : 'false',
                 onClick: () => {
