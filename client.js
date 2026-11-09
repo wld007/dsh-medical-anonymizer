@@ -259,6 +259,8 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.m.busyIdle': '批次运行时显示',
+      'ws.m.busyCollect': '正在采样…',
       'ws.m.inflightTag': '进行中 ≤{limit}',
       'ws.m.queueTag': '排队 ≤{max}',
       'ws.m.busyAxis': '横轴以上：进行中的请求（虚线 = 模型并发 {limit}）；横轴以下：插件内排队（峰值 {max}）。覆盖最近约 {minutes} 分钟。',
@@ -766,6 +768,8 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.m.busyIdle': 'Shown while a batch runs',
+      'ws.m.busyCollect': 'Sampling…',
       'ws.m.inflightTag': 'in flight ≤{limit}',
       'ws.m.queueTag': 'queued ≤{max}',
       'ws.m.busyAxis': 'Above the axis: requests in flight (dashed = concurrency {limit}); below: queued in the plugin (peak {max}). Covers about the last {minutes} min.',
@@ -1410,6 +1414,7 @@ window.__ModuleLoader__.load({
       .ws-busy-tag{position:absolute;left:2px;font-size:9.5px;color:var(--dsw-alias-label-secondary);pointer-events:none}
       .ws-busy-tag-up{top:0}
       .ws-busy-tag-down{bottom:0}
+      .ws-busy-wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--dsw-alias-label-secondary);pointer-events:none}
       .ws-busy-qlabel{position:absolute;right:2px;top:0;font-size:9.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
       .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
@@ -4040,7 +4045,7 @@ window.__ModuleLoader__.load({
                 }
                 // Per model: detector on the left, verifier on the right.
                 const models = totals.models ?? {}
-                const separate = Boolean(models.verify || current?.requests?.verify || current?.config?.verifyModel)
+                const separate = Boolean(models.verify || current?.requests?.verify || (current?.config ? current.config.verifyModel : config?.verifyModel))
                 const cols = separate ? ['detect', 'verify'] : ['detect']
                 const slots = (r) => (r ? `${r.active}/${r.limit}${r.queued > 0 ? ` +${r.queued}` : ''}` : '—')
                 const slotTone = (r) => (r && r.active < r.limit && r.queued === 0 ? 'warn' : '')
@@ -4097,30 +4102,25 @@ window.__ModuleLoader__.load({
                   : null)
                 const busy = (() => {
                   const points = series?.points ?? []
-                  if (points.length < 2) {
-                    if (!running || !current?.requests?.detect) return null
-                    return h('div', { className: 'ws-busy', title: t('ws.m.busyHint') },
-                      h('div', { className: 'ws-busy-head' }, h('span', {}, t('ws.m.busy')),
-                        h('span', { className: 'ws-busy-legend' },
-                          h('i', { className: 'ws-busy-d' }), t('ws.model'), legendSlot('detect'),
-                          current.requests.verify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel'), legendSlot('verify')) : null)))
-                  }
+                  // Before any data the frame (axis, limit line, legend) is still drawn.
+                  const empty = points.length < 2
                   const limit = Number(current?.requests?.detect?.limit ?? current?.config?.concurrency ?? config?.concurrency ?? 4)
-                  const hasVerify = points.some((p) => p.length > 2)
+                  const hasVerify = empty ? Boolean(current?.requests?.verify ?? (current ? current.config?.verifyModel : config?.verifyModel)) : points.some((p) => p.length > 2)
                   const W = 300
                   const H = 72
                   // Mirror chart around the axis: above, requests in flight
                   // (0..limit, the dashed line is the limit); below, requests
                   // queued in the plugin, on their own scale.
                   const AX = H / 2
-                  const x = (index) => (index / (points.length - 1)) * W
+                  const x = (index) => (index / Math.max(1, points.length - 1)) * W
                   const up = (value) => AX - (Math.min(value, limit) / limit) * (AX - 3)
                   const line = (pick) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${up(pick(p)).toFixed(1)}`).join(' ')
                   const qMax = Math.max(1, ...points.map((p) => Math.max(p[1], p[3] ?? 0)))
+                  void qMax
                   const down = (value) => AX + (value / qMax) * (AX - 3)
                   const qArea = (pick) => `M0 ${AX} ${points.map((p, index) => `L${x(index).toFixed(1)} ${down(pick(p)).toFixed(1)}`).join(' ')} L${W} ${AX} Z`
-                  const minutes = Math.round(((points.length - 1) * (series.step ?? 2000)) / 60000)
-                  return h('div', { className: 'ws-busy', title: `${t('ws.m.busyHint')}\n${t('ws.m.busyAxis', { limit, max: qMax, minutes: Math.max(1, minutes) })}` },
+                  const minutes = empty ? 0 : Math.round(((points.length - 1) * (series.step ?? 2000)) / 60000)
+                  return h('div', { className: `ws-busy${empty ? ' ws-busy-empty' : ''}`, title: `${t('ws.m.busyHint')}\n${t('ws.m.busyAxis', { limit, max: qMax, minutes: Math.max(1, minutes) })}` },
                     h('div', { className: 'ws-busy-head' },
                       h('span', {}, t('ws.m.busy')),
                       h('span', { className: 'ws-busy-legend' },
@@ -4129,11 +4129,12 @@ window.__ModuleLoader__.load({
                     h('div', { className: 'ws-busy-plot' },
                       h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.m.busy') },
                         h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: up(limit), y2: up(limit) }),
-                        h('path', { className: 'ws-busy-qd', d: qArea((p) => p[1]) }),
-                        hasVerify ? h('path', { className: 'ws-busy-qv', d: qArea((p) => p[3] ?? 0) }) : null,
+                        empty ? null : h('path', { className: 'ws-busy-qd', d: qArea((p) => p[1]) }),
+                        !empty && hasVerify ? h('path', { className: 'ws-busy-qv', d: qArea((p) => p[3] ?? 0) }) : null,
                         h('line', { className: 'ws-busy-axis', x1: 0, x2: W, y1: AX, y2: AX }),
-                        h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
-                        hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0) }) : null),
+                        empty ? null : h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
+                        !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0) }) : null),
+                      empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null,
                       h('span', { className: 'ws-busy-tag ws-busy-tag-up' }, t('ws.m.inflightTag', { limit })),
                       h('span', { className: 'ws-busy-tag ws-busy-tag-down' }, t('ws.m.queueTag', { max: qMax }))))
                 })()
