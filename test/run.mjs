@@ -979,6 +979,7 @@ async function main() {
     assert.equal(new Set(prompts.verify.map((p) => p.slice(0, p.lastIndexOf('段落：')))).size, 1)
     const log = JSON.parse(await readFile(join(tmp, 'sep-out', '_records', 'runs', 'sep-1', 'calls.json'), 'utf8'))
     assert.ok(log.filter((e) => e.stage === '盲审').every((e) => e.model === 'rev-b'))
+    assert.ok(sepRun.totals.models.detect.calls > 0 && sepRun.totals.models.verify.calls > 0, JSON.stringify(sepRun.totals.models))
     assert.ok(log.filter((e) => e.stage === '识别·替换').every((e) => !e.model))
   })
 

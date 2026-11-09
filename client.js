@@ -259,6 +259,14 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.m.mReq': '请求',
+      'ws.m.mCalls': '调用',
+      'ws.m.mTokens': 'Token',
+      'ws.m.ctxAvg': '平均上下文',
+      'ws.m.fitHint2': '按该模型的全部调用拟合「耗时 = 固定开销 + 输入 token ÷ 提示处理速度 + 输出 token ÷ 生成速度」得到的估算值，至少 30 次调用后显示。生成即解码速度，提示处理即预填充速度。',
+      'ws.m.ctxMax': '最大上下文',
+      'ws.m.ctxHint': '单次调用的上下文长度 = 输入 token + 输出 token（按端点返回的用量）。最大上下文接近模型的上下文窗口时，有被截断的风险。',
+      'ws.m.callsHint': '真正发给模型的请求数（识别、盲审、复判修正、字段画像），复用缓存的不计',
       'ws.m.req': '模型请求',
       'ws.m.reqDetect': '识别请求',
       'ws.m.reqVerify': '核验请求',
@@ -734,6 +742,14 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.m.mReq': 'Requests',
+      'ws.m.mCalls': 'Calls',
+      'ws.m.mTokens': 'Tokens',
+      'ws.m.ctxAvg': 'Avg context',
+      'ws.m.fitHint2': 'Estimated from all calls of this model by fitting duration = overhead + input / prompt speed + output / generation speed; shown after 30 calls. Generation = decode, prompt = prefill.',
+      'ws.m.ctxMax': 'Max context',
+      'ws.m.ctxHint': 'Context per call = input + output tokens (as reported by the endpoint). A max close to the model window risks truncation.',
+      'ws.m.callsHint': 'Requests actually sent to a model (detection, blind review, re-judge, profiling); cache reuse not counted',
       'ws.m.req': 'Model requests',
       'ws.m.reqDetect': 'Detector req.',
       'ws.m.reqVerify': 'Verifier req.',
@@ -1318,6 +1334,13 @@ window.__ModuleLoader__.load({
       .ws-kv-warn .ws-membar-fill{background:var(--dsw-alias-state-warn-primary)}
       .ws-kv-bad .ws-membar-fill{background:var(--dsw-alias-state-error-primary)}
       .ws-membar-peak{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;border-radius:1px;background:var(--dsw-alias-label-secondary);opacity:.7}
+      .ws-mtable{display:grid;grid-template-columns:auto 1fr 1fr;gap:1px 10px;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
+      .ws-mtable-one{grid-template-columns:auto 1fr}
+      .ws-mt-head{font-size:10.5px;font-weight:600;text-align:right;color:var(--dsw-alias-label-primary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:1px}
+      .ws-mt-head:first-child{border-bottom-color:transparent}
+      .ws-mtable>b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);text-align:right;white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
+      .ws-mt-label{white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
+      .ws-mtable>b.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-kv-warn b{color:var(--dsw-alias-state-warn-primary)}
       .ws-kv-bad b{color:var(--dsw-alias-state-error-primary)}
       .ws-spark-avg{stroke:var(--dsw-alias-label-secondary);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
@@ -3853,29 +3876,11 @@ window.__ModuleLoader__.load({
                       h('i', { className: 'ws-membar-fill', style: { width: `${Math.min(100, extra.bar.pct)}%` } }),
                       extra.bar.peak > extra.bar.pct ? h('i', { className: 'ws-membar-peak', style: { left: `${Math.min(100, extra.bar.peak)}%` } }) : null)
                     : null))
-                // Request slots first, so 识别 and 核验 share the first row of
-                // the two-column grid. Value: in flight/limit, "+N" queued.
-                const slots = (r) => `${r.active}/${r.limit}${r.queued > 0 ? ` +${r.queued}` : ''}`
-                const slotTone = (r) => (r.active < r.limit && r.queued === 0 ? 'warn' : '')
-                if (running && current?.requests?.detect) {
-                  const r = current.requests.detect
-                  const v = current.requests.verify
-                  row(v ? t('ws.m.reqDetect') : t('ws.m.req'), slots(r), { title: t('ws.m.reqHint'), tone: slotTone(r) })
-                  if (v) row(t('ws.m.reqVerify'), slots(v), { title: t('ws.m.reqHint'), tone: slotTone(v) })
-                }
-                row(t('ws.m.calls'), compact(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0)))
-                if (totals.replayedCalls) row(t('ws.m.replayed'), compact(totals.replayedCalls), { title: t('ws.m.replayedHint') })
-                if (totals.memoHits) row(t('ws.m.memo'), compact(totals.memoHits), { title: t('ws.m.memoHint') })
+                // Totals (both models): calls, reuse, tokens, memory.
+                row(t('ws.m.calls'), compact(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0)), { title: t('ws.m.callsHint') })
+                row(t('ws.m.replayed'), compact(totals.replayedCalls ?? 0), { title: t('ws.m.replayedHint') })
+                row(t('ws.m.memo'), compact(totals.memoHits ?? 0), { title: t('ws.m.memoHint') })
                 row(t('ws.m.tokens'), totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0'), { title: t('ws.m.tokensHint') })
-                const outTokens = Number(totals.outTokens ?? 0)
-                if (outTokens) {
-                  const fit = fitSpeed(totals.speedFit)
-                  const overall = elapsed > 0 ? outTokens / (elapsed / 1000) : 0
-                  const fitHint = fit.gen === null ? t('ws.m.fitFew', { n: fit.n }) : t('ws.m.fitHint', { n: fit.n })
-                  row(t('ws.m.speedGen'), fmtSpeed(fit.gen), { title: fitHint })
-                  row(t('ws.m.speedPrompt'), fmtSpeed(fit.prompt), { title: fitHint })
-                  row(t('ws.m.speedTotal'), overall.toFixed(1), { title: t('ws.m.totalHint') })
-                }
                 if (current?.memory?.heapLimit) {
                   const m = current.memory
                   const ratio = m.peakHeap / m.heapLimit
@@ -3885,7 +3890,32 @@ window.__ModuleLoader__.load({
                     title: `${t('ws.m.mem', { now: ((running ? m.heapUsed : m.peakHeap) / 1024 ** 3).toFixed(1), peak: (m.peakHeap / 1024 ** 3).toFixed(1), limit: (m.heapLimit / 1024 ** 3).toFixed(1), pct: Math.round(ratio * 100) })}\n${t('ws.m.memHint')}`,
                   })
                 }
-                return h('div', { className: 'ws-minor' }, rows)
+                // Per model: detector on the left, verifier on the right.
+                const models = totals.models ?? {}
+                const separate = Boolean(models.verify || current?.requests?.verify || current?.config?.verifyModel)
+                const cols = separate ? ['detect', 'verify'] : ['detect']
+                const slots = (r) => (r ? `${r.active}/${r.limit}${r.queued > 0 ? ` +${r.queued}` : ''}` : '—')
+                const slotTone = (r) => (r && r.active < r.limit && r.queued === 0 ? 'warn' : '')
+                const fits = Object.fromEntries(cols.map((key) => [key, fitSpeed(models[key]?.fit ?? (key === 'detect' ? totals.speedFit : null))]))
+                const avgCtx = (m) => (m?.ctxN ? compact(Math.round(m.ctxSum / m.ctxN)) : '—')
+                const lines = [
+                  ...(running ? [[t('ws.m.mReq'), (key) => slots(current?.requests?.[key]), t('ws.m.reqHint'), (key) => slotTone(current?.requests?.[key])]] : []),
+                  [t('ws.m.mCalls'), (key) => compact(models[key]?.calls ?? 0), t('ws.m.callsHint')],
+                  [t('ws.m.mTokens'), (key) => compact(models[key]?.tokens ?? 0), t('ws.m.tokensHint')],
+                  [t('ws.m.ctxAvg'), (key) => avgCtx(models[key]), t('ws.m.ctxHint')],
+                  [t('ws.m.ctxMax'), (key) => (models[key]?.ctxMax ? compact(models[key].ctxMax) : '—'), t('ws.m.ctxHint')],
+                  [t('ws.m.speedGen'), (key) => fmtSpeed(fits[key].gen), t('ws.m.fitHint2')],
+                  [t('ws.m.speedPrompt'), (key) => fmtSpeed(fits[key].prompt), t('ws.m.fitHint2')],
+                ]
+                const table = h('div', { className: `ws-mtable${separate ? '' : ' ws-mtable-one'}` },
+                  h('span', { className: 'ws-mt-head' }),
+                  ...cols.map((key) => h('span', { key: `h${key}`, className: 'ws-mt-head', title: key === 'verify' ? (current?.config?.verifyModel ?? '') : (current?.config?.model ?? config?.model ?? '') },
+                    key === 'detect' ? (separate ? t('ws.model') : t('ws.modelShared')) : t('ws.verifyModel'))),
+                  ...lines.flatMap(([label, value, hint, tone]) => [
+                    h('span', { key: `l${label}`, className: 'ws-mt-label', title: hint }, label),
+                    ...cols.map((key) => h('b', { key: `${label}${key}`, className: tone?.(key) ? `ws-mt-${tone(key)}` : '', title: hint }, value(key))),
+                  ]))
+                return h(React.Fragment, {}, h('div', { className: 'ws-minor' }, rows), table)
               })()),
             h('section', { className: 'ws-panel' },
               h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C2' }, t('ws.params')), anyRunning
