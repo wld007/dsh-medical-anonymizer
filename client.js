@@ -259,6 +259,9 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.m.inflightTag': '进行中 ≤{limit}',
+      'ws.m.queueTag': '排队 ≤{max}',
+      'ws.m.busyAxis': '横轴以上：进行中的请求（虚线 = 模型并发 {limit}）；横轴以下：插件内排队（峰值 {max}）。覆盖最近约 {minutes} 分钟。',
       'ws.m.queueChart': '插件内排队',
       'ws.m.queuePeak': '排队峰值 {max}',
       'ws.m.queueMax': '峰值 {max} · 当前 {now}',
@@ -763,6 +766,9 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.m.inflightTag': 'in flight ≤{limit}',
+      'ws.m.queueTag': 'queued ≤{max}',
+      'ws.m.busyAxis': 'Above the axis: requests in flight (dashed = concurrency {limit}); below: queued in the plugin (peak {max}). Covers about the last {minutes} min.',
       'ws.m.queueChart': 'Queued in plugin',
       'ws.m.queuePeak': 'queue peak {max}',
       'ws.m.queueMax': 'peak {max} · now {now}',
@@ -1400,6 +1406,10 @@ window.__ModuleLoader__.load({
       .ws-ctxcell{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;max-width:100%}
       .ws-busy-plot{position:relative;flex:1;display:flex;min-height:50px}
       .ws-busy-plot svg{flex:1}
+      .ws-busy-axis{stroke:color-mix(in srgb,var(--ws-ink) 35%,transparent);stroke-width:1;vector-effect:non-scaling-stroke}
+      .ws-busy-tag{position:absolute;left:2px;font-size:9.5px;color:var(--dsw-alias-label-secondary);pointer-events:none}
+      .ws-busy-tag-up{top:0}
+      .ws-busy-tag-down{bottom:0}
       .ws-busy-qlabel{position:absolute;right:2px;top:0;font-size:9.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
       .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
@@ -4098,18 +4108,19 @@ window.__ModuleLoader__.load({
                   const limit = Number(current?.requests?.detect?.limit ?? current?.config?.concurrency ?? config?.concurrency ?? 4)
                   const hasVerify = points.some((p) => p.length > 2)
                   const W = 300
-                  const H = 64
-                  // Lower part (below the dashed limit): requests in flight on
-                  // 0..limit. Upper third (above it): queue on its own scale.
-                  const LIMIT_Y = Math.round(H * 0.36)
+                  const H = 72
+                  // Mirror chart around the axis: above, requests in flight
+                  // (0..limit, the dashed line is the limit); below, requests
+                  // queued in the plugin, on their own scale.
+                  const AX = H / 2
                   const x = (index) => (index / (points.length - 1)) * W
-                  const y = (value) => H - 2 - (Math.min(value, limit) / limit) * (H - 2 - LIMIT_Y)
-                  const line = (pick) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${y(pick(p)).toFixed(1)}`).join(' ')
+                  const up = (value) => AX - (Math.min(value, limit) / limit) * (AX - 3)
+                  const line = (pick) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${up(pick(p)).toFixed(1)}`).join(' ')
                   const qMax = Math.max(1, ...points.map((p) => Math.max(p[1], p[3] ?? 0)))
-                  const qy = (value) => LIMIT_Y - (value / qMax) * (LIMIT_Y - 3)
-                  const qArea = (pick) => `M0 ${LIMIT_Y} ${points.map((p, index) => `L${x(index).toFixed(1)} ${qy(pick(p)).toFixed(1)}`).join(' ')} L${W} ${LIMIT_Y} Z`
+                  const down = (value) => AX + (value / qMax) * (AX - 3)
+                  const qArea = (pick) => `M0 ${AX} ${points.map((p, index) => `L${x(index).toFixed(1)} ${down(pick(p)).toFixed(1)}`).join(' ')} L${W} ${AX} Z`
                   const minutes = Math.round(((points.length - 1) * (series.step ?? 2000)) / 60000)
-                  return h('div', { className: 'ws-busy', title: t('ws.m.busyHint') },
+                  return h('div', { className: 'ws-busy', title: `${t('ws.m.busyHint')}\n${t('ws.m.busyAxis', { limit, max: qMax, minutes: Math.max(1, minutes) })}` },
                     h('div', { className: 'ws-busy-head' },
                       h('span', {}, t('ws.m.busy')),
                       h('span', { className: 'ws-busy-legend' },
@@ -4117,13 +4128,14 @@ window.__ModuleLoader__.load({
                         hasVerify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel'), legendSlot('verify')) : null)),
                     h('div', { className: 'ws-busy-plot' },
                       h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.m.busy') },
+                        h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: up(limit), y2: up(limit) }),
                         h('path', { className: 'ws-busy-qd', d: qArea((p) => p[1]) }),
                         hasVerify ? h('path', { className: 'ws-busy-qv', d: qArea((p) => p[3] ?? 0) }) : null,
-                        h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: LIMIT_Y, y2: LIMIT_Y }),
+                        h('line', { className: 'ws-busy-axis', x1: 0, x2: W, y1: AX, y2: AX }),
                         h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
                         hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0) }) : null),
-                      h('span', { className: 'ws-busy-qlabel' }, t('ws.m.queuePeak', { max: qMax }))),
-                    h('div', { className: 'ws-spark-foot' }, h('span', {}, t('ws.m.busyLimit', { limit })), h('span', {}, t('ws.m.busySpan', { minutes: Math.max(1, minutes) }))))
+                      h('span', { className: 'ws-busy-tag ws-busy-tag-up' }, t('ws.m.inflightTag', { limit })),
+                      h('span', { className: 'ws-busy-tag ws-busy-tag-down' }, t('ws.m.queueTag', { max: qMax }))))
                 })()
                 return h(React.Fragment, {}, splitBar, h('div', { className: 'ws-minor' }, rows), table, busy)
               })()),
