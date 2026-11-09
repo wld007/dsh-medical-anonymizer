@@ -6,4 +6,5 @@ test/fixtures/records/labs.xlsx
 *.log
 .env
 scripts/check-public.local.json
-.medical-anonymizer/_medical-anonymizer/
+.medical-anonymizer/
+_medical-anonymizer/

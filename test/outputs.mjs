@@ -9,6 +9,13 @@ import { basename, dirname, extname, join } from 'node:path'
  */
 export async function outDirOf(root, runId) {
   const run = JSON.parse(await readFile(join(root, '_records', 'runs', runId, 'report.json'), 'utf8'))
+  if (run.withheld) {
+    // Held for review: the finished result is in the run's staging folder.
+    const staging = join(root, '_records', 'runs', runId, 'output')
+    if (run.outputKind !== 'file') return staging
+    const { readdirSync } = await import('node:fs')
+    return { file: join(staging, readdirSync(staging)[0]), dir: staging }
+  }
   if (!run.output) throw new Error(`batch ${runId} delivered no output`)
   if (run.outputKind !== 'file') return run.output
   return { file: run.output, dir: dirname(run.output) }

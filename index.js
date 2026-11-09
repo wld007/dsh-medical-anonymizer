@@ -10,24 +10,33 @@ import { join } from 'node:path'
 import { createService } from './lib/service.js'
 
 /**
- * Native "choose file" dialog on the machine running the Harness (macOS).
- * The browser's own folder picker cannot select a single file, and a file
- * input would only give the page a name, not a path. Returns null on cancel.
+ * Native macOS chooser on the machine running the Harness. The browser's own
+ * pickers cannot return paths, and the Harness folder picker selects one
+ * folder only; here several files or folders of one directory can be chosen
+ * (Cmd/Shift-click). Returns [] on cancel.
  */
-function pickFile() {
+function pickPaths(kind) {
   if (process.platform !== 'darwin') {
-    return Promise.reject(new Error('选择单个文件目前只支持 macOS；请直接在输入框里填写文件的完整路径'))
+    return Promise.reject(new Error('多选目前只支持 macOS；请直接在输入框里填写完整路径'))
   }
-  const script = 'POSIX path of (choose file with prompt "选择要匿名化的文件（txt/md/csv/json/xlsx/zip/DICOM）")'
+  const what = kind === 'folder'
+    ? 'choose folder with prompt "选择要匿名化的文件夹（可按住 ⌘ 多选同一目录下的多个）" with multiple selections allowed'
+    : 'choose file with prompt "选择要匿名化的文件（txt/md/csv/json/xlsx/zip/DICOM，可按住 ⌘ 多选）" with multiple selections allowed'
+  const script = `set picked to (${what})
+set out to ""
+repeat with p in picked
+  set out to out & POSIX path of p & linefeed
+end repeat
+return out`
   return new Promise((resolve, reject) => {
     execFile('osascript', ['-e', script], { timeout: 10 * 60 * 1000 }, (error, stdout, stderr) => {
       if (error) {
         // -128: the user pressed Cancel.
-        if (/-128/.test(String(stderr)) || /-128/.test(String(error.message))) resolve(null)
+        if (/-128/.test(String(stderr)) || /-128/.test(String(error.message))) resolve([])
         else reject(new Error(String(stderr || error.message).trim()))
         return
       }
-      resolve(String(stdout).replace(/\n$/, '').trim() || null)
+      resolve(String(stdout).split('\n').map((line) => line.trim().replace(/(.)\/$/, '$1')).filter(Boolean))
     })
   })
 }
@@ -51,14 +60,18 @@ export function apply(ctx, config = {}) {
     name: 'anonymize_start',
     description: 'dsh-medical-anonymizer 插件：批量匿名化医疗数据（txt/md/csv/json/xlsx，以及 zip 压缩包：解压到临时目录处理后重新打包，原包只读），把直接标识符替换为稳定假名并生成报告，文件结构不变；文件名和目录名里的姓名、证件号、病人编号、住院号/门诊号也会替换；文件很多时自动分组，不丢文件；绝不修改源文件。DICOM 影像（如 CT）只处理元数据：删除姓名与各类 ID、PatientID 换成不可回查的随机编号、UID 重新生成、日期整体平移，像素原样保留，且不经过模型。完成后交付数据（与输入同名、名称中的标识符已替换的文件夹或文件）直接放在输出根目录下，报告、映射库等记录统一放在输出根目录的 _records 里。病历原文只发往用户在插件设置中配置的模型端点（通常为本机或内网）；未配置模型时只在本机用规则处理。立即返回批次 id。',
     parameters: {
-      inputDir: { type: 'string', required: true, description: '待处理的目录或单个文件（含 .zip）的绝对路径（或相对当前工作区的路径）。传单个文件时只处理该文件。' },
+      inputDir: { type: 'string', description: '待处理的目录或单个文件（含 .zip）的绝对路径（或相对当前工作区的路径）。传单个文件时只处理该文件。' },
       outputRoot: { type: 'string', description: '输出根目录，不能与输入目录相同；交付数据直接放在它下面，记录放在其中的 _records。省略时用设置里的默认值，再缺省则为输入目录（或输入文件）旁的 _medical-anonymizer。' },
       maxRounds: { type: 'number', description: '发现-复核的最大轮次（1–6）；省略时用设置里的默认值。' },
+      inputs: { type: 'array', description: '同一目录下的多个文件或文件夹的绝对路径，作为一个批次处理，每一项分别交付到输出根目录。与 inputDir 二选一。' },
+      resumeFrom: { type: 'string', description: '继续处理一个已取消或失败的批次（填它的批次 id）：沿用原输入和输出根目录，已完成的模型调用直接复用，只处理剩下的部分。填写时可省略 inputDir。' },
     },
     // Model endpoint, model, key and thinking mode always come from the user's
     // saved settings: the agent cannot redirect patient text elsewhere.
     execute: async (args, exec) => service.start({
       inputDir: args.inputDir,
+      inputs: Array.isArray(args.inputs) ? args.inputs : undefined,
+      resumeFrom: args.resumeFrom,
       outputRoot: args.outputRoot,
       maxRounds: args.maxRounds,
       source: { kind: 'agent', sessionId: sessionIdOf(exec?.agent) },
@@ -335,6 +348,18 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.undoMappings(request.runId) }
         case 'deleteRun':
           return { ok: true, value: await service.deleteRun(request.runId, { deliverable: request.deliverable === true }) }
+        case 'clearRuns':
+          return { ok: true, value: await service.clearRuns({ deliverable: request.deliverable === true }) }
+        case 'compareList':
+          return { ok: true, value: await service.compareList(request.runId) }
+        case 'compareFile':
+          return { ok: true, value: await service.compareFile(request.runId, request.n) }
+        case 'reviewItems':
+          return { ok: true, value: await service.reviewItems(request.runId) }
+        case 'reviewBulk':
+          return { ok: true, value: await service.reviewBulk(request.runId, request.itemIds, request.action) }
+        case 'reviewDecide':
+          return { ok: true, value: await service.reviewDecide(request.runId, request.itemId, request.action) }
         case 'calls':
           return { ok: true, value: await service.calls(request.runId, request.since) }
         case 'start':
@@ -342,8 +367,12 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.start({ ...request, source: { kind: 'panel' } }) }
         case 'advice':
           return { ok: true, value: await service.advice(request.runId) }
-        case 'pickFile':
-          return { ok: true, value: { path: await pickFile() } }
+        case 'pickFile': {
+          const paths = await pickPaths('file')
+          return { ok: true, value: { path: paths[0] ?? null, paths } }
+        }
+        case 'pickFolders':
+          return { ok: true, value: { paths: await pickPaths('folder') } }
         case 'saveDefaults':
           return { ok: true, value: await saveDefaults(request) }
         default:
@@ -392,6 +421,7 @@ function toJsonSchema(parameters) {
     const property = { type: spec.type }
     if (spec.description) property.description = spec.description
     if (spec.enum) property.enum = spec.enum
+    if (spec.type === 'array') property.items = { type: 'string' }
     properties[key] = property
     if (spec.required) required.push(key)
   }

@@ -42,8 +42,8 @@ structure intact, and writes an audit report plus a re-identification vault.
 | Direct identifiers | name, doctor/staff name, Chinese ID, phone, email, address, medical-record number, admission number, visit number, social-security number, bank card, hospital name |
 | Column/key policy | headers such as `姓名`, `身份证号`, `电话`, `住址`, and keys such as `PTT_NM`, `ID_CRD_NO`, `CTCT_TEL_NO`, `CURR_ADDR*`, `*_DCT_NM`, `MDC_ORG_NM`, `PID`, `INHOS_NO` are pseudonymized wholesale; record keys such as `PRM_KEY`/`RCD_NO` are masked as record identifiers |
 | Pseudonyms | stable per value and type, e.g. `化名-9F3A2C`, `证件-1F0B67`; the same value gets the same token across files and batches sharing an output root |
-| Configurable rules | per identifier type: stable pseudonym (default), partial mask, type label, or keep; optional quasi-identifiers (date, age, sex, postal code): shift, generalize, or label — see [Anonymization rules](#anonymization-rules) |
-| Verification | model re-check, rule re-scan, original-value absence, structure diff |
+| Configurable rules | per identifier type: stable pseudonym (default), partial mask, type label, or keep; postal codes always processed (first 3 digits or label); optional quasi-identifiers (date, age, sex): shift, generalize, or label — see [Anonymization rules](#anonymization-rules) |
+| Verification | blind model review (no detection results shown; optional separate verification model), rule re-scan, original-value absence, structure diff; verifier findings are re-judged by the detection model, disagreements go to manual review |
 | Runs | writes an anonymized copy directly, sources are read-only; model calls are not capped; files are processed concurrently; large batches are chunked automatically; cancellable; a batch's new mappings can be undone |
 | Report | Markdown + JSON, per file and batch, with a manual-review list |
 
@@ -113,11 +113,12 @@ following the Harness locale.
 
 | Area | Content |
 | --- | --- |
-| A1 Input | Choose a folder, or a single file / `.zip` (native macOS dialog); optional output root |
+| A1 Input | Choose folders or files / `.zip` (native macOS dialog; ⌘-click several in one folder to process them as one batch, each delivered separately); optional output root |
 | A2 Batches | History with status and origin (page / `/anonymize` / agent session, linked back); delete a record, optionally with its deliverable |
-| B1 Pipeline | Eight stations on a conveyor: prescan → parse → detect → verify → remediate → batch rescan → DICOM → output; active stations light up and files move along; a file queue colours every file |
+| B1 Pipeline | 10 stations: prescan → parse & unwrap → detect & replace → rule checks → blind review → re-judge & fix → batch rescan → compare & pack → manual review → deliver, DICOM as a bypass; re-judge loops back to the rule checks, up to N rounds; blind review shows the verification model, manual review shows the held state; the file queue below colors each file |
 | B2 / B3 | Identifiers replaced by type; verification outcome (clean / review / failed) and the deliverable path |
-| Bottom tabs | Files, log (auto-scroll), model calls (duration strip + per-call metadata), notices, report (rendered Markdown, full screen) |
+| Bottom tabs | Files (click a row to compare), log, model calls (duration strip + per-call metadata), notices, report (rendered Markdown, full screen) |
+| Compare | Full-screen, file by file: file list on the left, original and result side by side per field (originals red, pseudonyms green, suspects orange); review items are decided right there (replace / not an identifier / keep) |
 | C1 Monitor | Progress, throughput curve, files left and ETA, identifiers, model calls, review items, tokens, memory |
 | C2 Settings | Rounds, concurrency, chunk size, timeout, temperature, thinking, quasi-identifier switch; locked while running; everything else under All settings |
 | C3 Improvements | One-click setting suggestions after each batch; a value-free plugin-improvement draft for what settings cannot fix |
@@ -234,15 +235,17 @@ characters; phone the first 3 and last 4 digits; bank card and record numbers
 the last 4; email the first letter and domain; address the province/city/district
 prefix; hospital the first 2 characters and the suffix.
 
-Quasi-identifiers are processed only when **quasiIdentifiers** is on. They are
-handled deterministically after identifiers, without the model:
+Date, age, and sex are processed only when **quasiIdentifiers** is on. Postal
+codes are identifiers (one of the HIPAA 18) and are always processed; they cannot
+be kept (a stored `keep` is treated as `prefix3`). All of these are handled
+deterministically after identifiers, without the model:
 
 | Type | Strategies (default first when enabled) | Example |
 | --- | --- | --- |
 | Date | `shift`, `month`, `year`, `redact`, `keep` | `2024-03-01` → `2024-04-07` / `2024-03` / `2024` |
 | Age | `band10`, `band5`, `redact`, `keep` | `45岁` → `40-49岁` / `45-49岁`; 90 and over → `90岁及以上` |
 | Sex | `keep`, `redact` | `男` → `[性别]` |
-| Postal code | `prefix3`, `redact`, `keep` | `100020` → `100***` |
+| Postal code (always) | `prefix3`, `redact` | `100020` → `100***` |
 
 - Detection covers prose (`2024-03-01`, `2024年3月1日`, `45岁`, `年龄：45`,
   `性别：男`, `邮编：100020`) and fields named like `BTH_DT`, `*_DT`, `出生日期`,
@@ -322,6 +325,10 @@ byte for byte: never decoded, modified, or sent to a model.
       path-map.json          # original <-> new path, only when a path was renamed; mode 0600, as sensitive as the vault
       advice.json            # improvement suggestions (allow-list candidates hold original values; mode 0600), shown in the Improvements panel
       calls.json             # model-call log: time, file, stage, duration, tokens, outcome (no prompts or replies)
+      model-cache.jsonl      # model replies of an unfinished batch, replayed by Resume; quotes originals, mode 0600, deleted once a batch finishes
+      resume.json            # original input path of an unfinished batch, for Resume (mode 0600)
+      review-items.json      # review items with original context (holds originals, mode 0600)
+      compare/               # per-file comparison: changed segments, original and result (holds originals, mode 0600)
       review/                # anonymized copies of files that need review, taken out of zips too (x.zip becomes x (zip)/)
       output/                # staging while running; moved to the output root when the batch finishes. Partial results of a cancelled/failed batch stay here
 ```
@@ -464,8 +471,8 @@ layer:
 ## Supported formats and limits
 
 - Input: `.txt`, `.md`, `.csv`, `.json`, `.xlsx`, `.zip`, and DICOM (metadata only).
-- Direct identifiers by default; quasi-identifier handling (date, age, sex,
-  postal code) is opt-in. Department, institution code, and order numbers are
+- Direct identifiers and postal codes by default; quasi-identifier handling
+  (date, age, sex) is opt-in. Department, institution code, and order numbers are
   never generalized. Record keys matching `PRM_KEY`/`RCD_NO` are treated as
   record identifiers; order numbers are not.
 - Field hints cover common Chinese and English hospital schemas. Unusual field

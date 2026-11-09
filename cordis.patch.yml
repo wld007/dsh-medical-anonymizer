@@ -4,6 +4,9 @@
       config:
         baseURL: 'http://127.0.0.1:11434/v1'
         model: ''
+        # Optional independent verification model; empty = the model above.
+        verifyBaseURL: ''
+        verifyModel: ''
         outputRoot: ''
         maxRounds: 3
         # Text files per chunk; larger inputs are split into chunks automatically.
@@ -14,6 +17,9 @@
         maxDicomFiles: 50000
         disableThinking: true
         showSidebarEntry: true
+        # Content that cannot be read as text (images, PDFs, binary, unknown
+        # encodings): review (default, hold for a human) | remove (placeholder).
+        opaquePolicy: review
         # Anonymization rules. Defaults: every identifier -> stable pseudonym;
         # quasi-identifiers untouched. Strategies:
         #   identifiers: pseudonym | mask | redact | keep

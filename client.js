@@ -28,8 +28,10 @@ window.__ModuleLoader__.load({
       'rules.strategy': '处理方式',
       'rules.example': '示例',
       'rules.quasiTitle': '准标识符（单独不能识别个人，组合起来可能识别）',
-      'rules.quasiToggle': '同时处理准标识符（日期、年龄、性别、邮编）',
-      'rules.quasiHint': '默认关闭，即只处理标识符。开启后按下表处理；只处理文本值，Excel 数值/日期单元格和 JSON 数字不改动。',
+      'rules.quasiToggle': '同时处理准标识符（日期、年龄、性别）',
+      'rules.always': '始终处理',
+      'rules.quasiAlways': '邮编属于标识符（HIPAA 18 项之一），不论是否开启准标识符都会处理：保留前 3 位或替换为类型标签。',
+      'rules.quasiHint': '默认关闭，即只处理标识符（邮编属于标识符，始终处理）。开启后按下表处理；只处理文本值，Excel 数值/日期单元格和 JSON 数字不改动。',
       'rules.allowTitle': '排除误判',
       'rules.allowHint': '报告里出现误判时在这里排除，然后重新运行。每行一项；之前误存进映射库的对应关系会在下次运行时移除。',
       'rules.allowValues': '不匹配的值（这些值永远不当作标识符，如 01、居民身份证、科室名称）',
@@ -69,8 +71,9 @@ window.__ModuleLoader__.load({
       'run.output': '输出根目录',
       'run.outputDefault': '留空：输入目录旁的 _medical-anonymizer',
       'run.rounds': '最大轮次',
-      'run.maxFiles': '每组文件数（超出自动分组，不丢文件）',
-      'run.concurrency': '同时处理的文件数',
+      'run.maxFiles': '每组文件数',
+      'run.concurrency': '并发数（每个模型）',
+      'run.concurrencyHint': '每组文件数：输入超出时自动分组，依次处理，不丢文件。并发数是每个模型同时处理的请求数。同时处理的文件数为并发数的 3 倍（最多 32 个），后面文件的请求提前排队，模型不会空等；内存用到 70% 时暂停补充新文件。',
       'run.maxDicom': '单批 DICOM 文件上限',
       'model.timeout': '单次模型调用超时（秒）',
       'model.temperature': '温度（0 最稳定）',
@@ -84,6 +87,23 @@ window.__ModuleLoader__.load({
       'vault.clear': '取消加密（清除已保存的口令）',
       'vault.warn': '注意：口令只用于读写映射库，不会转换已有文件。未加密的映射库在下次运行时会被加密；已用旧口令加密的映射库，改口令或取消加密后将无法读取，批次会报错。请先确认没有要继续使用的旧映射库，并牢记口令——丢失后无法找回。',
       'save.clean': '所有配置已保存。',
+      'model.detectTitle': '识别模型',
+      'model.detectHint': '负责识别·替换，以及复判盲审报出的可疑项。',
+      'model.sharedTitle': '调用参数（识别、核验共用）',
+      'model.sharedHint': '以下设置同时作用于识别模型和核验模型的每次调用。',
+      'verify.sameName': '⚠ 核验模型与识别模型同为 {model}，盲区相同，起不到独立判别的作用（部署在另一台机器上只能分担请求）。建议换用不同系列的模型。',
+      'model.fetch': '获取模型列表',
+      'model.fetching': '正在获取模型列表…',
+      'model.noMatch': '没有匹配的模型，可直接输入名称',
+      'model.clearChoice': '清空',
+      'verify.title': '核验模型（可选）',
+      'verify.hint': '核验以外部审查员的身份检查脱敏后的文本。用另一个模型核验，两者的盲区不同，更容易发现遗漏；留空则由上面的识别模型核验。病历原文同样会发给这个端点，请只用本机或可信内网的服务。',
+      'verify.endpoint': '端点（留空沿用识别模型的端点）',
+      'verify.endpointPlaceholder': '留空：与识别模型相同',
+      'verify.modelPlaceholder': '留空：由识别模型核验',
+      'verify.keyPlaceholder': '留空：端点相同时沿用识别模型的 Key',
+      'verify.same': '当前由识别模型核验。',
+      'field.verifyModel': '核验模型',
       'save.dirty': '未保存：{fields}',
       'save.save': '保存',
       'save.saving': '正在保存…',
@@ -97,7 +117,7 @@ window.__ModuleLoader__.load({
       'field.outputRoot': '输出根目录',
       'field.maxRounds': '最大轮次',
       'field.maxFiles': '每组文件数',
-      'field.concurrency': '并发文件数',
+      'field.concurrency': '并发数',
       'field.maxDicomFiles': 'DICOM 上限',
       'field.timeoutMs': '模型超时',
       'field.temperature': '温度',
@@ -167,21 +187,27 @@ window.__ModuleLoader__.load({
       'ws.load': '{count} 个文件处理中',
       'ws.passed': '已完成',
       'ws.st.prescan': '预扫描',
-      'ws.st.read': '解析',
-      'ws.st.discover': '识别',
-      'ws.st.verify': '核验',
-      'ws.st.repair': '修正',
+      'ws.st.read': '解析·拆层',
+      'ws.st.discover': '识别·替换',
+      'ws.st.rules': '规则核验',
+      'ws.st.blind': '独立盲审',
+      'ws.st.repair': '复判修正',
       'ws.st.rescan': '批次复扫',
       'ws.st.dicom': 'DICOM',
-      'ws.st.pack': '输出',
-      'ws.sub.prescan': '批次字典·路径匿名',
-      'ws.sub.read': '格式解析·字段策略',
-      'ws.sub.discover': '规则 + 模型识别',
-      'ws.sub.verify': '残留·结构校验',
-      'ws.sub.repair': '残留定向修正',
-      'ws.sub.rescan': '批内 / 跨组一致性',
+      'ws.st.pack': '比对·打包',
+      'ws.st.review': '人工复核',
+      'ws.st.deliver': '交付',
+      'ws.sub.prescan': '解压·路径匿名',
+      'ws.sub.read': '解码·切分·画像',
+      'ws.sub.discover': '规则 + 识别模型',
+      'ws.sub.rules': '复扫·原值·结构',
+      'ws.sub.blind': '核验模型',
+      'ws.sub.repair': '识别模型复判',
+      'ws.sub.rescan': '跨文件一致',
       'ws.sub.dicom': '元数据·UID·日期',
-      'ws.sub.pack': '封装·报告·映射',
+      'ws.sub.pack': '比对记录·打包',
+      'ws.sub.review': '分歧·无法检查',
+      'ws.sub.deliver': '输出根目录',
       'ws.byType': '标识符替换（按类型）',
       'ws.quality': '核验结果',
       'ws.station': '环节',
@@ -207,22 +233,170 @@ window.__ModuleLoader__.load({
       'ws.m.mappings': '新增映射',
       'ws.m.mappingsHint': '本批次新写入映射库的「原值 → 假名」条数；之前批次已有的不计',
       'ws.m.chunks': '分组',
+      'ws.m.chunksHint': '文件较多时本批次自动拆成的组数',
+      'ws.m.groupResult': '处理结果',
+      'ws.m.groupTech': '模型与资源',
       'ws.model': '模型',
       'ws.rulesOnly': '仅规则',
       'ws.online': '在线',
+      'ws.dotRetry': '点击重新检测',
       'ws.params': '处理参数',
       'ws.locked': '锁定',
-      'ws.p.concurrency': '并发文件数',
+      'ws.p.concurrency': '并发数（每个模型）',
       'ws.p.maxFiles': '每组文件数',
       'ws.p.timeout': '模型超时（秒）',
       'ws.p.temperature': '温度',
       'ws.p.noThinking': '关闭思考模式',
-      'ws.p.quasi': '处理准标识符（日期/年龄/性别/邮编）',
+      'ws.p.quasi': '处理准标识符（日期/年龄/性别）',
       'ws.paramsSave': '保存参数',
       'ws.paramsSaved': '参数已保存，下一批次生效。',
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.m.req': '模型请求',
+      'ws.m.reqDetect': '识别请求',
+      'ws.m.reqVerify': '核验请求',
+      'ws.m.queued': '排队',
+      'ws.m.reqHint': '进行中 / 上限，「+N」为排队等待的请求数（没有排队时不显示）。进行中低于上限且没有排队，说明模型有空闲。',
+      'ws.queued': '排队 {count}',
+      'ws.resumedFrom': '↻ 续跑自 …{id}',
+      'ws.resumedBy': '已由 …{id} 续跑',
+      'ws.m.replayed': '复用调用',
+      'ws.m.memo': '免送段落',
+      'ws.m.memoHint': '本批次其他文件（或上一轮）已经问过模型的相同文本：识别结果直接沿用，盲审已通过的不再送审。按段落 / 数值计数，只在内存中保留。',
+      'ws.m.replayedHint': '与中断前完全相同的模型请求直接复用缓存的结果，不再调用模型；已处理过的文件会快速过一遍，从中断处起才真正调用模型。同一批次内重复的请求也会复用。',
+      'ws.blindSame': '⚠ 与识别模型相同',
+      'ws.blindSameHint': '核验模型与识别模型同为 {model}，盲区相同，独立性有限。点击打开设置。',
+      'ws.cmp.only': '只看改动',
+      'ws.cmp.onlyHint': '只显示被替换过的段落和待复核的段落；取消勾选显示全部内容',
+      'ws.stage1': '① 批次准备',
+      'ws.stage2': '② 逐个文件 · 并行',
+      'ws.stage3': '③ 批次收尾',
+      'ws.stage4': '④ 交付',
+      'ws.loopWait': '待回流',
+      'ws.notNeeded': '未触发',
+      'ws.noModel': '未配置模型',
+      'ws.notDelivered': '未交付',
+      'ws.reviewHeld': '暂扣 · {count} 项',
+      'ws.awaitReview': '待复核完成',
+      'ws.reviewed': '已复核',
+      'ws.reviewNone': '无需复核',
+      'ws.delivered': '已交付',
+      'ws.blindShared': '⚠ 由识别模型兼任',
+      'ws.blindHint': '核验模型：{model}。只看替换后的内容，不知道识别结果。',
+      'ws.blindSharedHint': '未配置独立核验模型，盲审由识别模型兼任，不是独立判别。点击打开设置。',
+      'ws.blindStats': '确认 {confirmed} · 误报 {dismissed} · 分歧 {disputed}',
+      'ws.modelOf': '识别模型：{model}',
+      'ws.dicomActive': '旁路 · DICOM 元数据处理中（不经模型）',
+      'ws.dicomDone': '旁路 · DICOM {count} 个（只处理元数据，不经模型）',
+      'ws.dicomIdle': '旁路 · DICOM（只处理元数据，不经模型）',
+      'ws.cmp.rows.all': '全部内容',
+      'ws.cmp.rows.changed': '只看改动',
+      'ws.cmp.legend': '红：被替换的原文 · 绿：假名 · 橙：待复核 · 虚线下划线：保留的长数字，请抽查',
+      'ws.cmp.legacy': '该批次只记录了改动处（0.8.1-dev.18 之前运行）。',
+      'ws.cmp.empty': '该文件没有可比对的文字。',
+      'ws.cmp.suspectHint': '未替换的长数字，抽查是否为证件号、电话或病历号',
+      'rules.opaqueTitle': '无法检查的内容',
+      'rules.opaqueHint': '图片、PDF、Word、二进制、无法解码的编码串、加密内容等无法转成文字检查，不会被当作「通过」。默认转人工复核：在复核完成前，批次的交付数据不会放到输出根目录。',
+      'rules.opaqueLabel': '处理方式',
+      'rules.opaqueReview': '转人工复核（默认，推荐）',
+      'rules.opaqueRemove': '自动移除，用空白占位替代',
+      'ws.rv.remove': '移除',
+      'ws.rv.removeHint': '从交付数据中移除这部分内容（图片替换为空白占位）',
+      'ws.rv.keepOpaque': '确认保留',
+      'ws.rv.keepHint': '已人工确认其中不含个人信息，原样交付',
+      'ws.rv.removed': '已移除',
+      'ws.rv.bulkTitle': '{count} 项无法检查的内容',
+      'ws.rv.bulkRemove': '全部移除（{count}）',
+      'ws.rv.bulkKeep': '全部确认保留',
+      'ws.rv.bulkDone': '已处理 {count} 项。',
+      'ws.withheldTag': '暂扣',
+      'ws.withheld': '有待复核项，交付数据暂不放到输出根目录；处理完全部复核项后自动交付。',
+      'ws.rv.code.opaque': '无法检查的内容',
+      'ws.rv.code.opaque-token': '无法解读的编码串',
+      'ws.rv.code.unreadable': '无法解读的长字符串',
+      'ws.rv.code.zip-failed': '压缩包无法解压',
+      'ws.rv.code.over-limit': '超出上限未处理',
+      'ws.rv.code.opaque-check': '核查失败',
+      'ws.cmp.title': '结果比对',
+      'ws.cmp.open': '结果比对',
+      'ws.cmp.openReview': '比对与复核 {count} 项',
+      'ws.cmp.none': '该批次没有比对记录（0.8.1 之前运行的批次，或没有文本类文件）。',
+      'ws.cmp.pick': '在左侧选择一个文件。',
+      'ws.cmp.nochange': '该文件没有改动。',
+      'ws.cmp.field': '字段',
+      'ws.cmp.before': '原文',
+      'ws.cmp.after': '结果',
+      'ws.cmp.more': '已显示 {shown} / {total} 处，显示更多',
+      'ws.cmp.truncated': '文件过大，只记录了前 {shown} 段（共 {total} 段）。',
+      'ws.cmp.stats': '改动 {changed} 处 · 共 {total} 段',
+      'ws.cmp.prev': '上一份',
+      'ws.cmp.next': '下一份',
+      'ws.cmp.keys': '↑ ↓ 切换文件',
+      'ws.cmp.f.all': '全部',
+      'ws.cmp.f.changed': '有改动',
+      'ws.cmp.f.review': '待复核',
+      'ws.cmp.skipped.too-large': '文件超过 50 MB，未生成比对记录。',
+      'ws.cmp.skipped.error': '生成比对记录时出错。',
+      'ws.cmp.rowHint': '点击查看原文与结果比对',
+      'ws.verifyModel': '核验',
+      'ws.m.speedGen': '生成 tok/s',
+      'ws.m.speedPrompt': '提示处理 tok/s',
+      'ws.m.fitHint': '按 {n} 次调用拟合「耗时 = 固定开销 + 输入 token ÷ 提示处理速度 + 输出 token ÷ 生成速度」得到的估算值。生成速度即模型解码速度；并发时含排队影响，会偏低。',
+      'ws.m.fitFew': '样本不足（{n} 次调用），至少 30 次且输入输出长度有差异时才能估算。',
+      'ws.m.totalHint': '本批次全部输出 token ÷ 已用时间，含并发，表示整体吞吐。',
+      'ws.calls.fit': '生成 {gen} tok/s · 提示处理 {prompt} tok/s',
+      'ws.calls.io': '输入 / 输出',
+      'ws.m.speedTotal': '合计输出 tok/s',
+      'ws.m.memory': '内存',
+      'ws.tab.review': '复核',
+      'ws.rv.none': '本批次没有需要人工复核的项。',
+      'ws.rv.running': '批次结束后列出需要人工复核的项。',
+      'ws.rv.open': '待复核 {count} 项',
+      'ws.rv.reviewed': '已于 {at} 完成复核',
+      'ws.rv.total': '{files} 个文件 · {items} 项',
+      'ws.rv.hint': '替换写回交付数据（含 zip 内文件）和复核副本；全部处理后批次转为「完成」',
+      'ws.rv.allDone': '全部复核项已处理，批次已转为完成。',
+      'ws.rv.copyPath': '复制副本路径',
+      'ws.rv.replace': '替换为假名',
+      'ws.rv.replaceWith': '替换为 {to}',
+      'ws.rv.allow': '不是标识符',
+      'ws.rv.allowHint': '保留原文，并加入「不匹配的值」，以后不再识别',
+      'ws.rv.accept': '确认保留',
+      'ws.rv.noText': '该项没有可定位的文字',
+      'ws.rv.replaced': '已替换为 {to}（{count} 处）',
+      'ws.rv.allowed': '已确认不是标识符，并加入不匹配的值',
+      'ws.rv.accepted': '已确认保留',
+      'ws.rv.go': '复核 {count} 项',
+      'ws.rv.code.residual': '规则复扫残留',
+      'ws.rv.code.disputed': '核验与识别意见不一致',
+      'ws.rv.code.model-residual': '模型复核残留',
+      'ws.rv.code.not-removed': '原值未清除',
+      'ws.rv.code.structure': '结构校验未通过',
+      'ws.rv.code.embedded': '假名嵌入编码',
+      'ws.rv.code.partial': '数值被部分替换',
+      'ws.rv.code.pipeline': '处理异常',
+      'ws.rv.code.load': '无法读取',
+      'ws.rv.code.quasi': '准标识符处理失败',
+      'ws.picked': '已选 {count} 项',
+      'ws.pickedClear': '清除',
+      'ws.pickedRemove': '移除',
+      'ws.pickedName': '{first} 等 {count} 项',
+      'ws.resume': '继续处理',
+      'ws.resumeHint': '沿用原输入和输出根目录重新开始：已完成的模型调用直接复用，只处理剩下的部分。可以先在设置里换模型再继续',
+      'ws.calls.r.cached': '复用',
+      'ws.queueCount': '{done} / {total} 个文件',
+      'ws.gaugeHint': '按数据量计算的进度：已处理字节（含处理中文件的估计进度）÷ 总字节',
+      'ws.gaugeHintFiles': '该批次没有数据量记录，按文件数计算',
+      'ws.byFiles': '按文件数',
+      'ws.del.clear': '清空',
+      'ws.del.clearTitle': '清空批次记录',
+      'ws.del.clearGo': '全部删除',
+      'ws.del.allCount': '共 {count} 条批次记录',
+      'ws.del.keepRunning': '（正在运行的批次保留）',
+      'ws.del.allRecords': '将删除这些批次的报告、待复核副本、改进建议、模型调用记录和路径对照，并清空批次记录。此操作不可撤销。',
+      'ws.del.allDeliverable': '同时删除这些批次在输出根目录下的交付数据',
+      'ws.del.partial': '已删除 {removed} 条，{failed} 条失败：{first}',
       'ws.del.title': '删除批次记录',
       'ws.del.records': '将删除该批次的报告、待复核副本、改进建议、模型调用记录和路径对照，并从批次记录中移除。此操作不可撤销。',
       'ws.del.deliverable': '同时删除交付数据：{path}',
@@ -297,7 +471,7 @@ window.__ModuleLoader__.load({
       'ws.records': '记录',
       'ws.stageA': '阶段 A · 识别与替换',
       'ws.stageB': '阶段 B · 修正与输出',
-      'ws.loop': '残留复处理 · 最多 {rounds} 轮',
+      'ws.loop': '复判修正 → 规则核验 · 最多 {rounds} 轮',
       'ws.trend': '处理速率（文件/分）',
       'ws.unitEntities': '处替换',
     }
@@ -323,8 +497,10 @@ window.__ModuleLoader__.load({
       'rules.strategy': 'Treatment',
       'rules.example': 'Example',
       'rules.quasiTitle': 'Quasi-identifiers (identify a person only in combination)',
-      'rules.quasiToggle': 'Also process quasi-identifiers (date, age, sex, postal code)',
-      'rules.quasiHint': 'Off by default, so only identifiers are processed. When on, text values are handled as below; Excel numeric/date cells and JSON numbers are not changed.',
+      'rules.quasiToggle': 'Also process quasi-identifiers (date, age, sex)',
+      'rules.always': 'always',
+      'rules.quasiAlways': 'Postal codes are identifiers (one of the HIPAA 18) and are always processed, whether or not quasi-identifiers are on: keep the first 3 digits or replace with a type label.',
+      'rules.quasiHint': 'Off by default, so only identifiers are processed (postal codes count as identifiers and are always processed). When on, text values are handled as below; Excel numeric/date cells and JSON numbers are not changed.',
       'rules.allowTitle': 'Exclude false positives',
       'rules.allowHint': 'When the report shows a false positive, exclude it here and run again. One item per line; mappings an earlier run stored for these values are removed on the next run.',
       'rules.allowValues': 'Values that are never identifiers (e.g. 01, 居民身份证, department names)',
@@ -364,8 +540,9 @@ window.__ModuleLoader__.load({
       'run.output': 'Output root',
       'run.outputDefault': 'Empty: _medical-anonymizer beside the input',
       'run.rounds': 'Max rounds',
-      'run.maxFiles': 'Files per chunk (larger inputs are split; nothing is dropped)',
-      'run.concurrency': 'Files processed at the same time',
+      'run.maxFiles': 'Files per chunk',
+      'run.concurrency': 'Concurrency (per model)',
+      'run.concurrencyHint': 'Files per chunk: larger inputs are split and processed in turn; nothing is dropped. Concurrency is the number of requests each model handles at once. Three times as many files (at most 32) are processed at once, so later files queue requests and the model never waits; no new files start while memory use is at 70% or more.',
       'run.maxDicom': 'DICOM files per batch (cap)',
       'model.timeout': 'Model call timeout (seconds)',
       'model.temperature': 'Temperature (0 is most stable)',
@@ -379,6 +556,23 @@ window.__ModuleLoader__.load({
       'vault.clear': 'Turn encryption off (clear the saved passphrase)',
       'vault.warn': 'The passphrase is only used to read and write vaults; existing files are not converted. A plain vault is encrypted on its next run; a vault encrypted with the old passphrase can no longer be read after you change or clear it, and batches using it will fail. Make sure no old vault is still needed, and keep the passphrase safe: it cannot be recovered.',
       'save.clean': 'All settings are saved.',
+      'model.detectTitle': 'Detection model',
+      'model.detectHint': 'Detects and replaces, and re-judges suspects reported by the blind review.',
+      'model.sharedTitle': 'Call settings (detection and verification)',
+      'model.sharedHint': 'These apply to every call of both the detection and the verification model.',
+      'verify.sameName': '⚠ The verification model is the same as the detection model ({model}): two servers share the load, but the blind spots are the same, so the review is not independent. Use a model from another family.',
+      'model.fetch': 'Fetch the model list',
+      'model.fetching': 'Fetching models…',
+      'model.noMatch': 'No match; you can type the name',
+      'model.clearChoice': 'Clear',
+      'verify.title': 'Verification model (optional)',
+      'verify.hint': 'Verification reviews the anonymized text as an outside reviewer. A different model has different blind spots and catches more misses; leave empty to verify with the detection model above. Patient text is sent to this endpoint too, so use only local or trusted internal services.',
+      'verify.endpoint': 'Endpoint (empty: same as detection)',
+      'verify.endpointPlaceholder': 'Empty: same as the detection model',
+      'verify.modelPlaceholder': 'Empty: the detection model verifies',
+      'verify.keyPlaceholder': 'Empty: the detection key when the endpoint is the same',
+      'verify.same': 'The detection model verifies.',
+      'field.verifyModel': 'verification model',
       'save.dirty': 'Unsaved: {fields}',
       'save.save': 'Save',
       'save.saving': 'Saving…',
@@ -462,21 +656,27 @@ window.__ModuleLoader__.load({
       'ws.load': '{count} files in progress',
       'ws.passed': 'Done',
       'ws.st.prescan': 'Prescan',
-      'ws.st.read': 'Parse',
-      'ws.st.discover': 'Detect',
-      'ws.st.verify': 'Verify',
-      'ws.st.repair': 'Remediate',
+      'ws.st.read': 'Parse & unwrap',
+      'ws.st.discover': 'Detect & replace',
+      'ws.st.rules': 'Rule checks',
+      'ws.st.blind': 'Blind review',
+      'ws.st.repair': 'Re-judge & fix',
       'ws.st.rescan': 'Batch rescan',
       'ws.st.dicom': 'DICOM',
-      'ws.st.pack': 'Output',
-      'ws.sub.prescan': 'Dictionary · path names',
-      'ws.sub.read': 'Format · field policy',
-      'ws.sub.discover': 'Rules + model',
-      'ws.sub.verify': 'Residuals · structure',
-      'ws.sub.repair': 'Targeted remediation',
-      'ws.sub.rescan': 'Within / across chunks',
+      'ws.st.pack': 'Compare & pack',
+      'ws.st.review': 'Manual review',
+      'ws.st.deliver': 'Deliver',
+      'ws.sub.prescan': 'Archives · paths',
+      'ws.sub.read': 'Decode · split · profile',
+      'ws.sub.discover': 'Rules + detector',
+      'ws.sub.rules': 'Rescan · structure',
+      'ws.sub.blind': 'Verification model',
+      'ws.sub.repair': 'Detector re-judges',
+      'ws.sub.rescan': 'Cross-file',
       'ws.sub.dicom': 'Metadata · UID · dates',
-      'ws.sub.pack': 'Package · report · map',
+      'ws.sub.pack': 'Comparison · pack',
+      'ws.sub.review': 'Disputes · unreadable',
+      'ws.sub.deliver': 'Output root',
       'ws.byType': 'Identifiers replaced, by type',
       'ws.quality': 'Verification',
       'ws.station': 'Stage',
@@ -502,22 +702,170 @@ window.__ModuleLoader__.load({
       'ws.m.mappings': 'New mappings',
       'ws.m.mappingsHint': 'Original → pseudonym pairs this batch added to the vault; earlier ones are not counted',
       'ws.m.chunks': 'Chunks',
+      'ws.m.chunksHint': 'Number of groups this batch was split into when there are many files',
+      'ws.m.groupResult': 'Results',
+      'ws.m.groupTech': 'Model & resources',
       'ws.model': 'Model',
       'ws.rulesOnly': 'Rules only',
       'ws.online': 'Online',
+      'ws.dotRetry': 'click to check again',
       'ws.params': 'Processing settings',
       'ws.locked': 'LOCKED',
-      'ws.p.concurrency': 'Concurrent files',
+      'ws.p.concurrency': 'Concurrency per model',
       'ws.p.maxFiles': 'Files per chunk',
       'ws.p.timeout': 'Model timeout (s)',
       'ws.p.temperature': 'Temperature',
       'ws.p.noThinking': 'Disable thinking',
-      'ws.p.quasi': 'Process quasi-identifiers (date/age/sex/postal)',
+      'ws.p.quasi': 'Process quasi-identifiers (date/age/sex)',
       'ws.paramsSave': 'Save',
       'ws.paramsSaved': 'Saved; the next batch uses these values.',
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.m.req': 'Model requests',
+      'ws.m.reqDetect': 'Detector req.',
+      'ws.m.reqVerify': 'Verifier req.',
+      'ws.m.queued': 'queued',
+      'ws.m.reqHint': 'In flight / limit; "+N" is the number waiting (hidden when none). Below the limit with nothing waiting means the model has idle capacity.',
+      'ws.queued': '{count} queued',
+      'ws.resumedFrom': '↻ resumed from …{id}',
+      'ws.resumedBy': 'resumed by …{id}',
+      'ws.m.replayed': 'Replayed calls',
+      'ws.m.memo': 'Segments reused',
+      'ws.m.memoHint': 'Identical text already asked about in another file of this batch (or the previous round): its detection result is reused and text that passed the blind review is not reviewed again. Counted per segment / value; kept in memory only.',
+      'ws.m.replayedHint': 'Requests identical to ones answered before the interruption reuse the cached reply without calling the model; finished files pass quickly and real calls start where the batch stopped. Repeated requests within a batch are reused too.',
+      'ws.blindSame': '⚠ Same as detector',
+      'ws.blindSameHint': 'Verification and detection both use {model}: same blind spots, limited independence. Click to open settings.',
+      'ws.cmp.only': 'Changes only',
+      'ws.cmp.onlyHint': 'Show only replaced and flagged segments; untick to show all content',
+      'ws.stage1': '① PREPARE',
+      'ws.stage2': '② PER FILE · PARALLEL',
+      'ws.stage3': '③ FINISH',
+      'ws.stage4': '④ DELIVER',
+      'ws.loopWait': 'Loop pending',
+      'ws.notNeeded': 'Not needed',
+      'ws.noModel': 'No model',
+      'ws.notDelivered': 'Not delivered',
+      'ws.reviewHeld': 'Held · {count}',
+      'ws.awaitReview': 'Awaiting review',
+      'ws.reviewed': 'Reviewed',
+      'ws.reviewNone': 'Not needed',
+      'ws.delivered': 'Delivered',
+      'ws.blindShared': '⚠ Detector doubles',
+      'ws.blindHint': 'Verification model: {model}. Sees only the replaced content, not the detection results.',
+      'ws.blindSharedHint': 'No separate verification model: the detector also reviews, so this is not independent. Click to open settings.',
+      'ws.blindStats': 'OK {confirmed} · FP {dismissed} · split {disputed}',
+      'ws.modelOf': 'Detection model: {model}',
+      'ws.dicomActive': 'Bypass · DICOM metadata in progress (no model)',
+      'ws.dicomDone': 'Bypass · {count} DICOM files (metadata only, no model)',
+      'ws.dicomIdle': 'Bypass · DICOM (metadata only, no model)',
+      'ws.cmp.rows.all': 'All content',
+      'ws.cmp.rows.changed': 'Changes only',
+      'ws.cmp.legend': 'Red: replaced original · green: pseudonym · orange: to review · dotted: long numbers kept, spot-check them',
+      'ws.cmp.legacy': 'This batch recorded changed segments only (run before 0.8.1-dev.18).',
+      'ws.cmp.empty': 'No text to compare in this file.',
+      'ws.cmp.suspectHint': 'Long number left as is; check it is not an ID, phone or record number',
+      'rules.opaqueTitle': 'Content that cannot be checked',
+      'rules.opaqueHint': 'Images, PDFs, Word files, binary data, undecodable encodings and encrypted content cannot be read as text and never count as clean. By default they go to manual review, and the batch result stays out of the output root until review is complete.',
+      'rules.opaqueLabel': 'Handling',
+      'rules.opaqueReview': 'Manual review (default, recommended)',
+      'rules.opaqueRemove': 'Remove automatically, leave an empty placeholder',
+      'ws.rv.remove': 'Remove',
+      'ws.rv.removeHint': 'Remove this content from the deliverable (images become an empty placeholder)',
+      'ws.rv.keepOpaque': 'Keep',
+      'ws.rv.keepHint': 'Checked by a person: contains no personal data, deliver as is',
+      'ws.rv.removed': 'Removed',
+      'ws.rv.bulkTitle': '{count} items cannot be checked',
+      'ws.rv.bulkRemove': 'Remove all ({count})',
+      'ws.rv.bulkKeep': 'Keep all',
+      'ws.rv.bulkDone': '{count} items decided.',
+      'ws.withheldTag': 'Held',
+      'ws.withheld': 'Items await review; the result stays out of the output root and is delivered once all are decided.',
+      'ws.rv.code.opaque': 'Cannot be checked',
+      'ws.rv.code.opaque-token': 'Undecodable encoded string',
+      'ws.rv.code.unreadable': 'Unreadable long string',
+      'ws.rv.code.zip-failed': 'Archive could not be opened',
+      'ws.rv.code.over-limit': 'Over the limit, not processed',
+      'ws.rv.code.opaque-check': 'Check failed',
+      'ws.cmp.title': 'Compare results',
+      'ws.cmp.open': 'Compare results',
+      'ws.cmp.openReview': 'Compare & review {count}',
+      'ws.cmp.none': 'No comparison for this batch (run before 0.8.1, or no text files).',
+      'ws.cmp.pick': 'Pick a file on the left.',
+      'ws.cmp.nochange': 'No changes in this file.',
+      'ws.cmp.field': 'Field',
+      'ws.cmp.before': 'Original',
+      'ws.cmp.after': 'Result',
+      'ws.cmp.more': '{shown} of {total} shown, show more',
+      'ws.cmp.truncated': 'Large file: the first {shown} of {total} segments were recorded.',
+      'ws.cmp.stats': '{changed} changed · {total} segments',
+      'ws.cmp.prev': 'Previous',
+      'ws.cmp.next': 'Next',
+      'ws.cmp.keys': '↑ ↓ to switch files',
+      'ws.cmp.f.all': 'All',
+      'ws.cmp.f.changed': 'Changed',
+      'ws.cmp.f.review': 'To review',
+      'ws.cmp.skipped.too-large': 'File over 50 MB; no comparison recorded.',
+      'ws.cmp.skipped.error': 'The comparison could not be built.',
+      'ws.cmp.rowHint': 'Click to compare original and result',
+      'ws.verifyModel': 'Verifier',
+      'ws.m.speedGen': 'Generation tok/s',
+      'ws.m.speedPrompt': 'Prompt tok/s',
+      'ws.m.fitHint': 'Estimated from {n} calls by fitting duration = overhead + input tokens / prompt speed + output tokens / generation speed. Generation speed is the decode speed; with concurrency, queueing makes it lower.',
+      'ws.m.fitFew': 'Too few samples ({n} calls); at least 30 with varying lengths are needed.',
+      'ws.m.totalHint': 'All output tokens of the batch / elapsed time, concurrency included: overall throughput.',
+      'ws.calls.fit': 'generation {gen} tok/s · prompt {prompt} tok/s',
+      'ws.calls.io': 'In / out',
+      'ws.m.speedTotal': 'tok/s total',
+      'ws.m.memory': 'Memory',
+      'ws.tab.review': 'Review',
+      'ws.rv.none': 'Nothing in this batch needs manual review.',
+      'ws.rv.running': 'Items needing manual review are listed when the batch finishes.',
+      'ws.rv.open': '{count} to review',
+      'ws.rv.reviewed': 'Reviewed {at}',
+      'ws.rv.total': '{files} files · {items} items',
+      'ws.rv.hint': 'Replacements are written to the deliverable (zip entries too) and the review copy; once all are decided the batch becomes completed',
+      'ws.rv.allDone': 'All review items decided; the batch is now completed.',
+      'ws.rv.copyPath': 'Copy copy path',
+      'ws.rv.replace': 'Replace with pseudonym',
+      'ws.rv.replaceWith': 'Replace with {to}',
+      'ws.rv.allow': 'Not an identifier',
+      'ws.rv.allowHint': 'Keep the text and add it to allowed values so it is no longer detected',
+      'ws.rv.accept': 'Keep',
+      'ws.rv.noText': 'No locatable text for this item',
+      'ws.rv.replaced': 'Replaced with {to} ({count}×)',
+      'ws.rv.allowed': 'Confirmed not an identifier; added to allowed values',
+      'ws.rv.accepted': 'Kept',
+      'ws.rv.go': 'Review {count}',
+      'ws.rv.code.residual': 'Rule rescan residual',
+      'ws.rv.code.disputed': 'Verifier and detector disagree',
+      'ws.rv.code.model-residual': 'Model review residual',
+      'ws.rv.code.not-removed': 'Original not removed',
+      'ws.rv.code.structure': 'Structure check failed',
+      'ws.rv.code.embedded': 'Pseudonym inside a code',
+      'ws.rv.code.partial': 'Value partly replaced',
+      'ws.rv.code.pipeline': 'Processing error',
+      'ws.rv.code.load': 'Unreadable',
+      'ws.rv.code.quasi': 'Quasi-identifier step failed',
+      'ws.picked': '{count} selected',
+      'ws.pickedClear': 'Clear',
+      'ws.pickedRemove': 'Remove',
+      'ws.pickedName': '{first} +{count}',
+      'ws.resume': 'Resume',
+      'ws.resumeHint': 'Run again on the same input and output root, replaying finished model calls so only the rest is processed. You may switch the model in Settings first',
+      'ws.calls.r.cached': 'Replayed',
+      'ws.queueCount': '{done} / {total} files',
+      'ws.gaugeHint': 'Progress by data volume: processed bytes (including an estimate for files in progress) ÷ total bytes',
+      'ws.gaugeHintFiles': 'No data-volume record for this batch; by file count',
+      'ws.byFiles': 'by files',
+      'ws.del.clear': 'Clear',
+      'ws.del.clearTitle': 'Clear batch history',
+      'ws.del.clearGo': 'Delete all',
+      'ws.del.allCount': '{count} batch records',
+      'ws.del.keepRunning': '(a running batch is kept)',
+      'ws.del.allRecords': 'Deletes the reports, review copies, advice, model-call logs and path maps, and empties the history. This cannot be undone.',
+      'ws.del.allDeliverable': 'Also delete their deliverables in the output roots',
+      'ws.del.partial': '{removed} deleted, {failed} failed: {first}',
       'ws.del.title': 'Delete batch record',
       'ws.del.records': 'Deletes this batch\'s report, review copies, advice, model-call log and path map, and removes it from the history. This cannot be undone.',
       'ws.del.deliverable': 'Also delete the deliverable: {path}',
@@ -592,7 +940,7 @@ window.__ModuleLoader__.load({
       'ws.records': 'Records',
       'ws.stageA': 'STAGE A · DETECT & REPLACE',
       'ws.stageB': 'STAGE B · REMEDIATE & OUTPUT',
-      'ws.loop': 'Residual reprocessing · up to {rounds} rounds',
+      'ws.loop': 'Re-judge → rule checks · up to {rounds} rounds',
       'ws.trend': 'Throughput (files/min)',
       'ws.unitEntities': 'replacements',
     }
@@ -605,7 +953,7 @@ window.__ModuleLoader__.load({
           '处理的标识符：姓名、医生/医护姓名、身份证号、电话、邮箱、地址、病历号、住院号、就诊号、社保号、银行卡号、医院名称。',
           '假名形如「化名-9F3A2C」「证件-1F0B67」：同一个原值在所有文件、所有批次（同一输出根目录）中得到同一个假名，便于关联分析。',
           '文件结构保持不变：文本行数、CSV/Excel 的行列与表头、JSON 的键和类型都不变，只替换命中的那一段文字。',
-          '处理方式可在下方「匿名化规则」中逐类配置：标识符可选稳定假名、部分遮盖、类型标签或保留；准标识符（日期、年龄、性别、邮编）默认不处理，开启后可选平移、泛化或标签。',
+          '处理方式可在下方「匿名化规则」中逐类配置：标识符可选稳定假名、部分遮盖、类型标签或保留；准标识符（日期、年龄、性别）默认不处理，开启后可选平移、泛化或标签；邮编属于标识符，始终处理（保留前 3 位或类型标签）。',
         ] },
         { title: '怎么用', ordered: true, items: [
           '在本页填写模型端点和模型名称，点「测试连接」，确认后点「保存」。模型留空则只用规则识别。',
@@ -620,7 +968,7 @@ window.__ModuleLoader__.load({
           '假名替换：按 类型+原值 计算稳定假名，只替换命中的区间，其余内容一个字节都不动。',
           '复核（第 2 次调用模型）：模型检查替换后的文本是否还有残留，同时做规则复扫、原值是否已清除、结构是否一致的检查。',
           '定向修复：复核发现的残留会在下一轮直接替换，最多重复「最大轮次」次；仍解决不了的标为「待复核」，写进报告的人工复核清单。',
-          '准标识符（开启时）：在标识符处理完后，按规则确定性地处理日期、年龄、性别、邮编，不经过模型。日期平移对同一输出根目录使用同一个偏移量，日期之间的间隔保持不变。',
+          '准标识符（开启时）：在标识符处理完后，按规则确定性地处理日期、年龄、性别，不经过模型（邮编不论是否开启都按同样方式处理）。日期平移对同一输出根目录使用同一个偏移量，日期之间的间隔保持不变。',
         ] },
         { title: '输出在哪里', items: [
           '输出根目录/<输入名>：交付数据。输入是目录就是同名文件夹（名称中的标识符已替换），输入是单个文件就是那个文件；里面只有匿名化后的数据，可以整个拿走。同名已存在时加「 (2)」，不会覆盖旧结果。',
@@ -630,7 +978,7 @@ window.__ModuleLoader__.load({
         ] },
         { title: '注意事项', items: [
           '模型会看到原文。请使用本机或可信内网的模型端点，不要用公网云服务处理患者数据。',
-          '默认只处理直接标识符。开启准标识符后也只覆盖日期、年龄、性别、邮编的文本值；科室、机构代码等不处理。文件名和目录名里的姓名、证件号、手机号、病人编号、住院号/门诊号会替换，原路径对照写在 path-map.json（与映射库同样敏感）。',
+          '默认只处理直接标识符。邮编始终处理；开启准标识符后另外覆盖日期、年龄、性别的文本值；科室、机构代码等不处理。文件名和目录名里的姓名、证件号、手机号、病人编号、住院号/门诊号会替换，原路径对照写在 path-map.json（与映射库同样敏感）。',
           '部分遮盖会保留一部分原值，且不可还原；需要能还原时请用稳定假名。日期平移后不要对输出再跑一遍，否则会被平移两次。',
           '不支持 Word、PDF、图片；DICOM 只处理元数据。zip 会解压到临时目录处理后重新打包（嵌套最多 3 层，有防 zip 炸弹限制）。跳过的文件在报告的「注意」里列出；文件很多时自动分组处理，不丢文件。',
           '状态为「待复核」的批次请先人工确认报告中的问题，再对外发布数据。本工具不等于合规认证。',
@@ -642,7 +990,7 @@ window.__ModuleLoader__.load({
           'Identifiers: name, doctor/staff name, Chinese ID, phone, email, address, medical-record number, admission number, visit number, social-security number, bank card, hospital.',
           'Pseudonyms look like 化名-9F3A2C or 证件-1F0B67. The same value gets the same token in every file and batch that shares an output root.',
           'Structure is preserved: line counts, CSV/Excel rows, columns and headers, and JSON keys and types stay the same; only matched text changes.',
-          'Treatment is configurable per type under Anonymization rules: identifiers can be pseudonymized, partially masked, labelled, or kept; quasi-identifiers (date, age, sex, postal code) are off by default and can be shifted, generalized, or labelled.',
+          'Treatment is configurable per type under Anonymization rules: identifiers can be pseudonymized, partially masked, labelled, or kept; quasi-identifiers (date, age, sex) are off by default and can be shifted, generalized, or labelled; postal codes are identifiers and are always processed (first 3 digits kept, or a type label).',
         ] },
         { title: 'How to use', ordered: true, items: [
           'Enter the model endpoint and name here, press Test connection, then Save. Leave the model empty to use rules only.',
@@ -657,7 +1005,7 @@ window.__ModuleLoader__.load({
           'Pseudonymization: a stable token per type and value; only the matched span is replaced.',
           'Verification (model call 2): the model checks the result for leftovers, alongside a rule re-scan, an original-value absence check, and a structure check.',
           'Repair: confirmed leftovers are replaced in the next round, up to Max rounds; anything still unresolved is marked Needs review and listed in the report.',
-          'Quasi-identifiers (when on): after identifiers, dates, ages, sex, and postal codes are handled deterministically, without the model. Date shifting uses one offset per output root, so intervals between dates are preserved.',
+          'Quasi-identifiers (when on): after identifiers, dates, ages, and sex are handled deterministically, without the model (postal codes are handled the same way whether or not this is on). Date shifting uses one offset per output root, so intervals between dates are preserved.',
         ] },
         { title: 'Where output goes', items: [
           '<output root>/<input name>: the finished result — a folder named after the input directory (identifiers in the name replaced), or the single file. It holds anonymized data only and can be taken as is. An existing name gets " (2)"; earlier results are never overwritten.',
@@ -667,7 +1015,7 @@ window.__ModuleLoader__.load({
         ] },
         { title: 'Cautions', items: [
           'The model sees the original text. Use a local or trusted internal endpoint, never a public cloud service, for patient data.',
-          'By default only direct identifiers are processed. Quasi-identifier handling covers text values of date, age, sex, and postal code only; department and institution codes are not touched, while names, ID and phone numbers, patient numbers, and admission/visit numbers in file and folder names are replaced (the original-path map is saved as path-map.json, as sensitive as the vault).',
+          'By default only direct identifiers are processed. Postal codes are always processed; quasi-identifier handling adds text values of date, age, and sex only; department and institution codes are not touched, while names, ID and phone numbers, patient numbers, and admission/visit numbers in file and folder names are replaced (the original-path map is saved as path-map.json, as sensitive as the vault).',
           'Partial masks keep part of the original and cannot be reversed; use pseudonyms when you need restoration. Do not re-run date shifting on its own output, or dates shift twice.',
           'Word, PDF, and images are not supported; DICOM gets metadata-only processing. Zip archives are extracted to a temporary folder and re-packed (up to 3 nesting levels, with zip-bomb limits). Skipped files are listed in the report; large inputs are split into chunks automatically, nothing is dropped.',
           'Review every Needs review item before publishing. This tool is not a compliance certification.',
@@ -785,7 +1133,8 @@ window.__ModuleLoader__.load({
       @keyframes ws-blink{50%{opacity:.35}}
       .ws-grid{flex:1;min-height:0;display:grid;grid-template-columns:minmax(230px,270px) minmax(0,1fr) minmax(270px,300px);gap:10px;align-items:stretch}
       .ws-col{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0}
-      .ws-col-right{overflow:auto;scrollbar-width:thin}
+      .ws-col-right{overflow:auto;min-height:0;scrollbar-width:none}
+      .ws-page .ws-col-right::-webkit-scrollbar{display:none}
       .ws-panel{flex:none;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--dsw-alias-bg-layer-1);min-width:0}
       .ws-panel-head{display:flex;align-items:center;gap:8px}
       .ws-panel-head h3{margin:0;flex:1;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
@@ -855,15 +1204,19 @@ window.__ModuleLoader__.load({
       .ws-panel.ws-drawer{flex:1 1 auto;min-height:120px;padding-top:2px}
       .ws-drawer-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
       .ws-drawer-body{flex:1;min-height:0;overflow:auto}
-.ws-page .ws-drawer-body,.ws-page .ws-history,.ws-page .ws-col-right,.ws-page .ws-pieces,.ws-page .ws-bars{scrollbar-width:thin;scrollbar-color:transparent transparent;scrollbar-gutter:auto}
-      .ws-page .ws-drawer-body:hover,.ws-page .ws-history:hover,.ws-page .ws-col-right:hover,.ws-page .ws-pieces:hover,.ws-page .ws-bars:hover{scrollbar-color:color-mix(in srgb,var(--dsw-alias-label-primary) 28%,transparent) transparent}
+.ws-page .ws-drawer-body,.ws-page .ws-history,.ws-page .ws-pieces,.ws-page .ws-bars{scrollbar-width:thin;scrollbar-color:transparent transparent;scrollbar-gutter:auto}
+      .ws-page .ws-drawer-body:hover,.ws-page .ws-history:hover,.ws-page .ws-pieces:hover,.ws-page .ws-bars:hover{scrollbar-color:color-mix(in srgb,var(--dsw-alias-label-primary) 28%,transparent) transparent}
       .ws-page ::-webkit-scrollbar{width:6px;height:6px}
       .ws-page ::-webkit-scrollbar-track{background:transparent}
       .ws-page ::-webkit-scrollbar-thumb{background:transparent;border-radius:3px}
       .ws-page :hover::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--dsw-alias-label-primary) 28%,transparent)}
       .ws-table thead th{position:sticky;top:0;z-index:1;background:var(--ws-paper,var(--dsw-alias-bg-layer-1))}
             .ws-tag.ws-tag-hot{color:#fff;background:var(--ws-accent);border-color:var(--ws-accent)}
-      .ws-panel.ws-advice{gap:8px;flex:1 0 auto}
+      .ws-panel.ws-advice{gap:6px;flex:1 1 0;min-height:0;overflow:hidden}
+      .ws-adv-body{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:transparent transparent}
+      .ws-adv-body:hover{scrollbar-color:color-mix(in srgb,var(--dsw-alias-label-primary) 28%,transparent) transparent}
+      .ws-col-right>.ws-panel{gap:6px;padding:8px 12px}
+      .ws-col-right{gap:8px}
       .ws-adv{display:flex;flex-direction:column;gap:5px;padding:8px 10px;border-radius:7px;border:1px solid color-mix(in srgb,var(--ws-ink) 12%,transparent);border-left:3px solid var(--dsw-alias-state-success-primary);background:var(--dsw-alias-bg-base)}
       .ws-adv-warn{border-left-color:var(--dsw-alias-state-warn-primary)}
       .ws-adv-confirm{border-left-color:var(--ws-accent)}
@@ -879,6 +1232,9 @@ window.__ModuleLoader__.load({
       .ws-calls-sum{display:flex;flex-wrap:wrap;gap:4px 14px;padding:2px 0 6px;font-size:11.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
       .ws-c-bad{color:var(--dsw-alias-state-error-primary);font-weight:600}
       .ws-calls td{white-space:nowrap;font-size:12px;padding:4px 8px}
+      .ws-calls-top{position:sticky;top:0;z-index:3;height:88px;box-sizing:border-box;overflow:hidden;background:var(--ws-paper,var(--dsw-alias-bg-layer-1))}
+      .ws-calls-top .ws-calls-sum{flex-wrap:nowrap;overflow:hidden;white-space:nowrap}
+      .ws-table.ws-calls thead th{top:88px;white-space:nowrap}
       .ws-calls td.ma-mono{font-size:11.5px}
       .ws-calls tr.ws-slow td{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 10%,transparent)}
       .ws-src{font-size:11px;color:var(--dsw-alias-label-secondary);background:none;border:0;padding:0;font:inherit;font-size:11px;text-align:left}
@@ -925,12 +1281,27 @@ window.__ModuleLoader__.load({
       .ws-modal-head h3{flex:1;margin:0;font-size:15px}
       .ws-modal-body{flex:1;min-height:0;overflow:auto;padding:16px 24px 0;--ma-shell-pad:24px}
       .ws-modal-help .ws-modal-body{padding-bottom:18px}
-      .ws-modal .ma-section.ma-settings{height:calc(100vh - 150px);max-height:720px}
+      /* Settings in the modal: one scroll area only (the tab panel). The
+         modal has a fixed height, the body does not scroll, the section
+         fills what is left, and the save bar stays visible at the bottom. */
+      .ws-modal-settings{height:min(800px,calc(100vh - 48px))}
+      .ws-modal-settings .ws-modal-body{display:flex;flex-direction:column;overflow:hidden;padding-bottom:24px}
+      .ws-modal-settings .ws-modal-body>.ma-banner{flex:none;margin-bottom:10px}
+      .ws-modal .ma-section.ma-settings{flex:1 1 auto;min-height:0;height:auto;max-height:none}
       .ws-modal .ma-settings>.ma-heading{display:none}
       .ws-help{font-size:13px;line-height:20px}
       .ws-help>h4:first-child{margin-top:0}
       .ws-readouts{grid-template-columns:1fr 1fr}
-      .ws-minor{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:11px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+      .ws-subhead{display:flex;align-items:center;gap:8px;margin-top:2px;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-subhead::after{content:'';flex:1;order:1;border-top:1px solid var(--dsw-alias-border-l1)}
+      .ws-subhead>span:first-child{font-weight:600;color:var(--dsw-alias-label-primary)}
+      .ws-subhead>span+span{order:2}
+      .ws-minor{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-kv{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent);padding:1px 0}
+      .ws-kv span{white-space:nowrap}
+      .ws-kv b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .ws-kv-warn b{color:var(--dsw-alias-state-warn-primary)}
+      .ws-kv-bad b{color:var(--dsw-alias-state-error-primary)}
       .ws-spark-avg{stroke:var(--dsw-alias-label-secondary);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
       .ws-spark-foot{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dsw-alias-label-secondary)}
       .ws-strip{margin-bottom:4px}
@@ -978,6 +1349,90 @@ window.__ModuleLoader__.load({
       .ws-del .ma-check{align-items:flex-start;word-break:break-all}
       .ws-del-actions{justify-content:flex-end}
       .ws-del-go{background:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary);color:#fff}
+      .ws-clear{color:var(--dsw-alias-label-secondary)}
+      .ws-clear:hover{color:var(--dsw-alias-state-error-primary)}
+      .ws-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none}
+      .ws-gauge-cap{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
+      .ws-resume{border-color:var(--ws-accent);color:var(--ws-accent);font-weight:600}
+      .ws-picked{flex:1;min-width:0;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;background:var(--dsw-alias-bg-base);padding:6px 8px;display:flex;flex-direction:column;gap:5px}
+      .ws-picked-head{display:flex;align-items:center;gap:6px;font-size:12px}
+      .ws-picked-head .ma-mono{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ws-picked-list{display:flex;flex-wrap:wrap;gap:4px;max-height:84px;overflow:auto}
+      .ws-picked-item{display:inline-flex;align-items:center;gap:3px;max-width:100%;padding:1px 4px 1px 7px;border-radius:5px;font-size:11.5px;background:var(--ws-accent-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ws-picked-item button{border:0;background:none;cursor:pointer;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1;padding:0 2px}
+      .ws-speed{color:var(--dsw-alias-label-primary)}
+      .ws-count.ws-count-bad{background:var(--dsw-alias-state-error-primary)}
+      .ws-page .ws-rv-item .ma-btn.ma-primary{background:var(--ws-accent);border-color:var(--ws-accent);color:#fff}
+      .ws-rv{display:flex;flex-direction:column;gap:10px;padding:4px 0}
+      .ws-rv-sum{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;font-size:12px}
+      .ws-rv-file{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base);overflow:hidden}
+      .ws-rv-head{display:flex;align-items:center;gap:10px;padding:6px 10px;background:color-mix(in srgb,var(--ws-accent) 6%,transparent);border-bottom:1px solid var(--dsw-alias-border-l1)}
+      .ws-rv-head .ma-mono{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:var(--dsw-alias-label-primary)}
+      .ws-rv-item{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-top:1px dashed var(--dsw-alias-border-l1)}
+      .ws-rv-item:first-of-type{border-top:0}
+      .ws-rv-done{opacity:.6}
+      .ws-rv-meta{display:flex;align-items:center;gap:8px;font-size:12px}
+      .ws-rv-code{font-size:10.5px;padding:0 6px;border-radius:3px;color:#fff;background:var(--dsw-alias-state-warn-primary);line-height:17px}
+      .ws-rv-ctx{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:19px;padding:6px 8px;border-radius:6px;background:var(--dsw-alias-bg-layer-2);white-space:pre-wrap;word-break:break-all}
+      .ws-rv-ctx mark{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 22%,transparent);color:var(--dsw-alias-state-error-primary);font-weight:700;border-radius:3px;padding:0 2px}
+      .ws-rv-plain{font-family:inherit;color:var(--dsw-alias-label-secondary)}
+      .ws-rv-result{font-size:12px;color:var(--dsw-alias-state-success-primary)}
+      .ws-more-hot{color:var(--dsw-alias-state-error-primary)!important;font-weight:600}
+      .ws-modal-compare{width:min(1500px,100%);height:calc(100vh - 48px)}
+      .ws-modal-compare .ws-modal-body{padding:0;display:flex;min-height:0}
+      .ws-cmp-keys{margin-right:8px}
+      .ws-cmp{flex:1;min-height:0;display:grid;grid-template-columns:280px minmax(0,1fr);outline:none}
+      .ws-cmp-side{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
+      .ws-cmp-filters{display:flex;gap:4px;padding:8px}
+      .ws-cmp-filter{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:26px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+      .ws-cmp-filter i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px}
+      .ws-cmp-filter.ws-on{border-color:var(--ws-accent);color:var(--ws-accent);font-weight:600}
+      .ws-cmp-list{flex:1;min-height:0;overflow:auto;padding:0 6px 8px}
+      .ws-cmp-item{width:100%;display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 8px;border:0;border-radius:6px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+      .ws-cmp-item:hover{background:var(--dsw-alias-bg-overlay)}
+      .ws-cmp-item.ws-on{background:var(--ws-accent-soft);box-shadow:inset 3px 0 0 var(--ws-accent)}
+      .ws-cmp-dot{width:8px;height:8px;border-radius:2px;background:var(--dsw-alias-state-success-primary)}
+      .ws-cmp-dot.ws-p-review{background:var(--dsw-alias-state-warn-primary)}
+      .ws-cmp-name{min-width:0;display:flex;flex-direction:column}
+      .ws-cmp-name b{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ws-cmp-name small{font-size:10.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ws-cmp-n{font-size:10.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-cmp-main{display:flex;flex-direction:column;min-width:0;min-height:0}
+      .ws-cmp-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--dsw-alias-border-l2)}
+      .ws-cmp-path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--dsw-alias-label-primary)}
+      .ws-cmp-pane{flex:1;min-height:0;overflow:auto;padding:10px 14px 18px;display:flex;flex-direction:column;gap:10px}
+      .ws-cmp-review{display:flex;flex-direction:column;border:1px solid var(--dsw-alias-state-warn-primary);border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-base)}
+      .ws-cmp-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}
+      .ws-cmp-table th{position:sticky;top:-10px;z-index:1;text-align:left;font-weight:600;font-size:11.5px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l2)}
+      .ws-cmp-table th:first-child{width:150px}
+      .ws-cmp-table td{padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);vertical-align:top;white-space:pre-wrap;word-break:break-word;line-height:19px}
+      .ws-cmp-table td:nth-child(2){background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 3%,transparent)}
+      .ws-cmp-table td:nth-child(3){background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 3%,transparent)}
+      .ws-cmp-field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-secondary);word-break:break-all}
+      .ws-cmp-table del{text-decoration:none;background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 18%,transparent);color:var(--dsw-alias-state-error-primary);border-radius:3px;padding:0 1px}
+      .ws-cmp-table ins{text-decoration:none;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 20%,transparent);color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 75%,#000);border-radius:3px;padding:0 1px;font-weight:600}
+      .ws-cmp-flag{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px;outline:1px solid var(--dsw-alias-state-warn-primary)}
+      .ws-cmp-flagged td{box-shadow:inset 0 1px 0 var(--dsw-alias-state-warn-primary),inset 0 -1px 0 var(--dsw-alias-state-warn-primary)}
+      .ws-cmp-more{align-self:center}
+      .ws-cmp-bulk{display:flex;flex-direction:column;gap:6px;margin:8px 8px 0;padding:8px;border-radius:7px;border:1px solid var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 8%,transparent);font-size:12px}
+      .ws-mp{position:relative;width:100%}
+      .ws-mp-row{display:flex;gap:6px}
+      .ws-mp-row .ma-input{flex:1;min-width:0}
+      .ws-mp-btn{flex:none;width:34px;padding:0;font-size:12px}
+      .ws-mp-menu{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);max-height:240px;overflow:auto;padding:4px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-layer-1));box-shadow:0 8px 24px rgba(0,0,0,.14)}
+      .ws-mp-item{display:block;width:100%;text-align:left;padding:6px 8px;border:0;border-radius:5px;background:none;color:inherit;font:inherit;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;cursor:pointer}
+      .ws-mp-item:hover{background:var(--dsw-alias-bg-layer-2)}
+      .ws-mp-item.ws-on{color:var(--ws-accent,var(--dsw-alias-brand-primary));font-weight:600}
+      .ws-mp-clear{font-family:inherit;color:var(--dsw-alias-label-secondary)}
+      .ws-mp-note{padding:6px 8px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+      .ws-cmp-rowbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+      .ws-cmp-rowbar .ws-cmp-filter{flex:none;padding:0 10px}
+      .ws-cmp-same td{color:var(--dsw-alias-label-secondary)}
+      .ws-cmp-same td:nth-child(2),.ws-cmp-same td:nth-child(3){background:none!important}
+      .ws-cmp-suspect{background:none;color:inherit;text-decoration:underline dotted var(--dsw-alias-state-warn-primary);text-decoration-thickness:2px;text-underline-offset:3px}
+      .ws-cmp-only{flex:none;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;cursor:pointer}
+      .ws-warn-line{color:var(--dsw-alias-state-warn-primary)!important;margin:6px 0 0}
+      .ws-run-resume{color:var(--ws-accent);font-weight:600}
       .ws-latest{position:absolute;right:14px;bottom:8px;height:24px;padding:0 10px;border-radius:999px;border:0;background:var(--ws-accent,var(--dsw-alias-brand-primary));color:#fff;font:inherit;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18)}
       .ws-log-text{overflow:hidden;text-overflow:ellipsis}
       .ws-count{font-size:10px;padding:0 5px;border-radius:999px;background:var(--dsw-alias-state-warn-primary);color:#fff}
@@ -990,8 +1445,8 @@ window.__ModuleLoader__.load({
       .ws-l-failed,.ws-l-cancelled{color:var(--dsw-alias-state-error-primary)}
       .ws-warn{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}
       .ws-mon-top{display:flex;align-items:center;gap:12px}
-      .ws-gauge{--ws-pct:0deg;flex:none;width:76px;height:76px;border-radius:50%;background:conic-gradient(var(--ws-accent) var(--ws-pct),var(--dsw-alias-border-l2) 0);display:flex;align-items:center;justify-content:center}
-      .ws-gauge-in{width:60px;height:60px;border-radius:50%;background:var(--dsw-alias-bg-layer-1);display:flex;align-items:center;justify-content:center}
+      .ws-gauge{--ws-pct:0deg;flex:none;width:66px;height:66px;border-radius:50%;background:conic-gradient(var(--ws-accent) var(--ws-pct),var(--dsw-alias-border-l2) 0);display:flex;align-items:center;justify-content:center}
+      .ws-gauge-in{width:52px;height:52px;border-radius:50%;background:var(--dsw-alias-bg-layer-1);display:flex;align-items:center;justify-content:center}
       .ws-gauge-in b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:19px;font-weight:600}
       .ws-gauge-in span{font-size:11px;color:var(--dsw-alias-label-secondary);margin-left:1px}
       .ws-readouts{display:grid;grid-template-columns:1fr 1fr;gap:4px}
@@ -1001,10 +1456,15 @@ window.__ModuleLoader__.load({
       .ws-readout.ws-tone-warn b{color:var(--dsw-alias-state-warn-primary)}
       .ws-readout.ws-tone-bad b{color:var(--dsw-alias-state-error-primary)}
       .ws-model{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
-      .ws-model>div:first-child{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--dsw-alias-label-secondary)}
-      .ws-model>div:first-child b{color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .ws-endpoint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .ws-ping{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .ws-model>div{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+      .ws-model>div b{color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ws-model{justify-content:center;gap:8px}
+      .ws-model>div>span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+      .ws-dot{flex:none;width:8px;height:8px;padding:0;border:0;border-radius:50%;cursor:pointer;background:var(--dsw-alias-label-tertiary,#aaa)}
+      .ws-dot-ok{background:var(--dsw-alias-state-success-primary,#22a06b)}
+      .ws-dot-bad{background:var(--dsw-alias-state-error-primary,#d0453a)}
+      .ws-dot-wait{animation:ws-dot-pulse 1s ease-in-out infinite;cursor:default}
+      @keyframes ws-dot-pulse{50%{opacity:.35}}
       .ws-param{display:flex;align-items:center;justify-content:space-between;gap:8px}
       .ws-param-label{font-size:12px;color:var(--dsw-alias-label-secondary);display:inline-flex;align-items:center;gap:5px}
       .ws-mod{width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-state-warn-primary);display:inline-block}
@@ -1041,7 +1501,7 @@ window.__ModuleLoader__.load({
       .ws-page .ws-start:hover{filter:brightness(1.08)}
       .ws-drawno{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);letter-spacing:.5px;padding:1px 6px;border:1px solid color-mix(in srgb,var(--ws-ink) 18%,transparent);border-radius:3px}
       .ws-floor{background-color:var(--ws-paper);background-image:linear-gradient(color-mix(in srgb,var(--ws-accent) 9%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--ws-accent) 9%,transparent) 1px,transparent 1px),linear-gradient(color-mix(in srgb,var(--ws-ink) 4%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--ws-ink) 4%,transparent) 1px,transparent 1px);background-size:100px 100px,100px 100px,20px 20px,20px 20px}
-      .ws-schematic{display:block;width:100%;height:auto;max-height:262px;overflow:visible;font-family:inherit}
+      .ws-schematic{display:block;width:100%;height:auto;max-height:290px;overflow:visible;font-family:inherit}
       .ws-schematic text{fill:var(--ws-ink)}
       .ws-dim path{fill:none;stroke:var(--ws-accent);stroke-width:1.2}
       .ws-dim-bg{fill:var(--ws-paper)}
@@ -1063,10 +1523,25 @@ window.__ModuleLoader__.load({
       .ws-mc-no{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;fill:var(--dsw-alias-label-secondary)!important;letter-spacing:.5px}
       .ws-mc-lamp{fill:color-mix(in srgb,var(--ws-ink) 22%,transparent)}
       .ws-icon *{fill:none;stroke:var(--ws-ink);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-      .ws-mc-name{font-size:18px;font-weight:700;letter-spacing:1px}
-      .ws-mc-sub{font-size:12.5px;fill:var(--dsw-alias-label-secondary)!important}
+      .ws-mc-name{font-size:16px;font-weight:700;letter-spacing:.5px}
+      .ws-mc-sub{font-size:11.5px;fill:var(--dsw-alias-label-secondary)!important}
       .ws-mc-load{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;fill:var(--dsw-alias-label-secondary)!important}
       .ws-mc-idle{opacity:.55}
+      .ws-mc-click{cursor:pointer}
+      .ws-mc-click:hover .ws-housing{stroke-width:2.4}
+      .ws-mc-warn .ws-housing{stroke:var(--dsw-alias-state-error-primary);stroke-width:2.2;fill:color-mix(in srgb,var(--dsw-alias-state-error-primary) 7%,transparent)}
+      .ws-mc-warn .ws-plate{fill:var(--dsw-alias-state-error-primary)}
+      .ws-mc-warn .ws-mc-no{fill:#fff!important}
+      .ws-mc-warn .ws-mc-lamp{fill:#fff;animation:ws-blink 1.2s infinite}
+      .ws-mc-warn .ws-icon *{stroke:var(--dsw-alias-state-error-primary)}
+      .ws-mc-sub.ws-tone-warn,.ws-mc-load.ws-tone-warn{fill:var(--dsw-alias-state-warn-primary)!important}
+      .ws-mc-load.ws-tone-bad{fill:var(--dsw-alias-state-error-primary)!important;font-weight:700}
+      .ws-bypass-line,.ws-bypass-head{fill:none;stroke:var(--dsw-alias-label-secondary);stroke-width:1.2;stroke-dasharray:4 4;opacity:.7}
+      .ws-bypass-head{stroke-dasharray:none}
+      .ws-bypass-label{font-size:11px;fill:var(--dsw-alias-label-secondary)!important}
+      .ws-bypass-active .ws-bypass-line,.ws-bypass-active .ws-bypass-head{stroke:var(--ws-accent);opacity:1}
+      .ws-bypass-active .ws-bypass-label{fill:var(--ws-accent)!important}
+      .ws-bypass-done .ws-bypass-label{fill:var(--dsw-alias-state-success-primary)!important}
       .ws-mc-done .ws-housing{stroke:var(--dsw-alias-state-success-primary)}
       .ws-mc-done .ws-mc-lamp{fill:var(--dsw-alias-state-success-primary)}
       .ws-mc-done .ws-mc-load{fill:var(--dsw-alias-state-success-primary)!important}
@@ -1093,7 +1568,7 @@ window.__ModuleLoader__.load({
       .ws-doc-flow path{fill:var(--ws-paper)}
       .ws-spark{display:flex;flex-direction:column;gap:2px}
       .ws-spark-head{display:flex;justify-content:space-between;font-size:11px;color:var(--dsw-alias-label-secondary)}
-      .ws-spark svg{width:100%;height:44px;display:block;border-bottom:1px solid color-mix(in srgb,var(--ws-ink) 25%,transparent)}
+      .ws-spark svg{width:100%;height:34px;display:block;border-bottom:1px solid color-mix(in srgb,var(--ws-ink) 25%,transparent)}
       .ws-spark-grid{stroke:color-mix(in srgb,var(--ws-ink) 8%,transparent);stroke-width:1;vector-effect:non-scaling-stroke}
       .ws-spark-area{fill:var(--ws-accent-soft)}
       .ws-spark-line{fill:none;stroke:var(--ws-accent);stroke-width:1.6;vector-effect:non-scaling-stroke}
@@ -1165,6 +1640,12 @@ window.__ModuleLoader__.load({
       const [model, setModel] = React.useState('')
       const [apiKey, setApiKey] = React.useState('')
       const [clearKey, setClearKey] = React.useState(false)
+      const [verifyEndpoint, setVerifyEndpointRaw] = React.useState('')
+      const setVerifyEndpoint = (next) => { setVerifyEndpointRaw(next); setVerifyPing(null) }
+      const [verifyModelName, setVerifyModelName] = React.useState('')
+      const [verifyKey, setVerifyKey] = React.useState('')
+      const [clearVerifyKey, setClearVerifyKey] = React.useState(false)
+      const [verifyPing, setVerifyPing] = React.useState(null)
       const [disableThinking, setDisableThinking] = React.useState(true)
       const [outputRoot, setOutputRoot] = React.useState('')
       const [maxRounds, setMaxRounds] = React.useState(3)
@@ -1182,6 +1663,7 @@ window.__ModuleLoader__.load({
       const [quasiPolicy, setQuasiPolicy] = React.useState({})
       const [allowText, setAllowText] = React.useState('')
       const [skipText, setSkipText] = React.useState('')
+      const [opaquePolicy, setOpaquePolicy] = React.useState('review')
       const [testing, setTesting] = React.useState(false)
       const [ping, setPing] = React.useState(null)
       const [saving, setSaving] = React.useState(false)
@@ -1195,6 +1677,10 @@ window.__ModuleLoader__.load({
         setModel(info.model ?? '')
         setApiKey('')
         setClearKey(false)
+        setVerifyEndpoint(info.verifyBaseURL ?? '')
+        setVerifyModelName(info.verifyModel ?? '')
+        setVerifyKey('')
+        setClearVerifyKey(false)
         setDisableThinking(info.disableThinking === true)
         setOutputRoot(info.outputRoot ?? '')
         setMaxRounds(Number(info.maxRounds ?? 3))
@@ -1212,6 +1698,7 @@ window.__ModuleLoader__.load({
         setQuasiPolicy({ ...(info.quasiPolicy ?? {}) })
         setAllowText((info.allowValues ?? []).join('\n'))
         setSkipText((info.skipFields ?? []).join('\n'))
+        setOpaquePolicy(info.opaquePolicy === 'remove' ? 'remove' : 'review')
       }
       const lines = (text) => [...new Set(String(text ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean))]
       const sameList = (text, list) => JSON.stringify(lines(text)) === JSON.stringify(list ?? [])
@@ -1224,6 +1711,7 @@ window.__ModuleLoader__.load({
         setQuasiPolicy(Object.fromEntries(schema.quasi.map((item) => [item.id, item.default])))
         setAllowText('')
         setSkipText('')
+        setOpaquePolicy('review')
       }
 
       React.useEffect(() => {
@@ -1236,6 +1724,7 @@ window.__ModuleLoader__.load({
         ['baseURL', endpoint.trim().replace(/\/+$/, '') !== String(config.baseURL ?? '').replace(/\/+$/, '')],
         ['model', model.trim() !== String(config.model ?? '')],
         ['apiKey', apiKey.length > 0 || clearKey],
+        ['verifyModel', verifyModelName.trim() !== String(config.verifyModel ?? '') || verifyEndpoint.trim().replace(/\/+$/, '') !== String(config.verifyBaseURL ?? '').replace(/\/+$/, '') || verifyKey.length > 0 || clearVerifyKey],
         ['disableThinking', disableThinking !== (config.disableThinking === true)],
         ['outputRoot', outputRoot.trim() !== String(config.outputRoot ?? '')],
         ['maxRounds', Number(maxRounds) !== Number(config.maxRounds ?? 3)],
@@ -1248,7 +1737,8 @@ window.__ModuleLoader__.load({
         ['showSidebarEntry', showSidebar !== (config.showSidebarEntry !== false)],
         ['rules', !sameMap(identifierPolicy, config.identifierPolicy) || quasiOn !== (config.quasiIdentifiers === true)
           || !sameMap(quasiPolicy, config.quasiPolicy)
-          || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields)],
+          || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields)
+          || opaquePolicy !== (config.opaquePolicy === 'remove' ? 'remove' : 'review')],
       ].filter(([, changed]) => changed).map(([key]) => key) : []
 
       async function testConnection() {
@@ -1289,9 +1779,14 @@ window.__ModuleLoader__.load({
             quasiPolicy,
             allowValues: lines(allowText),
             skipFields: lines(skipText),
+            opaquePolicy,
           }
           if (apiKey.length > 0) request.apiKey = apiKey
           else if (clearKey) request.apiKey = ''
+          request.verifyBaseURL = verifyEndpoint.trim()
+          request.verifyModel = verifyModelName.trim()
+          if (verifyKey.length > 0) request.verifyApiKey = verifyKey
+          else if (clearVerifyKey) request.verifyApiKey = ''
           if (passphrase.length > 0) request.vaultPassphrase = passphrase
           else if (clearPassphrase) request.vaultPassphrase = ''
           await call('saveDefaults', request)
@@ -1327,7 +1822,7 @@ window.__ModuleLoader__.load({
         : t('save.clean'))
 
       const tabFields = {
-        model: ['baseURL', 'model', 'apiKey', 'disableThinking', 'timeoutMs', 'temperature'],
+        model: ['baseURL', 'model', 'apiKey', 'verifyModel', 'disableThinking', 'timeoutMs', 'temperature'],
         rules: ['rules'],
         batch: ['outputRoot', 'maxRounds', 'maxFiles', 'concurrency', 'maxDicomFiles', 'vaultPassphrase', 'showSidebarEntry'],
         guide: [],
@@ -1337,8 +1832,13 @@ window.__ModuleLoader__.load({
         className: 'ma-input ma-select', value, disabled, onChange: (event) => onChange(event.target.value),
       }, ...options.map((option) => h('option', { key: option, value: option }, t(`strategy.${option}`))))
 
+      const sameModel = Boolean(verifyModelName.trim()) && verifyModelName.trim() === model.trim()
       const modelPanel = () => h('div', { className: 'ma-panel' },
         h('div', { className: 'ma-card' },
+          h('div', { className: 'ma-block-head' },
+            h('div', {},
+              h('h3', {}, t('model.detectTitle')),
+              h('p', { className: 'ma-hint' }, t('model.detectHint')))),
           h('div', { className: 'ma-grid' },
             h('label', { className: 'ma-field' }, t('model.endpoint'),
               h('input', {
@@ -1346,11 +1846,11 @@ window.__ModuleLoader__.load({
                 onChange: (event) => setEndpoint(event.target.value),
                 placeholder: 'http://127.0.0.1:11434/v1',
               })),
-            h('label', { className: 'ma-field' }, t('model.name'),
-              h('input', {
-                className: 'ma-input', value: model,
-                onChange: (event) => setModel(event.target.value),
-                placeholder: t('model.namePlaceholder'),
+            h('div', { className: 'ma-field' }, t('model.name'),
+              h(ModelPicker, {
+                value: model, onChange: setModel, placeholder: t('model.namePlaceholder'),
+                source: `${endpoint.trim()}|${apiKey}`,
+                fetchModels: () => call('ping', { baseURL: endpoint.trim(), apiKey }),
               })),
             h('label', { className: 'ma-field ma-wide' }, t('model.key'),
               h('input', {
@@ -1365,6 +1865,61 @@ window.__ModuleLoader__.load({
               t('model.keyClear'))
             : null,
           dirty.includes('apiKey') ? h('p', { className: 'ma-hint' }, t('save.keyNote')) : null,
+          h('div', { className: 'ma-actions' },
+            h('button', { className: 'ma-btn ma-small', onClick: testConnection, disabled: testing },
+              testing ? t('model.testing') : t('model.test')),
+            h('span', { className: pingClass }, pingText()),
+          ),
+        ),
+        h('div', { className: 'ma-card' },
+          h('div', { className: 'ma-block-head' },
+            h('div', {},
+              h('h3', {}, t('verify.title')),
+              h('p', { className: 'ma-hint' }, t('verify.hint')))),
+          h('div', { className: 'ma-grid' },
+            h('label', { className: 'ma-field' }, t('verify.endpoint'),
+              h('input', { className: 'ma-input', value: verifyEndpoint, onChange: (event) => setVerifyEndpoint(event.target.value), placeholder: t('verify.endpointPlaceholder') })),
+            h('div', { className: 'ma-field' }, t('model.name'),
+              h(ModelPicker, {
+                value: verifyModelName, onChange: (next) => { setVerifyModelName(next); setVerifyPing(null) }, placeholder: t('verify.modelPlaceholder'),
+                source: `${verifyEndpoint.trim() || endpoint.trim()}|${verifyKey}`,
+                fetchModels: () => call('ping', { baseURL: verifyEndpoint.trim() || endpoint.trim(), apiKey: verifyKey, keySource: 'verify' }),
+              })),
+            h('label', { className: 'ma-field ma-wide' }, t('model.key'),
+              h('input', {
+                className: 'ma-input', value: verifyKey, type: 'password', autoComplete: 'off',
+                onChange: (event) => { setVerifyKey(event.target.value); setClearVerifyKey(false) },
+                placeholder: config?.hasVerifyApiKey && !clearVerifyKey ? t('model.keySaved') : t('verify.keyPlaceholder'),
+              })),
+          ),
+          config?.hasVerifyApiKey
+            ? h('label', { className: 'ma-check' },
+              h('input', { type: 'checkbox', checked: clearVerifyKey, onChange: (event) => { setClearVerifyKey(event.target.checked); if (event.target.checked) setVerifyKey('') } }),
+              t('model.keyClear'))
+            : null,
+          h('div', { className: 'ma-actions' },
+            h('button', {
+              className: 'ma-btn ma-small', disabled: !verifyModelName.trim() || verifyPing?.pending,
+              onClick: async () => {
+                setVerifyPing({ pending: true })
+                try {
+                  setVerifyPing(await call('ping', { baseURL: verifyEndpoint.trim() || endpoint.trim(), model: verifyModelName.trim(), apiKey: verifyKey, keySource: 'verify' }))
+                } catch (cause) { setVerifyPing({ ok: false, error: message(cause) }) }
+              },
+            }, verifyPing?.pending ? t('model.testing') : t('model.test')),
+            verifyPing && !verifyPing.pending && verifyModelName.trim()
+              ? h('span', { className: verifyPing.ok && (!verifyPing.models?.length || verifyPing.models.includes(verifyModelName.trim())) ? 'ma-hint ma-ok' : 'ma-hint ma-error' },
+                verifyPing.ok
+                  ? (verifyPing.models?.length && !verifyPing.models.includes(verifyModelName.trim()) ? t('model.missing', { model: verifyModelName.trim() }) : t('model.ok', { models: (verifyPing.models ?? []).slice(0, 6).join('、') }))
+                  : t('model.fail', { error: verifyPing.error }))
+              : h('span', { className: 'ma-hint' }, verifyModelName.trim() ? '' : t('verify.same'))),
+          sameModel ? h('p', { className: 'ma-hint ws-warn-line' }, t('verify.sameName', { model: model.trim() })) : null,
+        ),
+        h('div', { className: 'ma-card' },
+          h('div', { className: 'ma-block-head' },
+            h('div', {},
+              h('h3', {}, t('model.sharedTitle')),
+              h('p', { className: 'ma-hint' }, t('model.sharedHint')))),
           h('label', { className: 'ma-check' },
             h('input', { type: 'checkbox', checked: disableThinking, onChange: (event) => setDisableThinking(event.target.checked) }),
             t('model.thinking')),
@@ -1379,11 +1934,6 @@ window.__ModuleLoader__.load({
                 className: 'ma-input', type: 'number', min: 0, max: 2, step: 0.1, value: temperature,
                 onChange: (event) => setTemperature(Number(event.target.value)),
               })),
-          ),
-          h('div', { className: 'ma-actions' },
-            h('button', { className: 'ma-btn ma-small', onClick: testConnection, disabled: testing },
-              testing ? t('model.testing') : t('model.test')),
-            h('span', { className: pingClass }, pingText()),
           ),
         ),
       )
@@ -1429,10 +1979,12 @@ window.__ModuleLoader__.load({
           h('div', { className: 'ma-rules' }, ...schema.quasi.map((item) => {
             const strategy = quasiPolicy[item.id] ?? item.default
             const example = `${item.sample} → ${item.examples?.[strategy] ?? ''}`
-            return h('div', { key: item.id, className: `ma-rule${quasiOn ? '' : ' ma-off'}` },
-              h('span', { className: 'ma-rule-name' }, item.type),
-              strategySelect(strategy, item.strategies,
-                (value) => setQuasiPolicy({ ...quasiPolicy, [item.id]: value }), !quasiOn),
+            // 邮编 is an identifier: always processed, whatever the toggle.
+            const on = quasiOn || item.always
+            return h('div', { key: item.id, className: `ma-rule${on ? '' : ' ma-off'}`, title: item.always ? t('rules.quasiAlways') : '' },
+              h('span', { className: 'ma-rule-name' }, item.type, item.always ? h('small', { className: 'ma-hint' }, ` · ${t('rules.always')}`) : null),
+              strategySelect(item.strategies.includes(strategy) ? strategy : item.default, item.strategies,
+                (value) => setQuasiPolicy({ ...quasiPolicy, [item.id]: value }), !on),
               h('span', { className: 'ma-mono', title: example }, example))
           })),
         ),
@@ -1452,6 +2004,16 @@ window.__ModuleLoader__.load({
               className: 'ma-input ma-textarea', value: skipText, spellCheck: false,
               onChange: (event) => setSkipText(event.target.value),
             })),
+        ),
+        h('div', { className: 'ma-card' },
+          h('div', { className: 'ma-block-head' },
+            h('div', {},
+              h('h3', {}, t('rules.opaqueTitle')),
+              h('p', { className: 'ma-hint' }, t('rules.opaqueHint')))),
+          h('label', { className: 'ma-field' }, t('rules.opaqueLabel'),
+            h('select', { className: 'ma-input', value: opaquePolicy, onChange: (event) => setOpaquePolicy(event.target.value) },
+              h('option', { value: 'review' }, t('rules.opaqueReview')),
+              h('option', { value: 'remove' }, t('rules.opaqueRemove')))),
         ),
       )
 
@@ -1486,6 +2048,7 @@ window.__ModuleLoader__.load({
                 onChange: (event) => setMaxDicomFiles(Number(event.target.value)),
               })),
           ),
+          h('p', { className: 'ma-hint' }, t('run.concurrencyHint')),
           h('hr', { className: 'ma-divider' }),
           h('h3', {}, t('vault.title')),
           h('p', { className: 'ma-hint' }, t('vault.hint')),
@@ -1549,17 +2112,21 @@ window.__ModuleLoader__.load({
     // a conveyor, output by type, and a log/report drawer. Left: feed (input)
     // and batch history. Right: live monitor readouts and editable defaults.
 
-    const STATIONS = ['prescan', 'read', 'discover', 'verify', 'repair', 'rescan', 'dicom', 'pack']
+    // S01–S10 on the line; DICOM is a bypass (metadata only, no model).
+    const STATIONS = ['prescan', 'read', 'discover', 'rules', 'blind', 'repair', 'rescan', 'pack', 'review', 'deliver']
+    const LOOP_STATIONS = new Set(['discover', 'rules', 'blind', 'repair'])
 
     function stationOf(state) {
       const step = String(state?.step ?? '')
       if (step === '批次预扫') return 'prescan'
-      if (step === '读取') return 'read'
+      if (step === '读取' || step === '画像') return 'read'
       if (step === '发现') return Number(state?.round ?? 1) > 1 ? 'repair' : 'discover'
-      if (step === '复核') return 'verify'
+      if (step === '复判') return 'repair'
+      if (step === '规则核验') return 'rules'
+      if (step === '复核') return 'blind'
       if (step.startsWith('批次复扫') || step.startsWith('跨组复扫')) return 'rescan'
       if (step === 'DICOM') return 'dicom'
-      if (step === '打包') return 'pack'
+      if (step === '打包' || step === '比对记录') return 'pack'
       return null
     }
 
@@ -1570,79 +2137,297 @@ window.__ModuleLoader__.load({
       prescan: [h('rect', { key: 1, x: -16, y: -11, width: 32, height: 22, rx: 3 }), h('path', { key: 2, d: 'M-11 -5h22M-11 0h22M-11 5h14' }), h('path', { key: 3, className: 'ws-beam', d: 'M-19 0h38' })],
       read: [h('path', { key: 1, d: 'M-10 -15h13l7 7v23h-20z M3 -15v7h7' }), h('path', { key: 2, d: 'M-6 -1h12M-6 4h12M-6 9h8' })],
       discover: [h('circle', { key: 1, cx: -3, cy: -3, r: 9.5 }), h('path', { key: 2, d: 'M4 4l10 10' }), h('path', { key: 3, d: 'M-7 -3h8' })],
-      verify: [h('path', { key: 1, d: 'M0 -15l12 5v7c0 8-5 13-12 16c-7-3-12-8-12-16v-7z' }), h('path', { key: 2, d: 'M-5 0l4 4l7-8' })],
+      rules: [h('path', { key: 1, d: 'M0 -15l12 5v7c0 8-5 13-12 16c-7-3-12-8-12-16v-7z' }), h('path', { key: 2, d: 'M-5 0l4 4l7-8' })],
+      blind: [h('path', { key: 1, d: 'M-16 0c5-8 11-12 16-12s11 4 16 12c-5 8-11 12-16 12s-11-4-16-12z' }), h('circle', { key: 2, r: 5.5, className: 'ws-pulse' }), h('path', { key: 3, d: 'M-14 14l28 -28' })],
+      review: [h('circle', { key: 1, cy: -7, r: 6 }), h('path', { key: 2, d: 'M-12 14c0-8 5-12 12-12s12 4 12 12' }), h('path', { key: 3, d: 'M8 -2l3 3l6-7' })],
+      deliver: [h('path', { key: 1, d: 'M-14 -2v14h28v-14' }), h('path', { key: 2, d: 'M0 4v-18M-6 -8l6 -6l6 6' })],
       repair: [h('path', { key: 1, d: 'M7 -14a8 8 0 0 0-7 12l-11 11a2.8 2.8 0 0 0 4 4l11-11a8 8 0 0 0 12-7l-5 4l-5-1l-1-5z' })],
       rescan: [h('circle', { key: 1, r: 13 }), h('circle', { key: 2, r: 6.5 }), h('path', { key: 3, className: 'ws-sweep', d: 'M0 0l9.2 -9.2' })],
       dicom: [h('circle', { key: 1, cy: -3, r: 13 }), h('circle', { key: 2, cy: -3, r: 6.5, className: 'ws-pulse' }), h('path', { key: 3, d: 'M-18 13h36' })],
       pack: [h('path', { key: 1, d: 'M-14 -7l14 -8l14 8v15l-14 8l-14 -8z' }), h('path', { key: 2, d: 'M-14 -7l14 8l14 -8M0 1v15' })],
     }
 
-    function LineSchematic({ load, reached, running, inflight, maxRounds, t }) {
-      const W = 1000
+    function LineSchematic({ load, states, notes, running, inflight, maxRounds, rounds, dicom, onStation, t }) {
+      const W = 1300
       const step = W / STATIONS.length
       const cx = (index) => step * index + step / 2
       const belt = 186
+      const half = 44
       const doc = (x, y, key, extra = {}) => h('g', { key, transform: `translate(${x} ${y})`, className: 'ws-doc', ...extra },
         h('path', { d: 'M-6 -8h8l4 4v12h-12z' }), h('path', { d: 'M-3 -2h6M-3 2h6' }))
       const dim = (from, to, label, key) => {
-        const x1 = cx(from) - 46
-        const x2 = cx(to) + 46
+        const x1 = cx(from) - half + 2
+        const x2 = cx(to) + half - 2
+        const width = Math.min(x2 - x1 - 30, 260)
         return h('g', { key, className: 'ws-dim' },
           h('path', { d: `M${x1} 18v12M${x2} 18v12M${x1} 24H${x2}` }),
           h('path', { className: 'ws-dim-arrow', d: `M${x1 + 7} 21l-7 3l7 3M${x2 - 7} 21l7 3l-7 3` }),
-          h('rect', { className: 'ws-dim-bg', x: (x1 + x2) / 2 - 92, y: 15, width: 184, height: 18 }),
+          h('rect', { className: 'ws-dim-bg', x: (x1 + x2) / 2 - width / 2, y: 15, width, height: 18 }),
           h('text', { x: (x1 + x2) / 2, y: 28, textAnchor: 'middle' }, label))
       }
-      const loopFrom = cx(4)
-      const loopTo = cx(2)
-      const states = STATIONS.map((id) => (load[id] > 0 ? 'active' : (reached.has(id) ? 'done' : 'idle')))
-      return h('svg', { className: `ws-schematic${running ? ' ws-run' : ''}`, viewBox: `0 0 ${W} 262`, role: 'img', 'aria-label': t('ws.line') },
-        dim(0, 3, t('ws.stageA'), 'a'),
-        dim(4, 7, t('ws.stageB'), 'b'),
-        // repair loop: verify finds leftovers → repair → back through discover
-        h('path', { className: 'ws-loop', d: `M${loopFrom} 66 C ${loopFrom} 40, ${loopTo} 40, ${loopTo} 66` }),
+      // Loop: 复判修正 (S06) back to 规则核验 (S04).
+      const loopFrom = cx(STATIONS.indexOf('repair'))
+      const loopTo = cx(STATIONS.indexOf('rules'))
+      const roundText = rounds.length ? ` · ${rounds.map(([round, count]) => `R${round} ${count}`).join(' · ')}` : ''
+      const loopLabel = `${t('ws.loop', { rounds: maxRounds })}${roundText}`
+      const clickable = (id) => Boolean(onStation?.[id])
+      return h('svg', { className: `ws-schematic${running ? ' ws-run' : ''}`, viewBox: `0 0 ${W} 290`, role: 'img', 'aria-label': t('ws.line') },
+        dim(0, 1, t('ws.stage1'), 'a'),
+        dim(2, 5, t('ws.stage2'), 'b'),
+        dim(6, 7, t('ws.stage3'), 'c'),
+        dim(8, 9, t('ws.stage4'), 'd'),
+        h('path', { className: 'ws-loop', d: `M${loopFrom} 66 C ${loopFrom} 42, ${loopTo} 42, ${loopTo} 66` }),
         h('path', { className: 'ws-loop-head', d: `M${loopTo - 5} 58l5 8l5 -8` }),
-        // Background plate so the dashed curve does not run through the label.
-        h('rect', { className: 'ws-dim-bg', x: (loopFrom + loopTo) / 2 - 92, y: 38, width: 184, height: 16, rx: 3 }),
-        h('text', { className: 'ws-loop-label', x: (loopFrom + loopTo) / 2, y: 50, textAnchor: 'middle' }, t('ws.loop', { rounds: maxRounds })),
-        // belt
+        h('rect', { className: 'ws-dim-bg', x: (loopFrom + loopTo) / 2 - 130, y: 39, width: 260, height: 16, rx: 3 }),
+        h('text', { className: 'ws-loop-label', x: (loopFrom + loopTo) / 2, y: 51, textAnchor: 'middle' }, loopLabel),
         h('rect', { className: 'ws-belt', x: 8, y: belt, width: W - 16, height: 16, rx: 8 }),
         h('path', { className: 'ws-belt-run', d: `M18 ${belt}H${W - 18}` }),
-        Array.from({ length: 24 }, (_, index) => h('circle', { key: `r${index}`, className: 'ws-roller', cx: 24 + index * ((W - 48) / 23), cy: belt + 8, r: 4 })),
-        // machines
+        Array.from({ length: 30 }, (_, index) => h('circle', { key: `r${index}`, className: 'ws-roller', cx: 24 + index * ((W - 48) / 29), cy: belt + 8, r: 4 })),
         STATIONS.map((id, index) => {
           const x = cx(index)
-          const state = states[index]
-          return h('g', { key: id, className: `ws-mc ws-mc-${state}` },
-            h('path', { className: 'ws-leg', d: `M${x - 32} 154V${belt}M${x + 32} 154V${belt}` }),
+          const state = states[id]
+          const note = notes[id] ?? {}
+          return h('g', {
+            key: id, className: `ws-mc ws-mc-${state}${clickable(id) ? ' ws-mc-click' : ''}`,
+            onClick: clickable(id) ? onStation[id] : undefined,
+          },
+            note.title ? h('title', {}, note.title) : null,
+            h('path', { className: 'ws-leg', d: `M${x - 28} 154V${belt}M${x + 28} 154V${belt}` }),
             index < STATIONS.length - 1
               ? h('g', { className: 'ws-feedline' },
-                h('path', { d: `M${x + 48} 112H${x + step - 52}` }),
-                h('path', { className: 'ws-feedhead', d: `M${x + step - 57} 108l5 4l-5 4` }))
+                h('path', { d: `M${x + half} 112H${x + step - half - 4}` }),
+                h('path', { className: 'ws-feedhead', d: `M${x + step - half - 9} 108l5 4l-5 4` }))
               : null,
-            h('rect', { className: 'ws-housing', x: x - 48, y: 70, width: 96, height: 84, rx: 7 }),
-            h('rect', { className: 'ws-plate', x: x - 48, y: 70, width: 96, height: 15, rx: 7 }),
-            h('text', { className: 'ws-mc-no', x: x - 40, y: 81 }, `S${String(index + 1).padStart(2, '0')}`),
-            h('circle', { className: 'ws-mc-lamp', cx: x + 38, cy: 77.5, r: 3.6 }),
+            h('rect', { className: 'ws-housing', x: x - half, y: 70, width: half * 2, height: 84, rx: 7 }),
+            h('rect', { className: 'ws-plate', x: x - half, y: 70, width: half * 2, height: 15, rx: 7 }),
+            h('text', { className: 'ws-mc-no', x: x - half + 8, y: 81 }, `S${String(index + 1).padStart(2, '0')}`),
+            h('circle', { className: 'ws-mc-lamp', cx: x + half - 10, cy: 77.5, r: 3.6 }),
             h('g', { className: 'ws-icon', transform: `translate(${x} 120)` }, ICONS[id]),
             h('text', { className: 'ws-mc-name', x, y: 224, textAnchor: 'middle' }, t(`ws.st.${id}`)),
-            h('text', { className: 'ws-mc-sub', x, y: 241, textAnchor: 'middle' }, t(`ws.sub.${id}`)),
-            h('text', { className: 'ws-mc-load', x, y: 257, textAnchor: 'middle' },
-              load[id] > 0 ? t('ws.load', { count: load[id] }) : (state === 'done' ? t('ws.passed') : '·')))
+            h('text', { className: `ws-mc-sub${note.subTone ? ` ws-tone-${note.subTone}` : ''}`, x, y: 241, textAnchor: 'middle' }, note.sub ?? t(`ws.sub.${id}`)),
+            h('text', { className: `ws-mc-load${note.loadTone ? ` ws-tone-${note.loadTone}` : ''}`, x, y: 257, textAnchor: 'middle' },
+              load[id] > 0
+                ? `${t('ws.load', { count: load[id] })}${note.queue ? ` · ${t('ws.queued', { count: note.queue })}` : ''}`
+                : (note.load ?? (state === 'done' ? t('ws.passed') : '·'))))
         }),
-        // workpieces sitting at their station
         inflight.map((state, index) => {
           const at = STATIONS.indexOf(stationOf(state))
           if (at < 0) return null
           const sameBefore = inflight.slice(0, index).filter((other) => stationOf(other) === stationOf(state)).length
           return doc(cx(at) - 18 + (sameBefore % 4) * 12, belt - 9, `w${index}`, { className: 'ws-doc ws-doc-hot' })
         }),
-        // flow on the belt
         running
           ? [0, 1, 2, 3].map((index) => h('g', { key: `m${index}`, className: 'ws-doc ws-doc-flow' },
             h('path', { d: 'M-6 -8h8l4 4v12h-12z' }),
-            h('animateMotion', { dur: '8s', begin: `-${index * 2}s`, repeatCount: 'indefinite', path: `M14 ${belt - 9}H${W - 14}` })))
+            h('animateMotion', { dur: '10s', begin: `-${index * 2.5}s`, repeatCount: 'indefinite', path: `M14 ${belt - 9}H${W - 14}` })))
+          : null,
+        // Bypass: DICOM (header only, no model) from 预扫描 to 比对·打包.
+        h('g', { className: `ws-bypass ws-bypass-${dicom.state}` },
+          h('path', { className: 'ws-bypass-line', d: `M${cx(0)} 262V276H${cx(7)}V262` }),
+          h('path', { className: 'ws-bypass-head', d: `M${cx(7) - 4} 268l4 -6l4 6` }),
+          h('rect', { className: 'ws-dim-bg', x: (cx(0) + cx(7)) / 2 - 170, y: 268, width: 340, height: 16, rx: 3 }),
+          h('text', { className: 'ws-bypass-label', x: (cx(0) + cx(7)) / 2, y: 280, textAnchor: 'middle' }, dicom.label)))
+    }
+
+    // Least-squares fit of call duration = c + in/P + out/D over model calls;
+    // returns generation (D) and prompt (P) speed in tok/s, or nulls when
+    // the sample is too small or degenerate.
+    function fitSpeed(f) {
+      if (!f || f.n < 30) return { gen: null, prompt: null, n: f?.n ?? 0 }
+      const n = f.n
+      const s11 = f.aa - (f.a * f.a) / n
+      const s22 = f.bb - (f.b * f.b) / n
+      const s12 = f.ab - (f.a * f.b) / n
+      const s1y = f.ay - (f.a * f.y) / n
+      const s2y = f.by - (f.b * f.y) / n
+      const det = s11 * s22 - s12 * s12
+      if (!(det > 0)) return { gen: null, prompt: null, n }
+      const b1 = (s1y * s22 - s2y * s12) / det
+      const b2 = (s2y * s11 - s1y * s12) / det
+      return { gen: b2 > 0 ? 1000 / b2 : null, prompt: b1 > 0 ? 1000 / b1 : null, n }
+    }
+    function fitSums(entries) {
+      const f = { n: 0, a: 0, b: 0, y: 0, aa: 0, bb: 0, ab: 0, ay: 0, by: 0 }
+      for (const e of entries) {
+        if (e.result !== 'ok' || !(e.out > 0)) continue
+        const x1 = e.in || 0
+        const x2 = e.out
+        f.n += 1; f.a += x1; f.b += x2; f.y += e.ms
+        f.aa += x1 * x1; f.bb += x2 * x2; f.ab += x1 * x2; f.ay += x1 * e.ms; f.by += x2 * e.ms
+      }
+      return f
+    }
+    const fmtSpeed = (value) => (value === null ? '—' : value >= 1000 ? compact(Math.round(value)) : value.toFixed(1))
+
+    /**
+     * Model name field with a dropdown filled from the endpoint's /models.
+     * Typing stays possible (servers that list nothing, or a name to type).
+     * The list is fetched when the field is focused or the arrow is clicked,
+     * and again whenever the endpoint changes.
+     */
+    function ModelPicker({ value, onChange, placeholder, fetchModels, source, emptyHint }) {
+      const t = services.t
+      const [open, setOpen] = React.useState(false)
+      const [state, setState] = React.useState({ source: null, loading: false, models: [], error: '' })
+      const box = React.useRef(null)
+      const load = async (force = false) => {
+        if (!force && state.source === source && (state.loading || state.models.length || state.error)) return
+        setState({ source, loading: true, models: [], error: '' })
+        try {
+          const result = await fetchModels()
+          setState(result?.ok ? { source, loading: false, models: result.models ?? [], error: '' } : { source, loading: false, models: [], error: result?.error ?? 'failed' })
+        } catch (cause) {
+          setState({ source, loading: false, models: [], error: message(cause) })
+        }
+      }
+      React.useEffect(() => {
+        if (!open) return undefined
+        const onDown = (event) => { if (box.current && !box.current.contains(event.target)) setOpen(false) }
+        document.addEventListener('mousedown', onDown)
+        return () => document.removeEventListener('mousedown', onDown)
+      }, [open])
+      const stale = state.source !== source
+      const filter = value.trim().toLowerCase()
+      const models = stale ? [] : state.models
+      const matches = filter && models.some((name) => name.toLowerCase() === filter) ? models : models.filter((name) => !filter || name.toLowerCase().includes(filter))
+      return h('div', { className: 'ws-mp', ref: box },
+        h('div', { className: 'ws-mp-row' },
+          h('input', {
+            className: 'ma-input', value, placeholder, autoComplete: 'off', spellCheck: false,
+            onChange: (event) => { onChange(event.target.value); setOpen(true) },
+            onFocus: () => { setOpen(true); load() },
+            onKeyDown: (event) => { if (event.key === 'Escape') setOpen(false) },
+          }),
+          h('button', {
+            type: 'button', className: 'ma-btn ws-mp-btn', title: t('model.fetch'),
+            onClick: () => { setOpen(true); load(true) },
+          }, state.loading && !stale ? '…' : '▾')),
+        open
+          ? h('div', { className: 'ws-mp-menu', role: 'listbox' },
+            state.loading && !stale ? h('div', { className: 'ws-mp-note' }, t('model.fetching'))
+              : !stale && state.error ? h('div', { className: 'ws-mp-note ma-error' }, t('model.fail', { error: state.error }))
+                : stale ? h('div', { className: 'ws-mp-note' }, t('model.fetching'))
+                  : models.length === 0 ? h('div', { className: 'ws-mp-note' }, emptyHint ?? t('model.okEmpty'))
+                    : [
+                      value ? h('button', { key: '__clear', type: 'button', className: 'ws-mp-item ws-mp-clear', onClick: () => { onChange(''); setOpen(false) } }, t('model.clearChoice')) : null,
+                      ...matches.map((name) => h('button', {
+                        key: name, type: 'button', role: 'option', 'aria-selected': name === value ? 'true' : 'false',
+                        className: `ws-mp-item${name === value ? ' ws-on' : ''}`,
+                        onClick: () => { onChange(name); setOpen(false) },
+                      }, name)),
+                      matches.length === 0 ? h('div', { key: '__none', className: 'ws-mp-note' }, t('model.noMatch')) : null,
+                    ])
           : null)
+    }
+
+    const OPAQUE_REVIEW = new Set(['opaque', 'opaque-token', 'unreadable', 'zip-failed', 'over-limit', 'opaque-check'])
+
+    // Token-level diff (Myers) between an original segment and its result.
+    // Tokens: Latin/digit runs, single CJK characters, single other chars.
+    function tokenize(text) {
+      // A pseudonym (化名-9F3A2C) is one token, so it never half-matches
+      // the original it replaced (北京协和医院 → 医院-5D3E02).
+      return String(text).match(/(?:化名|医生|证件|电话|邮箱|地址|病历|住院|就诊|社保|银行卡|医院|标识)-[0-9A-F]{6,}|[A-Za-z0-9]+|[\s\S]/g) ?? []
+    }
+    function diffTexts(before, after) {
+      const a = tokenize(before)
+      const b = tokenize(after)
+      let start = 0
+      while (start < a.length && start < b.length && a[start] === b[start]) start += 1
+      let endA = a.length
+      let endB = b.length
+      while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) { endA -= 1; endB -= 1 }
+      const ops = []
+      const push = (t, s) => { if (!s) return; const last = ops[ops.length - 1]; if (last && last.t === t) last.s += s; else ops.push({ t, s }) }
+      push('eq', a.slice(0, start).join(''))
+      const ma = a.slice(start, endA)
+      const mb = b.slice(start, endB)
+      const n = ma.length
+      const m = mb.length
+      const max = n + m
+      if (max > 0) {
+        const off = max + 1
+        let v = new Int32Array(2 * max + 3)
+        const trace = []
+        let found = -1
+        for (let d = 0; d <= max && d <= 1500; d += 1) {
+          trace.push(v.slice())
+          for (let k = -d; k <= d; k += 2) {
+            let x = (k === -d || (k !== d && v[off + k - 1] < v[off + k + 1])) ? v[off + k + 1] : v[off + k - 1] + 1
+            let y = x - k
+            while (x < n && y < m && ma[x] === mb[y]) { x += 1; y += 1 }
+            v[off + k] = x
+            if (x >= n && y >= m) { found = d; break }
+          }
+          if (found >= 0) break
+        }
+        if (found < 0) {
+          push('del', ma.join('')); push('ins', mb.join(''))
+        } else {
+          const middle = []
+          let x = n
+          let y = m
+          for (let d = found; d > 0; d -= 1) {
+            const vv = trace[d]
+            const k = x - y
+            const prevK = (k === -d || (k !== d && vv[off + k - 1] < vv[off + k + 1])) ? k + 1 : k - 1
+            const prevX = vv[off + prevK]
+            const prevY = prevX - prevK
+            while (x > prevX && y > prevY) { middle.push({ t: 'eq', s: ma[x - 1] }); x -= 1; y -= 1 }
+            if (x === prevX) middle.push({ t: 'ins', s: mb[y - 1] })
+            else middle.push({ t: 'del', s: ma[x - 1] })
+            x = prevX
+            y = prevY
+          }
+          while (x > 0 && y > 0) { middle.push({ t: 'eq', s: ma[x - 1] }); x -= 1; y -= 1 }
+          for (const op of middle.reverse()) push(op.t, op.s)
+        }
+      }
+      push('eq', a.slice(endA).join(''))
+      return ops
+    }
+    // Wrap occurrences of flagged texts inside plain runs of a rendered side.
+    function markFlags(text, flags, keyBase) {
+      if (!flags.length || !text) return text
+      const out = []
+      let rest = text
+      let index = 0
+      while (rest) {
+        let hit = null
+        for (const flag of flags) {
+          const at = rest.indexOf(flag)
+          if (at >= 0 && (!hit || at < hit.at)) hit = { at, flag }
+        }
+        if (!hit) { out.push(rest); break }
+        if (hit.at > 0) out.push(rest.slice(0, hit.at))
+        out.push(h('mark', { key: `${keyBase}f${index}`, className: 'ws-cmp-flag' }, hit.flag))
+        rest = rest.slice(hit.at + hit.flag.length)
+        index += 1
+      }
+      return out
+    }
+
+    // Spot-check aid: besides review flags, mark long digit runs (IDs, phone
+    // numbers, record numbers) that remain in the result. Pseudonyms are skipped.
+    const SUSPECT = /(?<![0-9A-F-])0\d{2,3}-\d{7,8}(?!\d)|(?<![0-9A-F-])\d{7,}(?:[Xx](?![A-Za-z0-9]))?|1[3-9]\d{9}/g
+    function markSuspects(text, flags, keyBase) {
+      const out = []
+      const parts = flags.length ? markFlags(text, flags, keyBase) : [text]
+      ;(Array.isArray(parts) ? parts : [parts]).forEach((part, index) => {
+        if (typeof part !== 'string') { out.push(part); return }
+        let last = 0
+        let match
+        SUSPECT.lastIndex = 0
+        while ((match = SUSPECT.exec(part))) {
+          // Dates and timestamps (20240312, 20240312083000) are not identifiers.
+          if (/^(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])(?:[01]\d|2[0-3])?(?:[0-5]\d){0,2}(?:\d{3})?$/.test(match[0])) continue
+          if (match.index > last) out.push(part.slice(last, match.index))
+          out.push(h('mark', { key: `${keyBase}d${index}-${match.index}`, className: 'ws-cmp-suspect', title: services.t('ws.cmp.suspectHint') }, match[0]))
+          last = match.index + match[0].length
+        }
+        if (last < part.length) out.push(part.slice(last))
+      })
+      return out
     }
 
     function clock(ms) {
@@ -1684,6 +2469,7 @@ window.__ModuleLoader__.load({
       const t = services.t
       const [config, setConfig] = React.useState(null)
       const [inputDir, setInputDir] = React.useState('')
+      const [pickedInputs, setPickedInputs] = React.useState([])
       const [outputRoot, setOutputRoot] = React.useState('')
       const [runs, setRuns] = React.useState([])
       const [activeRunId, setActiveRunId] = React.useState(null)
@@ -1730,16 +2516,18 @@ window.__ModuleLoader__.load({
       const drawerRef = React.useRef(null)
       const followLog = React.useRef(true)
       const [logPinned, setLogPinned] = React.useState(false)
-      // File queue sticks to its newest row unless the user scrolls up.
+      // File queue: on first view of a batch, a running one opens at the top
+      // and a finished one at the bottom; after that the user scrolls freely.
+      // A batch that finishes while being watched counts as a new view.
       const piecesRef = React.useRef(null)
-      const followPieces = React.useRef(true)
-      function onPiecesScroll(event) {
-        const node = event.currentTarget
-        followPieces.current = node.scrollHeight - node.scrollTop - node.clientHeight < 8
-      }
+      const piecesKey = React.useRef(null)
       React.useLayoutEffect(() => {
         const node = piecesRef.current
-        if (node && followPieces.current) node.scrollTop = node.scrollHeight
+        if (!node || !current || detail?.id !== current.id) return
+        const key = `${current.id}:${running ? 'running' : 'done'}`
+        if (piecesKey.current === key) return
+        piecesKey.current = key
+        node.scrollTop = running ? 0 : node.scrollHeight
       })
       const callStore = React.useRef({ id: null, entries: [], last: 0 })
       const [callLog, setCallLog] = React.useState(callStore.current)
@@ -1892,28 +2680,41 @@ window.__ModuleLoader__.load({
       }
 
       function selectRun(id) {
-        followPieces.current = true
+        piecesKey.current = null
         setSelectedId(id)
         setDetail(null)
         setReportText('')
         reportLoaded.current.delete(id)
       }
 
+      // Several picks of one folder become a list; one pick fills the field.
+      function applyPicked(paths) {
+        if (!paths?.length) return
+        if (paths.length === 1) { setPickedInputs([]); setInputDir(paths[0]) } else { setPickedInputs(paths); setInputDir('') }
+      }
+
       async function browse() {
+        setError('')
         try {
-          const uiWorkspace = services.ctx.get('uiWorkspace')
-          if (!uiWorkspace?.pickDirectory) throw new Error(`${t('form.browse')} unavailable`)
-          const picked = await uiWorkspace.pickDirectory()
-          if (picked) setInputDir(picked)
+          // Native macOS chooser with multi-select; elsewhere the Harness picker.
+          applyPicked((await call('pickFolders')).paths)
         } catch (cause) {
-          setError(message(cause))
+          try {
+            const uiWorkspace = services.ctx.get('uiWorkspace')
+            if (!uiWorkspace?.pickDirectory) throw cause
+            const picked = await uiWorkspace.pickDirectory()
+            if (picked) applyPicked([picked])
+          } catch (fallback) {
+            setError(message(fallback))
+          }
         }
       }
 
       async function browseFile() {
+        setError('')
         try {
           const picked = await call('pickFile')
-          if (picked?.path) setInputDir(picked.path)
+          applyPicked(picked?.paths ?? (picked?.path ? [picked.path] : []))
         } catch (cause) {
           setError(message(cause))
         }
@@ -1922,13 +2723,15 @@ window.__ModuleLoader__.load({
       async function start() {
         setError('')
         setNotice('')
-        if (!inputDir.trim()) {
+        if (!inputDir.trim() && pickedInputs.length === 0) {
           setError(t('form.inputRequired'))
           return
         }
         setBusy(true)
         try {
-          const result = await call('start', { inputDir: inputDir.trim(), outputRoot: outputRoot.trim() })
+          const result = await call('start', pickedInputs.length > 0
+            ? { inputs: pickedInputs, outputRoot: outputRoot.trim() }
+            : { inputDir: inputDir.trim(), outputRoot: outputRoot.trim() })
           setNotice(t('notice.started'))
           reportLoaded.current.delete(result.runId)
           setActiveRunId(result.runId)
@@ -1949,6 +2752,30 @@ window.__ModuleLoader__.load({
       const current = detail && detail.id === viewId ? detail : (runs.find((run) => run.id === viewId) ?? null)
       const running = current?.status === 'running'
       const anyRunning = Boolean(activeRunId)
+
+      async function resumeRun() {
+        if (!current?.id) return
+        setError('')
+        setBusy(true)
+        try {
+          const result = await call('start', { resumeFrom: current.id })
+          // Show what the resumed batch reads and where it writes, as for a new start.
+          if (Array.isArray(result.inputs) && result.inputs.length > 1) { setPickedInputs(result.inputs); setInputDir('') }
+          else if (result.inputDir) { setPickedInputs([]); setInputDir(result.inputDir) }
+          if (result.outputRoot) setOutputRoot(result.outputRoot)
+          reportLoaded.current.delete(result.runId)
+          piecesKey.current = null
+          setActiveRunId(result.runId)
+          setSelectedId(result.runId)
+          setDetail(null)
+          setReportText('')
+          await refreshRuns()
+        } catch (cause) {
+          setError(message(cause))
+        } finally {
+          setBusy(false)
+        }
+      }
 
       async function cancelRun() {
         if (!current?.id) return
@@ -2006,6 +2833,96 @@ window.__ModuleLoader__.load({
       }
 
       const adviceRunId = current && current.status !== 'running' ? current.id : null
+      // Manual review: items with context, fetched for a finished batch.
+      const [reviewByRun, setReviewByRun] = React.useState({})
+      const [reviewBusy, setReviewBusy] = React.useState(null)
+      const [reviewNote, setReviewNote] = React.useState(null)
+      const loadReview = React.useCallback(async (id) => {
+        try {
+          const value = await call('reviewItems', { runId: id })
+          setReviewByRun((map) => ({ ...map, [id]: value }))
+        } catch { setReviewByRun((map) => ({ ...map, [id]: null })) }
+      }, [])
+      React.useEffect(() => {
+        if (!adviceRunId || reviewByRun[adviceRunId] !== undefined) return
+        loadReview(adviceRunId)
+      }, [adviceRunId, current?.status])
+      const reviewData = adviceRunId ? reviewByRun[adviceRunId] : undefined
+      const reviewOpen = (reviewData?.files ?? []).reduce((sum, file) => sum + file.items.filter((item) => !item.decision).length, 0)
+
+      // Side-by-side comparison: file list per batch, one file's changes.
+      const [compareByRun, setCompareByRun] = React.useState({})
+      const [compareSel, setCompareSel] = React.useState(0)
+      const [compareFilter, setCompareFilter] = React.useState('all')
+      const [compareFiles, setCompareFiles] = React.useState({})
+      const [compareShow, setCompareShow] = React.useState(300)
+      const [compareRows, setCompareRows] = React.useState('all') // 'all' | 'changed'
+      async function loadCompareList(id) {
+        try {
+          const value = await call('compareList', { runId: id })
+          setCompareByRun((map) => ({ ...map, [id]: value?.files ?? null }))
+        } catch { setCompareByRun((map) => ({ ...map, [id]: null })) }
+      }
+      async function loadCompareFile(id, n, force = false) {
+        const key = `${id}:${n}`
+        if (!force && compareFiles[key] !== undefined) return
+        try {
+          const value = await call('compareFile', { runId: id, n })
+          setCompareFiles((map) => ({ ...map, [key]: value }))
+        } catch (cause) { setCompareFiles((map) => ({ ...map, [key]: { error: message(cause) } })) }
+      }
+      function openCompare({ relPath = null, filter = null } = {}) {
+        if (!adviceRunId) return
+        setCompareFilter(filter ?? 'all')
+        setCompareShow(300)
+        const list = compareByRun[adviceRunId]
+        if (relPath && Array.isArray(list)) {
+          const hit = list.find((entry) => entry.relPath === relPath)
+          if (hit) setCompareSel(hit.n)
+        } else if (filter === 'review') {
+          const open = (reviewData?.files ?? []).find((file) => file.items.some((item) => !item.decision))
+          if (open) {
+            const hit = Array.isArray(list) ? list.find((entry) => entry.relPath === open.relPath) : null
+            setCompareSel(hit ? hit.n : `rv:${open.relPath}`)
+          }
+        }
+        if (compareByRun[adviceRunId] === undefined) loadCompareList(adviceRunId)
+        setModal('compare')
+      }
+      React.useEffect(() => {
+        if (modal === 'compare' && adviceRunId && typeof compareSel === 'number') loadCompareFile(adviceRunId, compareSel)
+      }, [modal, adviceRunId, compareSel])
+      React.useEffect(() => {
+        if (adviceRunId && compareByRun[adviceRunId] === undefined) loadCompareList(adviceRunId)
+      }, [adviceRunId])
+
+      async function decideReview(file, item, action) {
+        setReviewBusy(item.id)
+        setReviewNote(null)
+        try {
+          const result = await call('reviewDecide', { runId: adviceRunId, itemId: item.id, action })
+          if (action === 'allow' && item.text && config && !anyRunning) {
+            // Future batches no longer treat this value as an identifier.
+            await saveAndReload({ allowValues: [...new Set([...(config.allowValues ?? []), item.text])] })
+          }
+          await loadReview(adviceRunId)
+          if (action === 'replace' && Array.isArray(compareByRun[adviceRunId])) {
+            const hit = compareByRun[adviceRunId].find((entry) => entry.relPath === file.relPath)
+            if (hit) await loadCompareFile(adviceRunId, hit.n, true)
+          }
+          if (result.completed) {
+            reportLoaded.current.delete(adviceRunId)
+            setDetail(null)
+            setReportText('')
+            setReviewNote({ ok: true, text: t('ws.rv.allDone') })
+            await refreshRuns()
+          }
+        } catch (cause) {
+          setReviewNote({ ok: false, text: message(cause) })
+        } finally {
+          setReviewBusy(null)
+        }
+      }
       React.useEffect(() => {
         if (!adviceRunId || adviceByRun[adviceRunId] !== undefined) return undefined
         let alive = true
@@ -2019,9 +2936,20 @@ window.__ModuleLoader__.load({
         if (!deleting) return
         setDeleting({ ...deleting, busy: true, error: '' })
         try {
-          await call('deleteRun', { runId: deleting.run.id, deliverable: deleting.deliverable })
-          if (selectedId === deleting.run.id || viewId === deleting.run.id) { setSelectedId(null); setDetail(null); setReportText('') }
-          setAdviceByRun((map) => { const next = { ...map }; delete next[deleting.run.id]; return next })
+          if (deleting.all) {
+            const result = await call('clearRuns', { deliverable: deleting.deliverable })
+            if (!activeRunId) { setSelectedId(null); setDetail(null); setReportText('') }
+            setAdviceByRun({})
+            if (result.failed?.length) {
+              await refreshRuns()
+              setDeleting((state) => state && { ...state, busy: false, error: t('ws.del.partial', { removed: result.removed, failed: result.failed.length, first: result.failed[0].error }) })
+              return
+            }
+          } else {
+            await call('deleteRun', { runId: deleting.run.id, deliverable: deleting.deliverable })
+            if (selectedId === deleting.run.id || viewId === deleting.run.id) { setSelectedId(null); setDetail(null); setReportText('') }
+            setAdviceByRun((map) => { const next = { ...map }; delete next[deleting.run.id]; return next })
+          }
           setDeleting(null)
           await refreshRuns()
         } catch (cause) {
@@ -2103,14 +3031,33 @@ window.__ModuleLoader__.load({
         }
       }
 
-      async function testModel() {
-        setPing({ pending: true })
-        try {
-          const result = await call('ping', {})
-          setPing(result)
-        } catch (cause) {
-          setPing({ ok: false, error: message(cause) })
+      // Model status dots in the monitor: checked when the page opens and
+      // whenever the configured models change, not while a batch runs (its
+      // requests show the endpoint works). Click a dot to check again.
+      async function checkModels() {
+        if (!config?.model) { setPing(null); return }
+        const probe = async (request) => {
+          try { return await call('ping', request) } catch (cause) { return { ok: false, error: message(cause) } }
         }
+        setPing({ detect: { pending: true }, ...(config.verifyModel ? { verify: { pending: true } } : {}) })
+        const [detect, verify] = await Promise.all([
+          probe({}),
+          config.verifyModel ? probe({ baseURL: config.verifyBaseURL || config.baseURL, model: config.verifyModel, keySource: 'verify' }) : null,
+        ])
+        setPing({ detect, ...(verify ? { verify } : {}) })
+      }
+      React.useEffect(() => {
+        if (config && !running) checkModels()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [config?.model, config?.baseURL, config?.verifyModel, config?.verifyBaseURL])
+      const modelDot = (state, name) => {
+        if (!state) return null
+        const ok = state.ok && (state.models ?? []).includes(name)
+        const tone = state.pending ? 'wait' : ok ? 'ok' : 'bad'
+        const title = state.pending ? t('model.testing')
+          : ok ? `${t('ws.online')} · ${t('ws.dotRetry')}`
+            : `${state.ok ? t('model.missing', { model: name }) : t('model.fail', { error: state.error })} · ${t('ws.dotRetry')}`
+        return h('button', { type: 'button', className: `ws-dot ws-dot-${tone}`, title, 'aria-label': title, disabled: state.pending, onClick: checkModels })
       }
 
       React.useLayoutEffect(() => {
@@ -2159,22 +3106,105 @@ window.__ModuleLoader__.load({
       const planned = Number(current?.planned ?? 0) || (running ? 0 : files.length)
       const done = files.length
       const percent = planned > 0 ? Math.min(100, Math.round((done / planned) * 100)) : (current && !running ? 100 : 0)
+      // Ring: progress by data volume, including in-flight files' estimated
+      // share; batches from before 0.8.1 have no byte counts and use files.
+      const plannedBytes = Number(current?.plannedBytes ?? 0)
+      const inflightBytes = running ? inflight.reduce((sum, state) => sum + (Number(state.bytes) || 0) * Math.min(1, Number(state.fraction) || 0), 0) : 0
+      const processedBytes = running ? Number(current?.doneBytes ?? 0) + inflightBytes : plannedBytes
+      const bytePercent = plannedBytes > 0
+        ? (running ? Math.min(99, Math.floor((processedBytes / plannedBytes) * 100)) : (current?.status === 'completed' || current?.status === 'review' ? 100 : Math.round((Number(current?.doneBytes ?? 0) / plannedBytes) * 100)))
+        : percent
+      const fmtBytes = (bytes) => bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(2)} GB` : bytes >= 1024 ** 2 ? `${(bytes / 1024 ** 2).toFixed(1)} MB` : `${Math.max(0, Math.round(bytes / 1024))} KB`
       const startedMs = current?.startedAt ? Date.parse(current.startedAt) : 0
       const elapsed = running ? now - startedMs : Number(current?.durationMs ?? 0)
       const rate = elapsed > 0 ? (done / (elapsed / 60000)) : 0
       const counts = { clean: 0, review: 0, failed: 0, cancelled: 0 }
       for (const file of files) counts[file.status] = (counts[file.status] ?? 0) + 1
-      const reached = new Set()
+      // Station states. While files are still in the loop (识别 → 核验 →
+      // 盲审 → 复判修正), the loop stations are never shown as done: a file
+      // in 复判修正 goes back through 规则核验 and 盲审.
+      const stationStates = Object.fromEntries(STATIONS.map((id) => [id, 'idle']))
+      const stationNotes = {}
+      const blindStats = totals.blind ?? null
+      // A batch shows the verifier it ran with; with no batch, the configured one.
+      const verifierName = current?.config ? String(current.config.verifyModel ?? '') : String(config?.verifyModel ?? '')
+      const detectorName = current?.config?.model ?? config?.model ?? ''
+      const withheld = current?.withheld === true
       if (current) {
         if (running) {
           const active = new Set(inflight.map(stationOf).filter(Boolean))
+          const loopBusy = [...active].some((id) => LOOP_STATIONS.has(id))
           const lastActive = Math.max(-1, ...[...active].map((id) => STATIONS.indexOf(id)))
-          STATIONS.forEach((id, index) => { if (index < lastActive && !active.has(id)) reached.add(id) })
+          STATIONS.forEach((id, index) => {
+            if (active.has(id)) stationStates[id] = 'active'
+            else if (index < lastActive && !(loopBusy && LOOP_STATIONS.has(id))) stationStates[id] = 'done'
+            else if (loopBusy && LOOP_STATIONS.has(id) && index < lastActive) { stationStates[id] = 'idle'; stationNotes[id] = { load: t('ws.loopWait') } }
+          })
+          stationStates.review = 'idle'
+          stationStates.deliver = 'idle'
         } else {
-          for (const id of STATIONS) reached.add(id)
-          if (!(current.totals?.dicom)) reached.delete('dicom')
-          if (!(Number(current.config?.maxRounds ?? 1) > 1) || !files.some((file) => Number(file.rounds ?? 0) > 1)) reached.delete('repair')
+          for (const id of STATIONS) stationStates[id] = 'done'
+          if (!(Number(current.config?.maxRounds ?? 1) > 1) || !files.some((file) => Number(file.rounds ?? 0) > 1)) {
+            stationStates.repair = 'idle'
+            stationNotes.repair = { load: t('ws.notNeeded') }
+          }
+          if (!current.config?.modelConfigured) {
+            stationStates.blind = 'idle'
+            stationNotes.blind = { load: t('ws.noModel') }
+          }
+          const ended = current.status === 'completed' || current.status === 'review'
+          if (!ended) {
+            for (const id of ['rescan', 'pack', 'review', 'deliver']) stationStates[id] = 'idle'
+            stationNotes.deliver = { load: t('ws.notDelivered') }
+          } else if (reviewOpen > 0 || withheld) {
+            stationStates.review = 'warn'
+            stationNotes.review = { load: t('ws.reviewHeld', { count: reviewOpen }), loadTone: 'bad' }
+            stationStates.deliver = 'idle'
+            stationNotes.deliver = { load: t('ws.awaitReview'), loadTone: 'warn' }
+          } else {
+            stationNotes.review = { load: current.humanReview ? t('ws.reviewed') : t('ws.reviewNone') }
+            stationNotes.deliver = { load: current.output ? t('ws.delivered') : t('ws.notDelivered') }
+            if (!current.output) stationStates.deliver = 'idle'
+          }
         }
+      }
+      // 独立盲审: which model, and whether it is independent.
+      if (detectorName || verifierName) {
+        const sameAsDetector = Boolean(verifierName) && verifierName === detectorName
+        stationNotes.blind = {
+          ...(stationNotes.blind ?? {}),
+          sub: !verifierName ? t('ws.blindShared') : sameAsDetector ? t('ws.blindSame') : verifierName,
+          subTone: !verifierName || sameAsDetector ? 'warn' : '',
+          title: !verifierName ? t('ws.blindSharedHint') : sameAsDetector ? t('ws.blindSameHint', { model: verifierName }) : t('ws.blindHint', { model: verifierName }),
+        }
+      }
+      if (blindStats && (blindStats.reported || blindStats.confirmed || blindStats.dismissed) && !(running && stationStates.blind === 'active')) {
+        stationNotes.blind = { ...(stationNotes.blind ?? {}), load: t('ws.blindStats', { confirmed: blindStats.confirmed ?? 0, dismissed: blindStats.dismissed ?? 0, disputed: blindStats.disputed ?? 0 }), loadTone: blindStats.disputed ? 'warn' : '' }
+      }
+      stationNotes.discover = { ...(stationNotes.discover ?? {}), title: detectorName ? t('ws.modelOf', { model: detectorName }) : undefined }
+      stationNotes.repair = { ...(stationNotes.repair ?? {}), title: detectorName ? t('ws.modelOf', { model: detectorName }) : undefined }
+      // Requests waiting for a model slot, per station.
+      if (running && current?.stageRequests) {
+        const waiting = { discover: 0, blind: 0, repair: 0 }
+        for (const [stage, counts] of Object.entries(current.stageRequests)) {
+          const id = stage === '识别·替换' ? 'discover' : stage === '盲审' ? 'blind' : stage === '复判修正' ? 'repair' : null
+          if (id) waiting[id] += Number(counts?.queued ?? 0)
+        }
+        for (const [id, count] of Object.entries(waiting)) if (count > 0) stationNotes[id] = { ...(stationNotes[id] ?? {}), queue: count }
+      }
+      // Files in the loop by round, for the loop label.
+      const roundCounts = new Map()
+      for (const state of inflight) {
+        if (!LOOP_STATIONS.has(stationOf(state))) continue
+        const round = Math.max(1, Number(state.round ?? 1))
+        roundCounts.set(round, (roundCounts.get(round) ?? 0) + 1)
+      }
+      const rounds = [...roundCounts].sort((a, b) => a[0] - b[0])
+      const dicomCount = Number(totals.dicom ?? 0)
+      const dicomActive = running && inflight.some((state) => stationOf(state) === 'dicom')
+      const dicomBypass = {
+        state: dicomActive ? 'active' : dicomCount ? 'done' : 'idle',
+        label: dicomActive ? t('ws.dicomActive') : dicomCount ? t('ws.dicomDone', { count: dicomCount }) : t('ws.dicomIdle'),
       }
       const byType = Object.entries(totals.byType ?? {}).sort((a, b) => b[1] - a[1])
       const maxType = Math.max(1, ...byType.map(([, value]) => value))
@@ -2196,7 +3226,11 @@ window.__ModuleLoader__.load({
         ? finishedAt.filter((at) => at >= elapsed - 120000).length / (Math.min(elapsed, 120000) / 60000)
         : rate
       const remaining = Math.max(0, planned - done)
-      const etaMs = running && done > 0 && recentRate > 0 ? (remaining / recentRate) * 60000 : null
+      // ETA from data volume when known (file sizes vary a lot), else files.
+      const etaMs = !running ? null
+        : plannedBytes > 0 && processedBytes > 0 && elapsed > 5000
+          ? ((plannedBytes - processedBytes) / (processedBytes / elapsed))
+          : (done > 0 && recentRate > 0 ? (remaining / recentRate) * 60000 : null)
       const spark = () => {
         const W = 260
         const H = 44
@@ -2221,7 +3255,7 @@ window.__ModuleLoader__.load({
       }
 
       // ── Render helpers ──
-      const readout = (label, value, tone = '') => h('div', { className: `ws-readout${tone ? ` ws-tone-${tone}` : ''}` },
+      const readout = (label, value, tone = '', title = '') => h('div', { className: `ws-readout${tone ? ` ws-tone-${tone}` : ''}`, title },
         h('span', {}, label), h('b', {}, value))
 
       const stepper = (key, min, max, step = 1) => h('div', { className: 'ws-stepper' },
@@ -2270,7 +3304,12 @@ window.__ModuleLoader__.load({
               h('thead', {}, h('tr', {},
                 h('th', {}, t('runs.file')), h('th', {}, t('ws.station')), h('th', {}, t('runs.status')),
                 h('th', {}, t('ws.col.replaced')), h('th', {}, t('runs.rounds')))),
-              h('tbody', {}, rows.map((file) => h('tr', { key: file.relPath },
+              h('tbody', {}, rows.map((file) => h('tr', {
+                key: file.relPath,
+                className: adviceRunId && Array.isArray(compareByRun[adviceRunId]) && file.status !== 'running' ? 'ma-click' : '',
+                title: adviceRunId && Array.isArray(compareByRun[adviceRunId]) ? t('ws.cmp.rowHint') : '',
+                onClick: () => { if (adviceRunId && Array.isArray(compareByRun[adviceRunId]) && file.status !== 'running') openCompare({ relPath: file.relPath }) },
+              },
                 h('td', { className: 'ma-mono', title: file.relPath }, file.relPath),
                 h('td', {}, file.step ? `${t(`ws.st.${stationOf(file.step) ?? 'read'}`)}` : t('ws.st.pack')),
                 h('td', {}, h('span', { className: file.status === 'running' ? 'ma-chip ma-running' : statusClass(file.status) }, t(`file.${file.status}`))),
@@ -2293,8 +3332,10 @@ window.__ModuleLoader__.load({
           const sorted = ok.map((entry) => entry.ms).sort((a, b) => a - b)
           const p95 = sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] : 0
           const timeouts = entries.filter((entry) => entry.result === 'timeout').length
-          const failed = entries.filter((entry) => entry.result !== 'ok' && entry.result !== 'timeout' && entry.result !== 'cancelled').length
+          const failed = entries.filter((entry) => !['ok', 'timeout', 'cancelled', 'cached'].includes(entry.result)).length
+          const replayed = entries.filter((entry) => entry.result === 'cached').length
           const tokens = entries.reduce((sum, entry) => sum + (entry.tokens || 0), 0)
+          const callFit = fitSpeed(fitSums(entries))
           const secs = (ms) => `${(ms / 1000).toFixed(1)} s`
           const focusIndex = callFocus ? entries.findIndex((entry) => entry.seq === callFocus) : -1
           const shown = focusIndex >= 0
@@ -2305,7 +3346,7 @@ window.__ModuleLoader__.load({
           const BARS = Math.min(entries.length, 400)
           const per = entries.length / BARS
           const maxMs = Math.max(1, ...entries.map((entry) => entry.ms))
-          const rank = { ok: 0, cancelled: 1, 'bad-json': 2, timeout: 3 }
+          const rank = { cached: -1, ok: 0, cancelled: 1, 'bad-json': 2, timeout: 3 }
           const bars = Array.from({ length: BARS }, (_, index) => {
             const group = entries.slice(Math.floor(index * per), Math.max(Math.floor(index * per) + 1, Math.floor((index + 1) * per)))
             let worst = group[0]
@@ -2316,24 +3357,27 @@ window.__ModuleLoader__.load({
             h('svg', { viewBox: `0 0 ${BARS} 40`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.calls.strip') },
               bars.map((bar, index) => h('rect', {
                 key: index, x: index + 0.12, width: 0.76, y: 40 - Math.max(1.5, (bar.ms / maxMs) * 38), height: Math.max(1.5, (bar.ms / maxMs) * 38),
-                className: `ws-bar-${bar.result === 'ok' ? 'ok' : bar.result === 'cancelled' ? 'cancel' : bar.result === 'timeout' ? 'timeout' : 'bad'}${bar.seq === callFocus ? ' ws-bar-focus' : ''}`,
+                className: `ws-bar-${bar.result === 'ok' ? 'ok' : (bar.result === 'cancelled' || bar.result === 'cached') ? 'cancel' : bar.result === 'timeout' ? 'timeout' : 'bad'}${bar.seq === callFocus ? ' ws-bar-focus' : ''}`,
                 onClick: () => { followLog.current = false; setLogPinned(true); setCallFocus(bar.seq) },
               }, h('title', {}, `${hhmmss(new Date(bar.at))} · ${secs(bar.ms)} · ${t(`ws.calls.r.${bar.result}`)}`)))),
             h('div', { className: 'ws-strip-axis' }, h('span', {}, hhmmss(new Date(entries[0].at))), h('span', {}, `max ${secs(maxMs)}`), h('span', {}, hhmmss(new Date(entries[entries.length - 1].at)))))
           return h(React.Fragment, {},
+            h('div', { className: 'ws-calls-top' },
             strip,
             h('div', { className: 'ws-calls-sum' },
               h('span', {}, t('ws.calls.count', { count: entries.length })),
               h('span', {}, `${t('ws.calls.avg')} ${secs(avg)}`),
               h('span', {}, `P95 ${secs(p95)}`),
               h('span', {}, `Token ${compact(tokens)}`),
+              callFit.n > 0 ? h('span', { title: callFit.gen === null ? t('ws.m.fitFew', { n: callFit.n }) : t('ws.m.fitHint', { n: callFit.n }) }, t('ws.calls.fit', { gen: fmtSpeed(callFit.gen), prompt: fmtSpeed(callFit.prompt) })) : null,
               h('span', { className: timeouts ? 'ws-c-bad' : '' }, `${t('ws.calls.timeout')} ${timeouts}`),
               h('span', { className: failed ? 'ws-c-bad' : '' }, `${t('ws.calls.failed')} ${failed}`),
-              entries.length > shown.length ? h('span', {}, t('ws.calls.latest', { count: shown.length })) : null),
+              replayed ? h('span', {}, `${t('ws.calls.r.cached')} ${replayed}`) : null,
+              entries.length > shown.length ? h('span', {}, t('ws.calls.latest', { count: shown.length })) : null)),
             h('table', { className: 'ma-table ws-table ws-calls' },
               h('thead', {}, h('tr', {},
                 h('th', {}, t('runs.time')), h('th', {}, t('runs.file')), h('th', {}, t('ws.station')), h('th', {}, t('runs.rounds')),
-                h('th', {}, t('ws.calls.segments')), h('th', {}, t('ws.calls.ms')), h('th', {}, 'Token'), h('th', {}, t('runs.status')))),
+                h('th', {}, t('ws.calls.segments')), h('th', {}, t('ws.calls.ms')), h('th', {}, 'Token'), h('th', {}, t('ws.calls.io')), h('th', {}, t('runs.status')))),
               h('tbody', {}, shown.map((entry) => h('tr', { key: entry.seq, id: `ws-call-${entry.seq}`, className: `${entry.ms > p95 * 1.5 && entry.ms > 5000 ? 'ws-slow' : ''}${entry.seq === callFocus ? ' ws-focus' : ''}` },
                 h('td', { className: 'ma-mono' }, hhmmss(new Date(entry.at))),
                 h('td', { className: 'ma-mono', title: entry.file }, entry.file),
@@ -2342,7 +3386,8 @@ window.__ModuleLoader__.load({
                 h('td', {}, String(entry.segments)),
                 h('td', { className: 'ma-mono' }, secs(entry.ms)),
                 h('td', { className: 'ma-mono' }, entry.tokens ? compact(entry.tokens) : '—'),
-                h('td', {}, h('span', { className: entry.result === 'ok' ? 'ma-chip ma-ok' : entry.result === 'cancelled' ? 'ma-chip' : 'ma-chip ma-bad' }, t(`ws.calls.r.${entry.result}`) === `ws.calls.r.${entry.result}` ? entry.result : t(`ws.calls.r.${entry.result}`))))))))
+                h('td', { className: 'ma-mono' }, entry.out ? `${compact(entry.in || 0)} / ${entry.out}` : '—'),
+                h('td', {}, h('span', { className: entry.result === 'ok' ? 'ma-chip ma-ok' : (entry.result === 'cancelled' || entry.result === 'cached') ? 'ma-chip' : 'ma-chip ma-bad' }, t(`ws.calls.r.${entry.result}`) === `ws.calls.r.${entry.result}` ? entry.result : t(`ws.calls.r.${entry.result}`))))))))
         }
         if (drawer === 'warn') {
           const warnings = current.warnings ?? []
@@ -2372,6 +3417,172 @@ window.__ModuleLoader__.load({
             try { services.ctx.get('uiWorkspace').openSession(source.sessionId) } catch (cause) { setError(message(cause)) }
           },
         }, `${label} ↗`)
+      }
+
+      async function bulkReview(action) {
+        const ids = (reviewData?.files ?? []).flatMap((file) => file.items)
+          .filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code) && (action === 'accept' || item.code === 'opaque'))
+          .map((item) => item.id)
+        if (ids.length === 0) return
+        setReviewBusy('bulk')
+        setReviewNote(null)
+        try {
+          const result = await call('reviewBulk', { runId: adviceRunId, itemIds: ids, action })
+          await loadReview(adviceRunId)
+          setCompareFiles({})
+          if (result.completed) {
+            reportLoaded.current.delete(adviceRunId)
+            setDetail(null)
+            setReportText('')
+            setReviewNote({ ok: true, text: t('ws.rv.allDone') })
+            await refreshRuns()
+          } else {
+            setReviewNote({ ok: true, text: t('ws.rv.bulkDone', { count: result.decided }) })
+          }
+        } catch (cause) {
+          setReviewNote({ ok: false, text: message(cause) })
+        } finally {
+          setReviewBusy(null)
+        }
+      }
+
+      const reviewCard = (file, item) => h('div', { key: item.id, className: `ws-rv-item${item.decision ? ' ws-rv-done' : ''}` },
+        h('div', { className: 'ws-rv-meta' },
+          h('span', { className: 'ws-rv-code' }, t(`ws.rv.code.${item.code}`) === `ws.rv.code.${item.code}` ? item.code : t(`ws.rv.code.${item.code}`)),
+          item.type ? h('b', {}, item.type) : null,
+          item.field ? h('span', { className: 'ma-mono' }, item.field) : null),
+        item.text
+          ? h('div', { className: 'ws-rv-ctx' }, item.before, h('mark', {}, item.text), item.after)
+          : h('div', { className: 'ws-rv-ctx ws-rv-plain' }, item.detail),
+        item.decision
+          ? h('div', { className: 'ws-rv-result' }, item.decision.action === 'replace'
+            ? t('ws.rv.replaced', { to: item.decision.replacement, count: item.decision.count })
+            : item.decision.action === 'remove' ? t('ws.rv.removed')
+              : item.decision.action === 'allow' ? t('ws.rv.allowed') : t('ws.rv.accepted'))
+          : OPAQUE_REVIEW.has(item.code)
+            ? h('div', { className: 'ma-actions' },
+              item.code === 'opaque'
+                ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable, title: file.editable ? t('ws.rv.removeHint') : file.reason, onClick: () => decideReview(file, item, 'remove') }, reviewBusy === item.id ? t('save.saving') : t('ws.rv.remove'))
+                : null,
+              h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.keepOpaque')))
+            : h('div', { className: 'ma-actions' },
+            h('button', {
+              className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable || !item.text,
+              title: !item.text ? t('ws.rv.noText') : file.editable ? '' : file.reason, onClick: () => decideReview(file, item, 'replace'),
+            }, reviewBusy === item.id ? t('save.saving') : (item.replacement ? t('ws.rv.replaceWith', { to: item.replacement }) : t('ws.rv.replace'))),
+            item.text ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || anyRunning, title: t('ws.rv.allowHint'), onClick: () => decideReview(file, item, 'allow') }, t('ws.rv.allow')) : null,
+            h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept'))))
+
+      const compareBody = () => {
+        let list = adviceRunId ? compareByRun[adviceRunId] : undefined
+        if (list === undefined) return h('p', { className: 'ma-empty' }, t('detail.loading'))
+        if (!Array.isArray(list)) list = []
+        if (list.length === 0 && !(reviewData?.files?.length)) return h('p', { className: 'ma-empty' }, t('ws.cmp.none'))
+        const reviewByPath = new Map((reviewData?.files ?? []).map((file) => [file.relPath, file]))
+        const openOf = (relPath) => (reviewByPath.get(relPath)?.items ?? []).filter((item) => !item.decision).length
+        const listed = new Set(list.map((entry) => entry.relPath))
+        const extra = (reviewData?.files ?? []).filter((file) => !listed.has(file.relPath))
+          .map((file) => ({ n: `rv:${file.relPath}`, relPath: file.relPath, status: 'review', changed: 0, total: 0, reviewOnly: true }))
+        list = [...extra, ...list]
+        const shown = list.filter((entry) => compareFilter === 'all' ? true
+          : compareFilter === 'changed' ? entry.changed > 0
+            : reviewByPath.has(entry.relPath))
+        const position = shown.findIndex((entry) => entry.n === compareSel)
+        // The open file always belongs to the current filter.
+        const selected = (position >= 0 ? shown[position] : shown[0]) ?? null
+        if (selected && selected.n !== compareSel) Promise.resolve().then(() => setCompareSel(selected.n))
+        const go = (step) => {
+          if (shown.length === 0) return
+          const next = shown[Math.min(shown.length - 1, Math.max(0, (position < 0 ? 0 : position) + step))]
+          setCompareSel(next.n)
+          setCompareShow(300)
+        }
+        const data = selected ? compareFiles[`${adviceRunId}:${selected.n}`] : undefined
+        const reviewFile = selected ? reviewByPath.get(selected.relPath) : null
+        const flags = (reviewFile?.items ?? []).filter((item) => !item.decision && item.text).map((item) => item.text)
+        const dir = (path) => path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
+        const name = (path) => path.slice(path.lastIndexOf('/') + 1)
+        const pane = () => {
+          if (!selected) return h('p', { className: 'ma-empty' }, t('ws.cmp.pick'))
+          if (selected.reviewOnly) {
+            return reviewFile
+              ? h('div', { className: 'ws-cmp-review' }, reviewFile.items.map((item) => reviewCard(reviewFile, item)))
+              : h('p', { className: 'ma-empty' }, t('ws.cmp.pick'))
+          }
+          if (selected.skipped) return h('p', { className: 'ma-empty' }, t(`ws.cmp.skipped.${selected.skipped}`))
+          if (data === undefined) return h('p', { className: 'ma-empty' }, t('detail.loading'))
+          if (data.error) return h('p', { className: 'ma-hint ma-error' }, data.error)
+          const rows = data.changes ?? []
+          const full = data.all === true
+          const visible = compareRows === 'changed' ? rows.filter((row) => !row.same || row.flagged) : rows
+          return h(React.Fragment, {},
+            reviewFile ? h('div', { className: 'ws-cmp-review' }, reviewFile.items.map((item) => reviewCard(reviewFile, item))) : null,
+            h('div', { className: 'ws-cmp-rowbar' },
+              h('span', { className: 'ma-hint' }, full ? t('ws.cmp.legend') : t('ws.cmp.legacy'))),
+            visible.length === 0
+              ? h('p', { className: 'ma-empty' }, rows.length === 0 ? t('ws.cmp.empty') : t('ws.cmp.nochange'))
+              : h('table', { className: 'ws-cmp-table' },
+                h('thead', {}, h('tr', {}, h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
+                h('tbody', {}, visible.slice(0, compareShow).map((change, row) => {
+                  const after = change.same ? change.before : change.after
+                  const flaggedRow = change.flagged && flags.some((flag) => after.includes(flag))
+                  if (change.same) {
+                    return h('tr', { key: change.id ?? row, className: `ws-cmp-same${flaggedRow ? ' ws-cmp-flagged' : ''}` },
+                      h('td', { className: 'ws-cmp-field' }, change.field ?? '—'),
+                      h('td', {}, change.before),
+                      h('td', {}, markSuspects(after, flags, `s${row}`)))
+                  }
+                  const ops = diffTexts(change.before, after)
+                  return h('tr', { key: change.id ?? row, className: flaggedRow ? 'ws-cmp-flagged' : '' },
+                    h('td', { className: 'ws-cmp-field' }, change.field ?? '—'),
+                    h('td', {}, ops.filter((op) => op.t !== 'ins').map((op, i) => op.t === 'del' ? h('del', { key: i }, op.s) : h(React.Fragment, { key: i }, op.s))),
+                    h('td', {}, ops.filter((op) => op.t !== 'del').map((op, i) => op.t === 'ins' ? h('ins', { key: i }, op.s) : h(React.Fragment, { key: i }, markSuspects(op.s, flags, `${row}-${i}`)))))
+                }))),
+            visible.length > compareShow ? h('button', { className: 'ma-btn ma-small ws-cmp-more', onClick: () => setCompareShow(compareShow + 300) }, t('ws.cmp.more', { shown: compareShow, total: visible.length })) : null,
+            selected.truncated ? h('p', { className: 'ma-hint' }, t('ws.cmp.truncated', { shown: selected.truncated, total: selected.total })) : null)
+        }
+        return h('div', { className: 'ws-cmp', tabIndex: 0, onKeyDown: (event) => {
+          if (event.target.tagName === 'INPUT') return
+          if (event.key === 'ArrowDown' || event.key === 'j') { event.preventDefault(); go(1) }
+          if (event.key === 'ArrowUp' || event.key === 'k') { event.preventDefault(); go(-1) }
+        } },
+          h('aside', { className: 'ws-cmp-side' },
+            (() => {
+              const pending = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code))
+              if (pending.length === 0) return null
+              const removable = pending.filter((item) => item.code === 'opaque').length
+              return h('div', { className: 'ws-cmp-bulk' },
+                h('span', {}, t('ws.rv.bulkTitle', { count: pending.length })),
+                h('div', { className: 'ma-actions' },
+                  removable ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null, onClick: () => bulkReview('remove') }, reviewBusy === 'bulk' ? t('save.saving') : t('ws.rv.bulkRemove', { count: removable })) : null,
+                  h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, onClick: () => bulkReview('accept') }, t('ws.rv.bulkKeep'))))
+            })(),
+            h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'review'].map((id) => h('button', {
+              key: id, type: 'button', className: `ws-cmp-filter${compareFilter === id ? ' ws-on' : ''}`, onClick: () => setCompareFilter(id),
+            }, t(`ws.cmp.f.${id}`), h('i', {}, String(id === 'all' ? list.length : id === 'changed' ? list.filter((entry) => entry.changed > 0).length : list.filter((entry) => reviewByPath.has(entry.relPath)).length))))),
+            h('div', { className: 'ws-cmp-list' }, shown.map((entry) => {
+              const open = openOf(entry.relPath)
+              return h('button', {
+                key: entry.n, type: 'button', className: `ws-cmp-item${entry.n === selected?.n ? ' ws-on' : ''}`, title: entry.relPath,
+                onClick: () => { setCompareSel(entry.n); setCompareShow(300) },
+              },
+                h('span', { className: `ws-cmp-dot ws-p-${open > 0 ? 'review' : entry.status}` }),
+                h('span', { className: 'ws-cmp-name' }, h('b', {}, name(entry.relPath)), dir(entry.relPath) ? h('small', {}, dir(entry.relPath)) : null),
+                open > 0 ? h('span', { className: 'ws-count ws-count-bad' }, String(open)) : h('span', { className: 'ma-mono ws-cmp-n' }, String(entry.changed)))
+            }))),
+          h('section', { className: 'ws-cmp-main' },
+            h('div', { className: 'ws-cmp-bar' },
+              h('span', { className: 'ma-mono ws-cmp-path', title: selected?.relPath ?? '' }, selected?.relPath ?? ''),
+              selected ? h('span', { className: 'ma-hint' }, t('ws.cmp.stats', { changed: selected.changed, total: selected.total })) : null,
+              // Stays in the fixed bar, so it is reachable however far the table is scrolled.
+              h('label', { className: 'ma-check ws-cmp-only', title: t('ws.cmp.onlyHint') },
+                h('input', { type: 'checkbox', checked: compareRows === 'changed', onChange: (event) => { setCompareRows(event.target.checked ? 'changed' : 'all'); setCompareShow(300) } }),
+                t('ws.cmp.only')),
+              h('span', { className: 'ma-mono' }, shown.length ? `${position < 0 ? '—' : position + 1} / ${shown.length}` : ''),
+              h('button', { className: 'ma-btn ma-small', disabled: position <= 0, onClick: () => go(-1) }, `↑ ${t('ws.cmp.prev')}`),
+              h('button', { className: 'ma-btn ma-small', disabled: position < 0 || position >= shown.length - 1, onClick: () => go(1) }, `↓ ${t('ws.cmp.next')}`)),
+            reviewNote ? h('p', { className: reviewNote.ok ? 'ma-hint ma-ok' : 'ma-hint ma-error' }, reviewNote.text) : null,
+            h('div', { className: 'ws-cmp-pane' }, pane())))
       }
 
       const advicePanel = () => {
@@ -2419,7 +3630,9 @@ window.__ModuleLoader__.load({
         return h('section', { className: 'ws-panel ws-advice' },
           h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C3' }, t('ws.adv.title')),
             h('span', { className: `ws-tag${pending > 0 ? ' ws-tag-hot' : ''}` }, String(pending))),
-          ...body)
+          // C3 takes the space left in the column and scrolls inside, so the
+          // column itself never needs a scrollbar.
+          h('div', { className: 'ws-adv-body' }, ...body))
       }
 
       return h('div', { className: 'ma-page ws-page', ref: rootRef },
@@ -2436,18 +3649,19 @@ window.__ModuleLoader__.load({
             h('div', {},
               h('b', {}, lineStatus === 'idle' ? t('ws.idle') : t(`status.${lineStatus}`)),
               h('span', { className: 'ma-mono' }, current?.id ?? '—'),
-              current?.source ? sourceLabel(current.source) : null)),
+              current?.resumedFrom
+                ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
+                : (current?.source ? sourceLabel(current.source) : null))),
           h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           running
-            ? h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.remaining')), h('b', {}, `${remaining}`))
+            ? null
             : h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.progress')), h('b', {}, `${done}/${planned || '—'}`)),
-          running
-            ? h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.eta')), h('b', {}, etaMs === null ? '--:--:--' : clock(etaMs)))
-            : null,
           h('div', { className: 'ws-head-actions' },
             running
               ? h('button', { className: 'ma-btn ws-stop', onClick: cancelRun, disabled: cancelling }, cancelling ? t('run.cancelling') : t('ws.stop'))
-              : null)),
+              : (current?.resumable && !anyRunning
+                ? h('button', { className: 'ma-btn ws-resume', onClick: resumeRun, disabled: busy, title: t('ws.resumeHint') }, busy ? t('form.starting') : `▶ ${t('ws.resume')}`)
+                : null))),
         error ? h('div', { className: 'ma-banner' }, `${t('error.title')}: ${error}`, h('button', { className: 'ma-link', style: { marginLeft: 8 }, onClick: () => setError('') }, '×')) : null,
 
         h('div', { className: 'ws-grid' },
@@ -2457,7 +3671,16 @@ window.__ModuleLoader__.load({
               h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'A1' }, t('ws.feed')), h('span', { className: 'ws-tag' }, 'INPUT')),
               h('label', { className: 'ma-field' }, t('form.input'),
                 h('div', { className: 'ma-inline' },
-                  h('input', { className: 'ma-input', value: inputDir, onChange: (event) => setInputDir(event.target.value), placeholder: t('form.inputPlaceholder'), title: inputDir })),
+                  pickedInputs.length > 0
+                    ? h('div', { className: 'ws-picked', title: pickedInputs.join('\n') },
+                      h('div', { className: 'ws-picked-head' },
+                        h('b', {}, t('ws.picked', { count: pickedInputs.length })),
+                        h('span', { className: 'ma-mono' }, baseName(pickedInputs[0].replace(/\/[^/]+$/, ''))),
+                        h('button', { type: 'button', className: 'ma-link', onClick: () => setPickedInputs([]) }, t('ws.pickedClear'))),
+                      h('div', { className: 'ws-picked-list' }, pickedInputs.map((path) => h('span', { key: path, className: 'ws-picked-item' },
+                        baseName(path),
+                        h('button', { type: 'button', 'aria-label': t('ws.pickedRemove'), onClick: () => { const next = pickedInputs.filter((item) => item !== path); applyPicked(next.length ? next : []); if (!next.length) setPickedInputs([]) } }, '×')))))
+                    : h('input', { className: 'ma-input', value: inputDir, onChange: (event) => setInputDir(event.target.value), placeholder: t('form.inputPlaceholder'), title: inputDir })),
                 h('div', { className: 'ws-pick' },
                   h('button', { className: 'ma-btn ma-small', onClick: browse }, t('ws.pickDir')),
                   h('button', { className: 'ma-btn ma-small', onClick: browseFile }, t('ws.pickFile')))),
@@ -2469,6 +3692,9 @@ window.__ModuleLoader__.load({
             h('section', { className: 'ws-panel ws-grow' },
               h('div', { className: 'ws-panel-head' },
                 h('h3', { 'data-code': 'A2' }, t('runs.title')),
+                runs.some((run) => run.status !== 'running')
+                  ? h('button', { className: 'ma-btn ma-small ws-clear', onClick: () => setDeleting({ all: true, deliverable: false, busy: false, error: '' }) }, t('ws.del.clear'))
+                  : null,
                 h('button', { className: 'ma-btn ma-small', onClick: refreshRuns }, t('runs.refresh'))),
               runs.length === 0
                 ? h('p', { className: 'ma-empty' }, t('runs.empty'))
@@ -2479,7 +3705,7 @@ window.__ModuleLoader__.load({
                   onKeyDown: (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRun(run.id) } },
                 },
                   h('div', { className: 'ws-run-top' },
-                    h('span', { className: 'ws-run-name', title: run.inputDir ?? '' }, baseName(run.inputDir) || run.id),
+                    h('span', { className: 'ws-run-name', title: run.selection?.length ? run.selection.join('\n') : (run.inputDir ?? '') }, run.selection?.length > 1 ? t('ws.pickedName', { first: run.selection[0], count: run.selection.length }) : (baseName(run.inputDir) || run.id)),
                     h('span', { className: statusClass(run.status) }, t(`status.${run.status}`)),
                     run.status !== 'running'
                       ? h('button', {
@@ -2489,6 +3715,8 @@ window.__ModuleLoader__.load({
                       : null),
                   h('div', { className: 'ws-run-meta' },
                     h('span', {}, `${formatTime(run.startedAt)}${run.source ? ` · ${t(`ws.src.${run.source.kind}`)}` : ''}`),
+                    run.resumedFrom ? h('span', { className: 'ws-run-resume', title: run.resumedFrom }, t('ws.resumedFrom', { id: run.resumedFrom.slice(-6) })) : null,
+                    run.resumedBy ? h('span', { className: 'ws-run-resume', title: run.resumedBy }, t('ws.resumedBy', { id: run.resumedBy.slice(-6) })) : null,
                     h('span', {}, `${run.files ?? 0} ${t('ws.unitFiles')} · ${run.entities ?? 0} ${t('ws.unitEntities')}${run.unresolved ? ` · ⚠ ${run.unresolved}` : ''}`))))))),
 
           // ── Center: the line ──
@@ -2501,12 +3729,19 @@ window.__ModuleLoader__.load({
                   h('i', { className: 'ws-k-active' }), t('ws.kActive'),
                   h('i', { className: 'ws-k-done' }), t('ws.kDone'),
                   h('i', { className: 'ws-k-idle' }), t('ws.kIdle'))),
-              h(LineSchematic, { load, reached, running, inflight, maxRounds: Number(current?.config?.maxRounds ?? config?.maxRounds ?? 3), t }),
+              h(LineSchematic, {
+                load, states: stationStates, notes: stationNotes, running, inflight, rounds, dicom: dicomBypass, t,
+                maxRounds: Number(current?.config?.maxRounds ?? config?.maxRounds ?? 3),
+                onStation: {
+                  ...(stationStates.review === 'warn' && adviceRunId ? { review: () => openCompare({ filter: 'review' }), deliver: () => openCompare({ filter: 'review' }) } : {}),
+                  ...((!verifierName || verifierName === detectorName) && !anyRunning ? { blind: () => setModal('settings') } : {}),
+                },
+              }),
               h('div', { className: 'ws-conveyor-head' },
                 h('span', {}, t('ws.conveyor')),
-                h('span', { className: 'ma-mono' }, `${percent}%`)),
+                h('span', { className: 'ma-mono' }, t('ws.queueCount', { done, total: planned || '—' }))),
               h('div', { className: 'ws-bar' }, h('div', { className: 'ws-bar-fill', style: { width: `${percent}%` } })),
-              h('div', { className: 'ws-pieces', ref: piecesRef, onScroll: onPiecesScroll }, workpieces())),
+              h('div', { className: 'ws-pieces', ref: piecesRef }, workpieces())),
             h('div', { className: 'ws-twin' },
               h('section', { className: 'ws-panel' },
                 h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'B2' }, t('ws.byType')), h('span', { className: 'ma-mono' }, compact(totals.entities ?? 0))),
@@ -2517,7 +3752,12 @@ window.__ModuleLoader__.load({
                     h('div', { className: 'ws-bar ws-thin' }, h('div', { className: 'ws-bar-fill', style: { width: `${(value / maxType) * 100}%` } })),
                     h('b', { className: 'ma-mono' }, String(value)))))),
               h('section', { className: 'ws-panel' },
-                h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'B3' }, t('ws.quality')), h('span', { className: 'ma-mono' }, `${done}`)),
+                h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'B3' }, t('ws.quality')),
+                  adviceRunId && (reviewOpen > 0 || Array.isArray(compareByRun[adviceRunId]))
+                    ? h('button', { className: `ma-link ws-more${reviewOpen > 0 ? ' ws-more-hot' : ''}`, onClick: () => openCompare({ filter: reviewOpen > 0 ? 'review' : null }) },
+                      `${reviewOpen > 0 ? t('ws.cmp.openReview', { count: reviewOpen }) : t('ws.cmp.open')} →`)
+                    : null,
+                  h('span', { className: 'ma-mono' }, `${done}`)),
                 h('div', { className: 'ws-qbar' },
                   ['clean', 'review', 'failed'].map((key) => counts[key] > 0
                     ? h('div', { key, className: `ws-q-${key}`, style: { flex: counts[key] }, title: `${t(`file.${key}`)} ${counts[key]}` })
@@ -2530,7 +3770,12 @@ window.__ModuleLoader__.load({
                     h('span', { className: 'ma-mono', title: current.review.dir }, current.review.dir),
                     h('button', { className: 'ma-btn ma-small', onClick: () => navigator.clipboard?.writeText(current.review.dir) }, t('ws.copy')))
                   : null,
-                current?.output || current?.runDir
+                current?.withheld
+                  ? h('div', { className: 'ws-path' },
+                    h('span', { className: 'ws-path-tag ws-path-warn' }, t('ws.withheldTag')),
+                    h('span', { className: 'ma-hint' }, t('ws.withheld')))
+                  : null,
+                !current?.withheld && (current?.output || current?.runDir)
                   ? h('div', { className: 'ws-path' },
                     h('span', { className: 'ws-path-tag' }, current.output ? t('ws.result') : t('ws.records')),
                     h('span', { className: 'ma-mono', title: current.output ?? current.runDir }, current.output ?? current.runDir),
@@ -2546,7 +3791,8 @@ window.__ModuleLoader__.load({
                   setDrawer(id)
                 },
               }, t(`ws.tab.${id}`),
-              id === 'warn' && (current?.warnings?.length ?? 0) > 0 ? h('span', { className: 'ws-count' }, String(current.warnings.length)) : null))),
+              id === 'warn' && (current?.warnings?.length ?? 0) > 0 ? h('span', { className: 'ws-count' }, String(current.warnings.length)) : null,
+              null))),
               h('div', { className: 'ws-drawer-wrap' },
                 h('div', { className: 'ws-drawer-body', ref: drawerRef, onScroll: onDrawerScroll }, drawerBody()),
                 (drawer === 'log' || drawer === 'calls') && logPinned
@@ -2558,38 +3804,62 @@ window.__ModuleLoader__.load({
             h('section', { className: 'ws-panel' },
               h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C1' }, t('ws.monitor')), h('span', { className: `ws-tag${running ? ' ws-live' : ''}` }, running ? 'LIVE' : 'IDLE')),
               h('div', { className: 'ws-mon-top' },
-                h('div', { className: 'ws-gauge', style: { '--ws-pct': `${percent * 3.6}deg` } },
-                  h('div', { className: 'ws-gauge-in' }, h('b', {}, `${percent}`), h('span', {}, '%'))),
+                h('div', { className: 'ws-gauge-wrap', title: plannedBytes > 0 ? t('ws.gaugeHint') : t('ws.gaugeHintFiles') },
+                  h('div', { className: 'ws-gauge', style: { '--ws-pct': `${bytePercent * 3.6}deg` } },
+                    h('div', { className: 'ws-gauge-in' }, h('b', {}, `${bytePercent}`), h('span', {}, '%'))),
+                  h('div', { className: 'ws-gauge-cap' }, plannedBytes > 0 ? `${fmtBytes(Math.min(processedBytes, plannedBytes))} / ${fmtBytes(plannedBytes)}` : t('ws.byFiles'))),
                 h('div', { className: 'ws-model' },
-                h('div', {}, h('span', {}, t('ws.model')), h('b', { className: 'ma-mono', title: config?.baseURL ?? '' }, modelName)),
-                h('span', { className: 'ma-mono ws-endpoint', title: config?.baseURL ?? '' }, config?.model ? config.baseURL : ''),
-                config?.model
-                  ? h('div', { className: 'ws-ping' },
-                    h('button', { className: 'ma-btn ma-small', onClick: testModel, disabled: ping?.pending }, ping?.pending ? t('model.testing') : t('model.test')),
-                    ping && !ping.pending
-                      ? h('span', { className: ping.ok && (ping.models ?? []).includes(config.model) ? 'ma-hint ma-ok' : 'ma-hint ma-error' },
-                        ping.ok ? ((ping.models ?? []).includes(config.model) ? t('ws.online') : t('model.missing', { model: config.model })) : t('model.fail', { error: ping.error }))
-                      : null)
-                  : null)),
+                h('div', {}, h('span', {}, config?.model ? modelDot(ping?.detect, config.model) : null, t('ws.model')), h('b', { className: 'ma-mono', title: config?.baseURL ?? '' }, modelName)),
+                config?.verifyModel ? h('div', {}, h('span', {}, modelDot(ping?.verify, config.verifyModel), t('ws.verifyModel')), h('b', { className: 'ma-mono', title: config.verifyBaseURL || config.baseURL || '' }, config.verifyModel)) : null)),
               spark(),
+              // Business results: what the batch produced.
+              h('div', { className: 'ws-subhead' }, h('span', {}, t('ws.m.groupResult')),
+                h('span', { className: 'ma-mono', title: t('ws.m.chunksHint') }, `${t('ws.m.chunks')} ${current?.chunks ?? '—'}`)),
               h('div', { className: 'ws-readouts' },
                 readout(t('ws.m.entities'), compact(totals.entities ?? 0)),
-                readout(t('ws.m.calls'), compact(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0))),
+                readout(t('ws.m.mappings'), compact(totals.newMappings ?? 0), '', t('ws.m.mappingsHint')),
                 readout(t('ws.m.review'), String(totals.unresolved ?? 0), (totals.unresolved ?? 0) > 0 ? 'warn' : ''),
                 readout(t('ws.m.failed'), String(totals.filesFailed ?? 0), (totals.filesFailed ?? 0) > 0 ? 'bad' : '')),
-              h('div', { className: 'ws-minor' },
-                h('span', { title: t('ws.m.tokensHint') }, `${t('ws.m.tokens')} ${totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0')}`),
-                h('span', { title: t('ws.m.mappingsHint') }, `${t('ws.m.mappings')} ${compact(totals.newMappings ?? 0)}`),
-                h('span', {}, `${t('ws.m.chunks')} ${current?.chunks ?? '—'}`),
-                current?.memory?.heapLimit ? (() => {
+              // Technical: model usage, throughput and process resources.
+              h('div', { className: 'ws-subhead' }, h('span', {}, t('ws.m.groupTech'))),
+              (() => {
+                // Secondary readouts: one aligned label/value grid instead of
+                // a wrapping run of text.
+                const rows = []
+                const row = (label, value, extra = {}) => rows.push(h('div', { key: label, className: `ws-kv${extra.tone ? ` ws-kv-${extra.tone}` : ''}`, title: extra.title ?? '' }, h('span', {}, label), h('b', {}, value)))
+                // Request slots first, so 识别 and 核验 share the first row of
+                // the two-column grid. Value: in flight/limit, "+N" queued.
+                const slots = (r) => `${r.active}/${r.limit}${r.queued > 0 ? ` +${r.queued}` : ''}`
+                const slotTone = (r) => (r.active < r.limit && r.queued === 0 ? 'warn' : '')
+                if (running && current?.requests?.detect) {
+                  const r = current.requests.detect
+                  const v = current.requests.verify
+                  row(v ? t('ws.m.reqDetect') : t('ws.m.req'), slots(r), { title: t('ws.m.reqHint'), tone: slotTone(r) })
+                  if (v) row(t('ws.m.reqVerify'), slots(v), { title: t('ws.m.reqHint'), tone: slotTone(v) })
+                }
+                row(t('ws.m.calls'), compact(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0)))
+                if (totals.replayedCalls) row(t('ws.m.replayed'), compact(totals.replayedCalls), { title: t('ws.m.replayedHint') })
+                if (totals.memoHits) row(t('ws.m.memo'), compact(totals.memoHits), { title: t('ws.m.memoHint') })
+                row(t('ws.m.tokens'), totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0'), { title: t('ws.m.tokensHint') })
+                const outTokens = Number(totals.outTokens ?? 0)
+                if (outTokens) {
+                  const fit = fitSpeed(totals.speedFit)
+                  const overall = elapsed > 0 ? outTokens / (elapsed / 1000) : 0
+                  const fitHint = fit.gen === null ? t('ws.m.fitFew', { n: fit.n }) : t('ws.m.fitHint', { n: fit.n })
+                  row(t('ws.m.speedGen'), fmtSpeed(fit.gen), { title: fitHint })
+                  row(t('ws.m.speedPrompt'), fmtSpeed(fit.prompt), { title: fitHint })
+                  row(t('ws.m.speedTotal'), overall.toFixed(1), { title: t('ws.m.totalHint') })
+                }
+                if (current?.memory?.heapLimit) {
                   const m = current.memory
-                  const gb = (bytes) => (bytes / 1024 ** 3).toFixed(1)
                   const ratio = m.peakHeap / m.heapLimit
-                  return h('span', {
-                    className: ratio >= 0.85 ? 'ws-mem ws-mem-bad' : ratio >= 0.7 ? 'ws-mem ws-mem-warn' : 'ws-mem',
-                    title: t('ws.m.memHint'),
-                  }, t('ws.m.mem', { now: gb(running ? m.heapUsed : m.peakHeap), peak: gb(m.peakHeap), limit: gb(m.heapLimit), pct: Math.round(ratio * 100) }))
-                })() : null)),
+                  row(t('ws.m.memory'), `${((running ? m.heapUsed : m.peakHeap) / 1024 ** 3).toFixed(1)} / ${(m.heapLimit / 1024 ** 3).toFixed(1)} GB`, {
+                    tone: ratio >= 0.85 ? 'bad' : ratio >= 0.7 ? 'warn' : '',
+                    title: `${t('ws.m.mem', { now: ((running ? m.heapUsed : m.peakHeap) / 1024 ** 3).toFixed(1), peak: (m.peakHeap / 1024 ** 3).toFixed(1), limit: (m.heapLimit / 1024 ** 3).toFixed(1), pct: Math.round(ratio * 100) })}\n${t('ws.m.memHint')}`,
+                  })
+                }
+                return h('div', { className: 'ws-minor' }, rows)
+              })()),
             h('section', { className: 'ws-panel' },
               h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C2' }, t('ws.params')), anyRunning
                   ? h('span', { className: 'ws-tag' }, t('ws.locked'))
@@ -2615,23 +3885,26 @@ window.__ModuleLoader__.load({
             advicePanel())),
         deleting ? h('div', { className: 'ws-modal-back', onMouseDown: (event) => { if (event.target === event.currentTarget && !deleting.busy) setDeleting(null) } },
           h('div', { className: 'ws-modal ws-modal-del', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': t('ws.del.title') },
-            h('div', { className: 'ws-modal-head' }, h('h3', {}, t('ws.del.title'))),
+            h('div', { className: 'ws-modal-head' }, h('h3', {}, deleting.all ? t('ws.del.clearTitle') : t('ws.del.title'))),
             h('div', { className: 'ws-modal-body ws-del' },
-              h('p', {}, h('b', {}, baseName(deleting.run.inputDir) || deleting.run.id), h('span', { className: 'ma-mono' }, ` · ${deleting.run.id}`)),
-              h('p', { className: 'ma-hint' }, t('ws.del.records')),
+              deleting.all
+                ? h('p', {}, h('b', {}, t('ws.del.allCount', { count: runs.filter((run) => run.status !== 'running').length })), activeRunId ? h('span', { className: 'ma-hint' }, ` ${t('ws.del.keepRunning')}`) : null)
+                : h('p', {}, h('b', {}, baseName(deleting.run.inputDir) || deleting.run.id), h('span', { className: 'ma-mono' }, ` · ${deleting.run.id}`)),
+              h('p', { className: 'ma-hint' }, deleting.all ? t('ws.del.allRecords') : t('ws.del.records')),
               h('label', { className: 'ma-check' },
-                h('input', { type: 'checkbox', checked: deleting.deliverable, disabled: !deleting.run.output, onChange: (event) => setDeleting({ ...deleting, deliverable: event.target.checked }) }),
-                deleting.run.output ? t('ws.del.deliverable', { path: deleting.run.output }) : t('ws.del.noDeliverable')),
+                h('input', { type: 'checkbox', checked: deleting.deliverable, disabled: !deleting.all && !deleting.run.output, onChange: (event) => setDeleting({ ...deleting, deliverable: event.target.checked }) }),
+                deleting.all ? t('ws.del.allDeliverable') : deleting.run.output ? t('ws.del.deliverable', { path: deleting.run.output }) : t('ws.del.noDeliverable')),
               h('p', { className: 'ma-hint' }, t('ws.del.vault')),
               deleting.error ? h('p', { className: 'ma-hint ma-error' }, deleting.error) : null,
               h('div', { className: 'ma-actions ws-del-actions' },
                 h('button', { className: 'ma-btn', disabled: deleting.busy, onClick: () => setDeleting(null) }, t('ws.del.cancel')),
-                h('button', { className: 'ma-btn ws-del-go', disabled: deleting.busy, onClick: confirmDelete }, deleting.busy ? t('ws.del.busy') : t('ws.del.go'))))))
+                h('button', { className: 'ma-btn ws-del-go', disabled: deleting.busy, onClick: confirmDelete }, deleting.busy ? t('ws.del.busy') : deleting.all ? t('ws.del.clearGo') : t('ws.del.go'))))))
           : null,
         modal ? h('div', { className: 'ws-modal-back', onMouseDown: (event) => { if (event.target === event.currentTarget) closeModal() } },
-          h('div', { className: `ws-modal ws-modal-${modal}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : t('settings.title')) },
+          h('div', { className: `ws-modal ws-modal-${modal}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : modal === 'compare' ? t('ws.cmp.title') : t('settings.title')) },
             h('div', { className: 'ws-modal-head' },
-              h('h3', {}, (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : t('settings.title'))),
+              h('h3', {}, (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : modal === 'compare' ? `${t('ws.cmp.title')} · ${current?.id ?? ''}` : t('settings.title'))),
+              modal === 'compare' ? h('span', { className: 'ma-hint ws-cmp-keys' }, t('ws.cmp.keys')) : null,
               modal === 'report' && reportText ? h('button', { className: 'ma-btn ma-small', onClick: () => copyText(reportText) }, t('ws.report.copy')) : null,
               h('button', { className: 'ma-btn ma-small', onClick: closeModal, 'aria-label': t('detail.close') }, '✕')),
             h('div', { className: 'ws-modal-body' },
@@ -2639,7 +3912,8 @@ window.__ModuleLoader__.load({
                 ? h(HelpBody, { config })
                 : (modal === 'settings' && anyRunning ? h('div', { className: 'ma-banner' }, t('ws.paramsLocked')) : null),
               modal === 'settings' ? h(SettingsSection) : null,
-              modal === 'report' ? (reportText ? h(MarkdownView, { text: reportText }) : h('p', { className: 'ma-empty' }, t('detail.noReport'))) : null)))
+              modal === 'report' ? (reportText ? h(MarkdownView, { text: reportText }) : h('p', { className: 'ma-empty' }, t('detail.noReport'))) : null,
+              modal === 'compare' ? compareBody() : null)))
           : null)
     }
 
@@ -2653,25 +3927,31 @@ window.__ModuleLoader__.load({
         scopeHead: ['对象', '内容', '默认处理'],
         scopeRows: [
           ['文本类文件', 'txt · md · csv · json · xlsx', '识别并替换标识符'],
+          ['字段里的编码内容', 'base64 · gzip · URL 编码 · \\u 转义 · HTML 实体 · HTML/XML · 嵌套 JSON · HL7', '逐层拆开后识别，按原编码写回'],
+          ['无法检查的内容', '图片 · PDF · 二进制 · 未知编码 · 加密内容', '转人工复核，复核完成前不交付'],
           ['压缩包', 'zip（最多 3 层嵌套）', '解压处理后按原结构重新打包'],
           ['医学影像', 'DICOM', '仅处理元数据，像素不变'],
           ['文件名 / 目录名', '姓名、证件号、病人编号、住院号、门诊号', '替换为对应假名'],
-          ['准标识符', '日期 · 年龄 · 性别 · 邮编', '不处理（可在处理参数中开启）'],
+          ['邮编', '6 位邮政编码（带「邮编」标签或邮编字段）', '始终处理，保留前 3 位（如 100***）'],
+          ['准标识符', '日期 · 年龄 · 性别', '不处理（可在处理参数中开启）'],
           ['不支持', 'Word · PDF · 图片', '跳过，并在「提示」中列出'],
         ],
         ids: '直接标识符及当前处理方式',
         flow: '二、处理流程',
-        flowNote: '核验未通过的文件进入修正，再次核验，最多 {rounds} 轮；仍未通过的标记为待复核。',
+        flowNote: '每个文件在 S03–S06 之间循环：识别·替换后先做规则核验，再交给独立盲审；盲审报出的可疑项由识别模型复判，确认的补替换后回到规则核验。最多 {rounds} 轮；两个模型意见不一致、或仍有残留的进入人工复核，复核完成前交付数据暂扣。',
         stageHead: ['环节', '方法', '产出'],
         stageRows: {
-          prescan: ['批次级扫描', '批次字典；匿名化后的输出路径'],
-          read: ['格式解析；按字段名整格替换', '待处理片段'],
-          discover: ['规则匹配 + 模型识别；插件逐字定位', '标识符清单'],
-          verify: ['规则复扫 · 模型复核 · 原值清除检查 · 结构校验', '通过 / 残留'],
-          repair: ['对残留定向替换', '修正后的文件'],
-          rescan: ['以全部已知标识符复扫批次及分组之间', '跨文件一致性'],
-          dicom: ['删除姓名与 ID、重生成 UID、平移日期', '去标识化影像'],
-          pack: ['重新打包；交付数据与记录分离', '交付数据 · 报告 · 映射库'],
+          prescan: ['列出文件、解压压缩包、替换路径中的标识符', '批次字典；匿名化后的输出路径'],
+          read: ['解析格式；逐层解码编码内容（base64、HTML 等），超长字段切成小段；结构化文件按列做字段画像（标识符列 / 临床词表 / 编码 / 自由文本）', '待处理片段；拆不开的转人工复核'],
+          discover: ['规则匹配 + 识别模型识别；插件逐字定位并替换为假名', '替换后的内容（识别模型）'],
+          rules: ['规则复扫 · 原值清除检查 · 结构校验', '通过 / 残留'],
+          blind: ['把替换后的内容交给核验模型，不告知识别结果，尝试重新认出具体的人；数字和短编码按字段合并送审', '盲审报出的可疑项（核验模型）'],
+          repair: ['识别模型逐条复判可疑项：确认的补替换，误报保留，回到规则核验', '修正后的内容；分歧项转人工复核'],
+          rescan: ['一组文件处理完后，以全部已知标识符回扫各文件及分组之间', '跨文件一致性'],
+          pack: ['生成比对记录；重新打包压缩包', '待交付数据 · 报告 · 比对记录'],
+          review: ['处理分歧项、无法检查的内容；未处理完时交付数据暂扣', '人工复核记录'],
+          deliver: ['复核全部处理完后放到输出根目录', '交付数据'],
+          dicom: ['旁路，不经模型：删除姓名与 ID、重生成 UID、平移日期', '去标识化影像'],
         },
         principles: '三、处理原则',
         principleRows: [
@@ -2705,25 +3985,31 @@ window.__ModuleLoader__.load({
         scopeHead: ['Object', 'Content', 'Default treatment'],
         scopeRows: [
           ['Text files', 'txt · md · csv · json · xlsx', 'Identifiers detected and replaced'],
+          ['Encoded field content', 'base64 · gzip · URL encoding · \\u escapes · HTML entities · HTML/XML · nested JSON · HL7', 'Unwrapped layer by layer, written back in the same encoding'],
+          ['Content that cannot be checked', 'Images · PDF · binary · unknown encodings · encrypted data', 'Manual review; nothing is delivered until reviewed'],
           ['Archives', 'zip (up to 3 levels)', 'Processed, then re-packed in the original layout'],
           ['Medical images', 'DICOM', 'Metadata only; pixels unchanged'],
           ['File / folder names', 'Names, ID, patient, admission and visit numbers', 'Replaced with pseudonyms'],
-          ['Quasi-identifiers', 'Date · age · sex · postal code', 'Not processed (switch in Processing settings)'],
+          ['Postal code', '6-digit codes (labelled or in a postal-code field)', 'Always processed, first 3 digits kept (e.g. 100***)'],
+          ['Quasi-identifiers', 'Date · age · sex', 'Not processed (switch in Processing settings)'],
           ['Unsupported', 'Word · PDF · images', 'Skipped and listed under Notices'],
         ],
         ids: 'Direct identifiers and current treatment',
         flow: '2. Pipeline',
-        flowNote: 'Files failing verification go to remediation and are verified again, up to {rounds} rounds; files still failing are marked Needs review.',
+        flowNote: 'Each file loops through S03–S06: after detection and replacement come the rule checks and the blind review; suspects are re-judged by the detection model, confirmed ones replaced, then back to the rule checks. Up to {rounds} rounds; disagreements and remaining residuals go to manual review, and the result is held until review is complete.',
         stageHead: ['Stage', 'Method', 'Output'],
         stageRows: {
-          prescan: ['Batch-level scan', 'Batch dictionary; anonymized output paths'],
-          read: ['Format parsing; whole-cell replacement by field name', 'Segments to process'],
-          discover: ['Rules + model detection; exact location by the plugin', 'Identifier list'],
-          verify: ['Rule rescan · model review · absence check · structure check', 'Pass / residuals'],
-          repair: ['Targeted replacement of residuals', 'Remediated files'],
-          rescan: ['Rescan with all known identifiers, within and across chunks', 'Cross-file consistency'],
-          dicom: ['Remove names and IDs, regenerate UIDs, shift dates', 'De-identified images'],
-          pack: ['Re-pack; deliverable separated from records', 'Deliverable · report · vault'],
+          prescan: ['List files, extract archives, replace identifiers in paths', 'Batch dictionary; anonymized output paths'],
+          read: ['Parse formats; unwrap encoded content (base64, HTML …); cut long fields into pieces', 'Segments; what cannot be unwrapped goes to manual review'],
+          discover: ['Rules + detection model; exact location and replacement by the plugin', 'Replaced content (detection model)'],
+          rules: ['Rule rescan · absence check · structure check', 'Pass / residuals'],
+          blind: ['The replaced content goes to the verification model, which is not told what was found and tries to re-identify people; numbers and short codes are sent as per-field lists', 'Suspects (verification model)'],
+          repair: ['The detection model re-judges each suspect: confirmed ones are replaced, false positives kept, back to the rule checks', 'Remediated content; disagreements to manual review'],
+          rescan: ['After a chunk: rescan every file with all known identifiers, within and across chunks', 'Cross-file consistency'],
+          pack: ['Write the comparison; re-pack archives', 'Data to deliver · report · comparison'],
+          review: ['Disagreements and content that cannot be checked; the result is held until all are decided', 'Review record'],
+          deliver: ['Move into the output root once review is complete', 'Deliverable'],
+          dicom: ['Bypass, no model: remove names and IDs, regenerate UIDs, shift dates', 'De-identified images'],
         },
         principles: '3. Principles',
         principleRows: [
@@ -2763,7 +4049,7 @@ window.__ModuleLoader__.load({
         h('tbody', {}, rows))
       const schema = config?.policySchema?.identifiers ?? []
       const policy = config?.identifierPolicy ?? {}
-      const flowMain = ['prescan', 'read', 'discover', 'verify', 'rescan', 'pack']
+      const flowMain = ['prescan', 'read', 'discover', 'rules', 'blind', 'rescan', 'pack', 'review', 'deliver']
       return h('div', { className: 'ws-help' },
         h('h4', {}, c.scope),
         table(c.scopeHead, c.scopeRows.map((row, index) => h('tr', { key: index }, row.map((cell, i) => h('td', { key: i }, cell))))),
@@ -2778,19 +4064,19 @@ window.__ModuleLoader__.load({
         h('div', { className: 'ws-help-flow' },
           flowMain.map((id, index) => h(React.Fragment, { key: id },
             index > 0 ? h('span', { className: 'ws-hf-arrow' }, '→') : null,
-            h('span', { className: `ws-hf-node${id === 'discover' || id === 'verify' ? ' ws-hf-core' : ''}` },
+            h('span', { className: `ws-hf-node${id === 'discover' || id === 'blind' ? ' ws-hf-core' : ''}` },
               h('em', {}, String(STATIONS.indexOf(id) + 1).padStart(2, '0')), t(`ws.st.${id}`))))),
         h('div', { className: 'ws-help-loop' },
-          h('span', { className: 'ws-hf-node ws-hf-small' }, t('ws.st.verify')),
+          h('span', { className: 'ws-hf-node ws-hf-small' }, t('ws.st.blind')),
           h('span', { className: 'ws-hf-arrow' }, '⇢'),
           h('span', { className: 'ws-hf-node ws-hf-small' }, t('ws.st.repair')),
           h('span', { className: 'ws-hf-arrow' }, '⇢'),
-          h('span', { className: 'ws-hf-node ws-hf-small' }, t('ws.st.verify')),
+          h('span', { className: 'ws-hf-node ws-hf-small' }, t('ws.st.rules')),
           h('span', { className: 'ws-hf-max' }, `≤ ${rounds}`),
           h('span', { className: 'ws-hf-side' }, `DICOM：${t('ws.sub.dicom')}`)),
         h('p', { className: 'ws-help-note' }, c.flowNote.replace('{rounds}', String(rounds))),
-        table(c.stageHead, STATIONS.map((id) => h('tr', { key: id },
-          h('td', { className: 'ws-help-stage' }, h('em', {}, String(STATIONS.indexOf(id) + 1).padStart(2, '0')), t(`ws.st.${id}`)),
+        table(c.stageHead, [...STATIONS, 'dicom'].map((id) => h('tr', { key: id },
+          h('td', { className: 'ws-help-stage' }, h('em', {}, id === 'dicom' ? '旁路' : String(STATIONS.indexOf(id) + 1).padStart(2, '0')), t(`ws.st.${id}`)),
           h('td', {}, c.stageRows[id][0]),
           h('td', {}, c.stageRows[id][1])))),
 

@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { runBatch, cleanStaleStaging } from '../lib/pipeline.js'
 import { readZip, writeZip } from '../lib/zip.js'
 import { createWriteGuard } from '../lib/guard.js'
+import { createService } from '../lib/service.js'
 import { outDirOf, outJoin } from './outputs.mjs'
 import { snapshotTree } from './snapshot.mjs'
 
@@ -201,7 +202,7 @@ await check('待复核文件单独取出到 _records/runs/<批次>/review，成�
     async chatJson(messages) {
       const prompt = messages.map((message) => message.content).join('\n')
       const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
-      if (!prompt.includes('检查下面脱敏后的文本')) return { json: { entities: [] } }
+      if (!prompt.includes('独立的数据安全审查员')) return { json: { entities: [] } }
       return { json: { issues: segments.filter((seg) => String(seg.text).includes('甲乙丙')).map((seg) => ({ segment: seg.id, type: '姓名', text: '甲乙丙', reason: 'x' })) } }
     },
   }
@@ -210,11 +211,44 @@ await check('待复核文件单独取出到 _records/runs/<批次>/review，成�
   assert.equal(rev.status, 'review', JSON.stringify(rev.files.map((f) => [f.relPath, f.status, f.issues])))
   const reviewDir = join(revRoot, '_records', 'runs', 'rev', 'review')
   assert.deepEqual(await readdir(join(reviewDir, 'pack (zip)', 'a')), ['bad.json'])
-  assert.equal(rev.output, join(revRoot, 'pack.zip'))
-  const { entries } = await readZip(rev.output)
+  // Unresolved review items: nothing reaches the output root yet.
+  assert.equal(rev.output, null)
+  assert.equal(rev.withheld, true)
+  assert.deepEqual(await readdir(revRoot), ['_records'])
+  const { entries } = await readZip(join(revRoot, '_records', 'runs', 'rev', 'output', 'pack.zip'))
   assert.deepEqual(entries.map((entry) => entry.name).sort(), ['a/bad.json', 'a/ok.json'])
   const report = await readFile(join(revRoot, '_records', 'runs', 'rev', 'report.md'), 'utf8')
   assert.ok(report.includes(reviewDir), report)
+})
+
+await check('页面复核：列出残留及上下文；替换写回 zip 内的交付数据，全部决定后批次转为完成', async () => {
+  const revRoot = join(tmp, 'rev-out')
+  const service = createService({ config: { outputRoot: revRoot }, defaultDirectory: tmp })
+  const listed = await service.reviewItems('rev')
+  assert.equal(listed.files.length, 1)
+  const [item] = listed.files[0].items
+  assert.equal(item.text, '甲乙丙')
+  assert.match(item.before, /仍有可疑内容/)
+  assert.ok(listed.files[0].editable, listed.files[0].reason)
+  const result = await service.reviewDecide('rev', item.id, 'replace')
+  assert.equal(result.completed, true)
+  assert.equal(result.status, 'completed')
+  assert.match(result.decision.replacement, /^化名-/)
+  // All items decided: the held result is released into the output root.
+  assert.deepEqual((await readdir(revRoot)).sort(), ['_records', 'pack.zip'])
+  const { entries } = await readZip(join(revRoot, 'pack.zip'))
+  const bad = entries.find((entry) => entry.name === 'a/bad.json').data.toString('utf8')
+  assert.ok(!bad.includes('甲乙丙') && bad.includes(result.decision.replacement), bad)
+  JSON.parse(bad)
+  const cmp = await service.compareList('rev')
+  const badEntry = cmp.files.find((f) => f.relPath === 'pack.zip/a/bad.json')
+  assert.ok(badEntry, JSON.stringify(cmp.files))
+  const cmpFile = await service.compareFile('rev', badEntry.n)
+  assert.ok(cmpFile.changes.some((c) => c.before.includes('甲乙丙') && c.after.includes(result.decision.replacement)), JSON.stringify(cmpFile))
+  const report = await readFile(join(revRoot, '_records', 'runs', 'rev', 'report.md'), 'utf8')
+  assert.match(report, /人工复核记录/)
+  const reportJson = await readFile(join(revRoot, '_records', 'runs', 'rev', 'report.json'), 'utf8')
+  assert.ok(!reportJson.includes('甲乙丙'))
 })
 
 await rm(tmp, { recursive: true, force: true })

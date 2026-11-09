@@ -251,7 +251,7 @@ async function main() {
     async chatJson(messages) {
       const prompt = messages.map((message) => message.content).join('\n')
       const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
-      if (prompt.includes('检查下面脱敏后的文本')) {
+      if (prompt.includes('独立的数据安全审查员')) {
         exportCalls.verify += 1
         return { json: { issues: [] } }
       }
@@ -291,7 +291,9 @@ async function main() {
   await check('医院导出：重复文本只发一次、数字/日期不发给模型', async () => {
     assert.equal(new Set(exportCalls.detectTexts).size, exportCalls.detectTexts.length, 'duplicate texts sent')
     assert.ok(!exportCalls.detectTexts.some((text) => /^[\d\s:.-]+$/.test(text)), 'numeric values sent')
-    assert.ok(exportRun.totals.modelCalls <= 4, `calls=${exportRun.totals.modelCalls}`)
+    // Detection never gets numbers; the blind review gets them as one value
+    // list per field (a few extra calls, never one per value).
+    assert.ok(exportRun.totals.modelCalls <= 8, `calls=${exportRun.totals.modelCalls}`)
   })
 
   // Regional-platform export (GEHR): several record types for one patient,
@@ -334,7 +336,7 @@ async function main() {
     async chatJson(messages) {
       const prompt = messages.map((message) => message.content).join('\n')
       const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
-      if (prompt.includes('检查下面脱敏后的文本')) return { json: { issues: [] } }
+      if (prompt.includes('独立的数据安全审查员')) return { json: { issues: [] } }
       const entities = []
       for (const segment of segments) {
         if (segment.text.includes('家属周大福')) entities.push({ segment: segment.id, type: '姓名', text: '周大福' })
@@ -452,7 +454,7 @@ async function main() {
     model: 'scripted',
     async chatJson(messages) {
       const prompt = messages.map((message) => message.content).join('\n')
-      if (prompt.includes('检查下面脱敏后的文本')) {
+      if (prompt.includes('独立的数据安全审查员')) {
         verifyCalls += 1
         const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
         const hit = segments.find((segment) => segment.text.includes('刘建国'))
@@ -484,7 +486,7 @@ async function main() {
     model: 'scripted',
     async chatJson(messages) {
       const prompt = messages.map((message) => message.content).join('\n')
-      if (prompt.includes('检查下面脱敏后的文本')) {
+      if (prompt.includes('独立的数据安全审查员')) {
         const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
         const issues = []
         for (const segment of segments) {
@@ -608,7 +610,7 @@ async function main() {
     })
     assert.deepEqual(patch, { maxFiles: 50, concurrency: 8, maxDicomFiles: 1000, timeoutMs: 300000, temperature: 0.2, vaultPassphrase: 'correct horse' })
     assert.deepEqual(service.normalizeDefaults({ vaultPassphrase: '' }), { vaultPassphrase: '' })
-    assert.throws(() => service.normalizeDefaults({ concurrency: 0 }), /并发文件数/)
+    assert.throws(() => service.normalizeDefaults({ concurrency: 0 }), /并发数/)
     assert.throws(() => service.normalizeDefaults({ maxFiles: 1.5 }), /每组文件数/)
     assert.throws(() => service.normalizeDefaults({ timeoutMs: 500 }), /超时/)
     assert.throws(() => service.normalizeDefaults({ temperature: 3 }), /温度/)
@@ -671,7 +673,7 @@ async function main() {
     assert.deepEqual((await readdir(layoutRoot)).sort(), ['_records', 'note1.txt', 'ward_A', 'ward_A (2)'])
     assert.deepEqual(await readdir(join(layoutRoot, 'ward_A')), ['note1.txt'])
     assert.deepEqual((await readdir(join(layoutRoot, '_records'))).sort(), ['index.json', 'runs', 'vault.json'])
-    assert.deepEqual((await readdir(join(layoutRoot, '_records', 'runs', 'lay-1'))).sort(), ['report.json', 'report.md'])
+    assert.deepEqual((await readdir(join(layoutRoot, '_records', 'runs', 'lay-1'))).sort(), ['compare', 'report.json', 'report.md'])
     await stat(join(layoutRoot, '_records', 'runs', 'old-1', 'report.md'))
     const moved = new Vault(join(layoutRoot, '_records', 'vault.json'))
     await moved.load()
@@ -695,6 +697,14 @@ async function main() {
     assert.ok(index.some((item) => item.id === 'lay-3'))
     await stat(join(layoutRoot, '_records', 'vault.json'))
     await assert.rejects(delService.deleteRun('../../etc'), /批次 id 不正确/)
+  })
+
+  const cleared = await delService.clearRuns()
+  await check('清空批次记录：其余批次的记录全部删除，交付数据与映射库保留', async () => {
+    assert.ok(cleared.removed >= 1 && cleared.failed.length === 0, JSON.stringify(cleared))
+    assert.equal((await delService.list()).runs.length, 0)
+    await stat(join(layoutRoot, 'note1.txt'))
+    await stat(join(layoutRoot, '_records', 'vault.json'))
   })
 
   const cancelRoot = join(tmp, 'layout', 'cancel-out')
@@ -747,17 +757,390 @@ async function main() {
     assert.deepEqual(parentListing.files.map((f) => f.slice(dflt.length + 1)), ['p1/note1.txt'])
   })
 
+  await check('数据量进度：计划字节数与完成字节数一致', () => {
+    assert.ok(run.plannedBytes > 0)
+    assert.equal(run.doneBytes, run.plannedBytes)
+  })
+  await check('结果比对：逐文件记录改动片段（原文 / 结果）', async () => {
+    const svc = createService({ config: { outputRoot: outRoot }, defaultDirectory: tmp })
+    const listed = await svc.compareList(run.id)
+    const note = listed.files.find((f) => f.relPath === 'note1.txt')
+    assert.ok(note && note.changed > 0 && note.total >= note.changed, JSON.stringify(listed.files))
+    const detail = await svc.compareFile(run.id, note.n)
+    assert.ok(detail.changes.some((c) => c.before.includes('11010519491231002X') && !c.after.includes('11010519491231002X')))
+    const raw = await readFile(join(outRoot, '_records', 'runs', run.id, 'report.json'), 'utf8')
+    assert.ok(!raw.includes('11010519491231002X'))
+  })
   await check('模型调用日志只记元数据，写入 calls.json', async () => {
     const log = JSON.parse(await readFile(join(outRoot, '_records', 'runs', run.id, 'calls.json'), 'utf8'))
     assert.equal(log.length, run.totals.modelCalls)
     const stages = new Set(log.map((entry) => entry.stage))
-    assert.ok(stages.has('识别') && stages.has('核验'), [...stages].join())
+    assert.ok(stages.has('识别·替换') && stages.has('盲审'), [...stages].join())
     for (const entry of log) {
-      assert.deepEqual(Object.keys(entry).sort(), ['at', 'file', 'ms', 'result', 'round', 'segments', 'seq', 'stage', 'tokens'])
+      assert.deepEqual(Object.keys(entry).filter((key) => !['in', 'out', 'model'].includes(key)).sort(), ['at', 'file', 'ms', 'result', 'round', 'segments', 'seq', 'stage', 'tokens'])
     }
     const raw = JSON.stringify(log)
     for (const secret of ['张三', '11010519491231002X', '13800138000', '刘建国']) assert.ok(!raw.includes(secret), secret)
     assert.ok(!('callLog' in JSON.parse(await readFile(join(outRoot, '_records', 'runs', run.id, 'report.json'), 'utf8'))))
+  })
+
+  // Stop mid-file: the batch ends cancelled (never completed or delivered),
+  // and a resume replays the finished model calls.
+  const scripted = (counter, abortAt, controller) => ({
+    model: 'scripted',
+    async chatJson(messages) {
+      counter.n += 1
+      if (abortAt && counter.n === abortAt) controller.abort()
+      const prompt = messages.map((message) => message.content).join('\n')
+      return prompt.includes('独立的数据安全审查员') ? { json: { issues: [] } } : { json: { entities: [] } }
+    },
+  })
+  const resumeIn = join(tmp, 'resume-in')
+  await mkdir(resumeIn, { recursive: true })
+  await writeFile(join(resumeIn, 'note.txt'), await readFile(join(fixtures, 'note1.txt')))
+  const resumeRoot = join(tmp, 'resume-out')
+  const stopper = new AbortController()
+  const first = { n: 0 }
+  const stopped = await runBatch({ inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot, options: { runId: 'res-1', llm: scripted(first, 1, stopper) }, signal: stopper.signal })
+  const cacheFile = join(resumeRoot, '_records', 'runs', 'res-1', 'model-cache.jsonl')
+  await check('停止批次：状态为已取消，不交付，保留续跑信息', async () => {
+    assert.equal(stopped.status, 'cancelled')
+    assert.equal(stopped.output, null)
+    assert.equal(stopped.resumable, true)
+    await assert.rejects(stat(join(resumeRoot, 'note.txt')))
+    const saved = JSON.parse(await readFile(join(resumeRoot, '_records', 'runs', 'res-1', 'resume.json'), 'utf8'))
+    assert.equal(saved.inputDir, join(resumeIn, 'note.txt'))
+    assert.ok((await readFile(cacheFile, 'utf8')).trim().split('\n').length >= 1)
+  })
+  const second = { n: 0 }
+  const resumed = await runBatch({ inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot, options: { runId: 'res-2', llm: scripted(second), replaySources: [cacheFile], resumeFrom: 'res-1' } })
+  const fresh = { n: 0 }
+  const freshRun = await runBatch({ inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot, options: { runId: 'res-3', llm: scripted(fresh) } })
+  await check('继续处理：复用已完成的模型调用，结果与完整运行一致，缓存随完成删除', async () => {
+    assert.equal(resumed.status, 'completed')
+    assert.equal(resumed.resumedFrom, 'res-1')
+    assert.ok(resumed.totals.replayedCalls >= 1, JSON.stringify(resumed.totals))
+    assert.equal(second.n + resumed.totals.replayedCalls, fresh.n)
+    assert.equal(await readFile(resumed.output, 'utf8'), await readFile(freshRun.output, 'utf8'))
+    await assert.rejects(stat(join(resumeRoot, '_records', 'runs', 'res-2', 'model-cache.jsonl')))
+  })
+
+  const stopper2 = new AbortController()
+  const firstB = { n: 0 }
+  await runBatch({ inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot, options: { runId: 'res-4', model: 'model-a', llm: { ...scripted(firstB, 1, stopper2), model: 'model-a' } }, signal: stopper2.signal })
+  const secondB = { n: 0 }
+  const switched = await runBatch({
+    inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot,
+    options: { runId: 'res-5', model: 'model-b', llm: { ...scripted(secondB), model: 'model-b' }, replaySources: [join(resumeRoot, '_records', 'runs', 'res-4', 'model-cache.jsonl')], resumeFrom: 'res-4', resumeModel: 'model-a' },
+  })
+  await check('续跑时更换模型：已完成部分沿用原结果，其余交给新模型', async () => {
+    assert.equal(switched.status, 'completed')
+    assert.ok(switched.totals.replayedCalls >= 1)
+    assert.equal(secondB.n + switched.totals.replayedCalls, fresh.n)
+    const report = await readFile(join(resumeRoot, '_records', 'runs', 'res-5', 'report.md'), 'utf8')
+    assert.match(report, /原模型 `model-a`/)
+  })
+
+  // Batch-wide memo: identical text in another file is not sent again, and a
+  // remembered detection is applied exactly like a fresh one. A reply that is
+  // cut off (bad JSON) for a multi-segment batch is split and retried.
+  const finder = (counter, { failMulti = false } = {}) => ({
+    model: 'finder',
+    async chatJson(messages) {
+      counter.n += 1
+      const prompt = messages.map((message) => message.content).join('\n')
+      const at = prompt.lastIndexOf('段落：')
+      const segments = at >= 0 ? JSON.parse(prompt.slice(at + 3)) : []
+      if (failMulti && segments.length > 1) {
+        counter.split = (counter.split ?? 0) + 1
+        throw Object.assign(new Error('模型输出不是有效 JSON'), { code: 'bad-json' })
+      }
+      if (prompt.includes('独立的数据安全审查员')) return { json: { issues: [] } }
+      return { json: { entities: segments.filter((segment) => segment.text.includes('刘建国')).map((segment) => ({ segment: segment.id, type: '姓名', text: '刘建国' })) } }
+    },
+  })
+  const memoIn = join(tmp, 'memo-in')
+  for (const name of ['a', 'b', 'c']) {
+    await mkdir(join(memoIn, name), { recursive: true })
+    await writeFile(join(memoIn, name, 'note.txt'), await readFile(join(fixtures, 'note1.txt')))
+  }
+  const oneCalls = { n: 0 }
+  const oneRun = await runBatch({ inputDir: join(memoIn, 'a', 'note.txt'), outputRoot: join(tmp, 'memo-one'), options: { runId: 'memo-1', llm: finder(oneCalls), concurrency: 1 } })
+  const threeCalls = { n: 0 }
+  const threeRun = await runBatch({ inputDir: memoIn, outputRoot: join(tmp, 'memo-three'), options: { runId: 'memo-3', llm: finder(threeCalls), concurrency: 1, maxFiles: 1 } })
+  await check('批次内结果复用：相同文本只问一次模型，复用的识别结果照样替换', async () => {
+    assert.equal(threeRun.status, 'completed')
+    assert.equal(threeRun.totals.files, 3)
+    assert.equal(threeCalls.n, oneCalls.n, `${threeCalls.n} vs ${oneCalls.n}`)
+    assert.ok(threeRun.totals.memoHits > 0)
+    assert.ok(!(await readFile(oneRun.output, 'utf8')).includes('刘建国'))
+    const texts = []
+    for (const name of (await readdir(threeRun.output)).sort()) texts.push(await readFile(join(threeRun.output, name, 'note.txt'), 'utf8'))
+    assert.equal(texts.length, 3)
+    for (const text of texts) {
+      assert.ok(!text.includes('刘建国'))
+      assert.equal(text, texts[0])
+    }
+  })
+  const splitIn = join(tmp, 'split-in')
+  await mkdir(splitIn, { recursive: true })
+  await writeFile(join(splitIn, 'notes.json'), JSON.stringify(Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`备注${i}`, i === 5 ? '家属刘建国陪同就诊。' : `第${i}次随访，症状缓解。`]))))
+  const splitCalls = { n: 0 }
+  const splitRun = await runBatch({ inputDir: join(splitIn, 'notes.json'), outputRoot: join(tmp, 'split-out'), options: { runId: 'split-1', llm: finder(splitCalls, { failMulti: true }) } })
+  await check('回复被截断时拆成小批重试，不丢识别结果', async () => {
+    assert.ok(splitCalls.split > 0, 'no multi-segment batch was sent')
+    assert.ok(!(await readFile(splitRun.output, 'utf8')).includes('刘建国'))
+    assert.ok(!splitRun.files[0].issues.some((issue) => issue.code === 'model-error'), JSON.stringify(splitRun.files[0].issues))
+  })
+
+  // Several entries of one folder in one batch; the rest of the folder is ignored.
+  const multiIn = join(tmp, 'multi')
+  for (const name of ['p_a', 'p_b', 'p_c']) {
+    await mkdir(join(multiIn, name), { recursive: true })
+    await writeFile(join(multiIn, name, 'note.txt'), await readFile(join(fixtures, 'note1.txt')))
+  }
+  await writeFile(join(multiIn, 'loose.json'), await readFile(join(fixtures, 'visits.json')))
+  const multiService = createService({ config: { model: '' }, defaultDirectory: tmp })
+  const multiStart = await multiService.start({ inputs: [join(multiIn, 'p_a'), join(multiIn, 'p_c'), join(multiIn, 'loose.json')] })
+  for (let i = 0; i < 200 && (await multiService.status(multiStart.runId)).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 50))
+  const multiRun = (await multiService.status(multiStart.runId)).run
+  await check('多选同目录的文件和文件夹：一个批次，每项分别交付，未选的不处理', async () => {
+    assert.equal(multiRun.status, 'completed')
+    const root = join(multiIn, '_medical-anonymizer')
+    assert.deepEqual((await readdir(root)).sort(), ['_records', 'loose.json', 'p_a', 'p_c'])
+    assert.equal(multiRun.outputs.length, 3)
+    assert.deepEqual(multiRun.files.map((f) => f.relPath).sort(), ['loose.json', 'p_a/note.txt', 'p_c/note.txt'])
+    assert.ok(!(await readFile(join(root, 'p_a', 'note.txt'), 'utf8')).includes('11010519491231002X'))
+  })
+  await check('多选必须在同一目录下', async () => {
+    await assert.rejects(multiService.start({ inputs: [join(multiIn, 'p_b'), join(fixtures, 'note1.txt')] }), /同一个目录/)
+  })
+
+  // Round 2: the detection model rules on verifier findings.
+  const adjIn = join(tmp, 'adj-in')
+  await mkdir(adjIn, { recursive: true })
+  await writeFile(join(adjIn, 'note.txt'), '病程记录：患者由其子王建军陪同，口服黄芪颗粒。\n')
+  const adjModel = (insist) => {
+    const seen = { adjudicate: 0, verify: 0 }
+    return {
+      seen,
+      model: 'scripted',
+      async chatJson(messages) {
+        const prompt = messages.map((message) => message.content).join('\n')
+        if (prompt.includes('另一位审查员')) {
+          seen.adjudicate += 1
+          const candidates = JSON.parse(prompt.slice(prompt.lastIndexOf('候选：') + 3))
+          return { json: { verdicts: candidates.map((c) => ({ i: c.i, identifier: c.text === '王建军', type: c.type, reason: c.text === '王建军' ? '人名' : '药材名称' })) } }
+        }
+        const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
+        if (prompt.includes('独立的数据安全审查员')) {
+          seen.verify += 1
+          const issues = []
+          for (const seg of segments) {
+            if (String(seg.text).includes('王建军')) issues.push({ segment: seg.id, type: '姓名', text: '王建军', reason: '人名' })
+            if (String(seg.text).includes('黄芪') && (insist || seen.verify === 1)) issues.push({ segment: seg.id, type: '姓名', text: '黄芪', reason: '疑似人名' })
+          }
+          return { json: { issues } }
+        }
+        return { json: { entities: [] } }
+      },
+    }
+  }
+  const mildModel = adjModel(false)
+  const adj1 = await runBatch({ inputDir: join(adjIn, 'note.txt'), outputRoot: join(tmp, 'adj-out-1'), options: { runId: 'adj-1', llm: mildModel, maxRounds: 3 } })
+  const adjOut1 = await readFile(adj1.output, 'utf8')
+  await check('第二轮复判：核验报出的真实标识符被替换，误报保留并记为提示', () => {
+    assert.ok(mildModel.seen.adjudicate >= 1)
+    assert.ok(!adjOut1.includes('王建军') && adjOut1.includes('黄芪'), adjOut1)
+    assert.equal(adj1.status, 'completed', JSON.stringify(adj1.files[0].issues))
+    assert.ok(adj1.files[0].issues.some((issue) => issue.code === 'verify-dismissed'))
+  })
+  const adj2 = await runBatch({ inputDir: join(adjIn, 'note.txt'), outputRoot: join(tmp, 'adj-out-2'), options: { runId: 'adj-2', llm: adjModel(true), maxRounds: 3 } })
+  await check('第二轮复判：核验坚持而识别否定时转人工复核', () => {
+    assert.equal(adj2.status, 'review')
+    assert.ok(adj2.files[0].issues.some((issue) => issue.code === 'disputed' && issue.severity === 'error'))
+  })
+
+  // Separate verification model: it alone gets the verify prompts, which
+  // carry no list of pseudonyms used.
+  const prompts = { detect: [], verify: [] }
+  const detector = { model: 'det-a', async chatJson(messages) { const p = messages.map((m) => m.content).join('\n'); prompts.detect.push(p); return p.includes('另一位审查员') ? { json: { verdicts: [] } } : { json: { entities: [] } } } }
+  const reviewer = { model: 'rev-b', async chatJson(messages) { prompts.verify.push(messages.map((m) => m.content).join('\n')); return { json: { issues: [] } } } }
+  const sepRun = await runBatch({ inputDir: join(fixtures, 'note1.txt'), outputRoot: join(tmp, 'sep-out'), options: { runId: 'sep-1', llm: detector, verifyLlm: reviewer, model: 'det-a' } })
+  await check('核验可用独立模型；核验提示不含替换值清单，以外部审查员身份提问', async () => {
+    assert.equal(sepRun.status, 'completed')
+    assert.ok(prompts.verify.length >= 1)
+    assert.ok(prompts.detect.every((p) => !p.includes('独立的数据安全审查员')))
+    for (const p of prompts.verify) {
+      assert.match(p, /独立的数据安全审查员/)
+      assert.ok(!p.includes('已使用的替换值'))
+    }
+    // Instructions are fixed text: nothing about this batch precedes the segments.
+    assert.equal(new Set(prompts.verify.map((p) => p.slice(0, p.lastIndexOf('段落：')))).size, 1)
+    const log = JSON.parse(await readFile(join(tmp, 'sep-out', '_records', 'runs', 'sep-1', 'calls.json'), 'utf8'))
+    assert.ok(log.filter((e) => e.stage === '盲审').every((e) => e.model === 'rev-b'))
+    assert.ok(log.filter((e) => e.stage === '识别·替换').every((e) => !e.model))
+  })
+
+  // One large file: its batches run concurrently, never above the limit;
+  // a separate verifier has its own slots and overlaps with detection.
+  const parIn = join(tmp, 'par-in')
+  await mkdir(parIn, { recursive: true })
+  const lines = Array.from({ length: 400 }, (_, i) => `第${i}条记录：患者自述症状${'持续'.repeat(i % 7 + 1)}，复查编号段落${i}说明文字较长以便分批处理。`)
+  await writeFile(join(parIn, 'big.txt'), lines.join('\n'))
+  const gauge = (name) => {
+    const g = { name, now: 0, peak: 0 }
+    g.llm = { model: name, async chatJson(messages) {
+      g.now += 1; g.peak = Math.max(g.peak, g.now)
+      await new Promise((r) => setTimeout(r, 15))
+      g.now -= 1
+      const p = messages.map((m) => m.content).join('\n')
+      if (p.includes('另一位审查员')) return { json: { verdicts: [] } }
+      return p.includes('独立的数据安全审查员') ? { json: { issues: [] } } : { json: { entities: [] } }
+    } }
+    return g
+  }
+  const det = gauge('det')
+  const ver = gauge('ver')
+  const parRun = await runBatch({ inputDir: join(parIn, 'big.txt'), outputRoot: join(tmp, 'par-out'), options: { runId: 'par-1', llm: det.llm, verifyLlm: ver.llm, concurrency: 3 } })
+  await check('单个大文件的批次并发发送，且不超过每个模型的并发上限', () => {
+    assert.equal(parRun.status, 'completed')
+    assert.ok(det.peak > 1 && det.peak <= 3, `detect peak ${det.peak}`)
+    assert.ok(ver.peak > 1 && ver.peak <= 3, `verify peak ${ver.peak}`)
+  })
+
+  // Encoded content: a base64 HTML record with a name and an embedded image.
+  // The name is found after unwrapping; the image cannot be checked, so the
+  // batch is held back from the output root until a reviewer decides.
+  const encIn = join(tmp, 'enc-in')
+  await mkdir(encIn, { recursive: true })
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(300, 9)]).toString('base64')
+  const htmlDoc = `<!DOCTYPE html><html><body><div><span>姓名：</span><span>欧阳明华</span></div><div>身份证号：11010519491231002X</div><img src="data:image/png;base64,${png}"/></body></html>`
+  await writeFile(join(encIn, 'emr.json'), JSON.stringify([{ ID: 1, DCMT_CTT: Buffer.from(htmlDoc).toString('base64') }]))
+  const encRoot = join(tmp, 'enc-out')
+  const encRun = await runBatch({ inputDir: join(encIn, 'emr.json'), outputRoot: encRoot, options: { runId: 'enc-1' } })
+  const staged = JSON.parse(await readFile(join(encRoot, '_records', 'runs', 'enc-1', 'output', 'emr.json'), 'utf8'))
+  const stagedHtml = Buffer.from(staged[0].DCMT_CTT, 'base64').toString('utf8')
+  await check('编码内容：base64 里的 HTML 解码后识别替换，写回仍是 base64', () => {
+    assert.ok(!stagedHtml.includes('欧阳明华') && !stagedHtml.includes('11010519491231002X'), stagedHtml.slice(0, 300))
+    assert.match(stagedHtml, /<span>化名-[0-9A-F]{6}<\/span>/)
+    assert.ok(encRun.totals.coverage.decoded > 0)
+  })
+  await check('无法检查的嵌入图片转人工复核；未处理完前交付数据不出现在输出根目录', async () => {
+    assert.equal(encRun.status, 'review')
+    assert.equal(encRun.withheld, true)
+    assert.equal(encRun.output, null)
+    assert.deepEqual(await readdir(encRoot), ['_records'])
+    assert.ok(encRun.files[0].issues.some((issue) => issue.code === 'opaque' && /PNG/.test(issue.detail)))
+  })
+  const encService = createService({ config: { outputRoot: encRoot }, defaultDirectory: tmp })
+  const encItems = await encService.reviewItems('enc-1')
+  const opaqueIds = encItems.files.flatMap((file) => file.items).filter((item) => item.code === 'opaque').map((item) => item.id)
+  const bulk = await encService.reviewBulk('enc-1', opaqueIds, 'remove')
+  await check('批量移除无法检查的内容后，交付数据才放到输出根目录；图片已替换为占位', async () => {
+    assert.equal(bulk.completed, true)
+    assert.equal(bulk.status, 'completed')
+    assert.deepEqual((await readdir(encRoot)).sort(), ['_records', 'emr.json'])
+    const delivered = JSON.parse(await readFile(join(encRoot, 'emr.json'), 'utf8'))
+    const html = Buffer.from(delivered[0].DCMT_CTT, 'base64').toString('utf8')
+    assert.ok(!html.includes(png) && /<img src="data:image\/png;base64,iVBOR/.test(html), html.slice(-200))
+    assert.ok(!html.includes('欧阳明华'))
+  })
+
+  // Blind review sees numbers too: an unformatted record number in a field
+  // the rules do not know is reported by the reviewer and replaced.
+  const numIn = join(tmp, 'num-in')
+  await mkdir(numIn, { recursive: true })
+  await writeFile(join(numIn, 'v.json'), JSON.stringify([{ HZBH: '73920018', JE: '120.50', NOTE: '复诊' }, { HZBH: '73920019', JE: '80', NOTE: '复诊' }]))
+  const seenLists = []
+  const numModel = { model: 'scripted', async chatJson(messages) {
+    const p = messages.map((m) => m.content).join('\n')
+    if (p.includes('另一位审查员')) {
+      const c = JSON.parse(p.slice(p.lastIndexOf('候选：') + 3))
+      return { json: { verdicts: c.map((x) => ({ i: x.i, identifier: true, type: x.type })) } }
+    }
+    if (!p.includes('独立的数据安全审查员')) return { json: { entities: [] } }
+    const segs = JSON.parse(p.slice(p.lastIndexOf('段落：') + 3))
+    const issues = []
+    for (const seg of segs) {
+      if (String(seg.id).startsWith('num:')) seenLists.push(seg)
+      if (seg.field === 'HZBH') for (const v of seg.text.split('；')) issues.push({ segment: seg.id, type: '病历号', text: v, reason: '患者编号' })
+    }
+    return { json: { issues } }
+  } }
+  const numRun = await runBatch({ inputDir: join(numIn, 'v.json'), outputRoot: join(tmp, 'num-out'), options: { runId: 'num-1', llm: numModel, maxRounds: 3 } })
+  const numOut = JSON.parse(await readFile(numRun.output, 'utf8'))
+  await check('独立盲审也检查纯数字（按字段合并成值列表）；报出的编号经复判后被替换', () => {
+    assert.ok(seenLists.some((seg) => seg.field === 'HZBH' && seg.text.includes('73920018') && seg.text.includes('73920019')), JSON.stringify(seenLists))
+    assert.ok(numOut.every((row) => /^病历-[0-9A-F]{6}$/.test(row.HZBH)), JSON.stringify(numOut))
+    assert.equal(numOut[0].JE, '120.50')
+    assert.ok(numRun.totals.blind.reported >= 2 && numRun.totals.blind.confirmed >= 2, JSON.stringify(numRun.totals.blind))
+    assert.equal(numRun.status, 'completed', JSON.stringify(numRun.files[0].issues))
+  })
+
+  // More files than request slots: requests never exceed the limit, and the
+  // model is kept busy (several files' requests queue behind each other).
+  const schIn = join(tmp, 'sch-in')
+  await mkdir(schIn, { recursive: true })
+  for (let i = 0; i < 12; i += 1) await writeFile(join(schIn, `n${i}.txt`), `第${i}份记录：患者自述头痛三天，复查后好转。`)
+  const sch = { now: 0, peak: 0, filesSeen: new Set(), maxFilesAtOnce: 0, open: new Set() }
+  const schModel = { model: 'sch', async chatJson(messages) {
+    sch.now += 1; sch.peak = Math.max(sch.peak, sch.now)
+    await new Promise((r) => setTimeout(r, 20))
+    sch.now -= 1
+    const p = messages.map((m) => m.content).join('\n')
+    return p.includes('独立的数据安全审查员') ? { json: { issues: [] } } : { json: { entities: [] } }
+  } }
+  const schRun = await runBatch({ inputDir: schIn, outputRoot: join(tmp, 'sch-out'), options: { runId: 'sch-1', llm: schModel, concurrency: 2 } })
+  await check('同时处理的文件数为并发数的 3 倍，模型请求仍不超过并发数', () => {
+    assert.equal(schRun.status, 'completed')
+    assert.equal(schRun.fileSlots, 6)
+    assert.equal(sch.peak, 2)
+    assert.equal(schRun.requests.detect.active, 0)
+    assert.equal(schRun.requests.detect.queued, 0)
+  })
+
+  // Field profiling: an unknown column of names is replaced as a whole, a
+  // drug-name column is not sent value by value but reviewed as a list.
+  const profIn = join(tmp, 'prof-in')
+  await mkdir(profIn, { recursive: true })
+  const names = ['欧阳明华', '司马青', '诸葛文', '上官云', '慕容雪', '端木林', '公孙杰', '令狐冲']
+  const drugs = ['阿莫西林胶囊', '布洛芬缓释胶囊', '头孢克肟片', '奥美拉唑肠溶胶囊', '二甲双胍片', '氨氯地平片', '阿托伐他汀钙片', '甲钴胺片']
+  const rows = names.map((name, i) => ({ HZXM: name, YPMC: drugs[i], BZ: i === 3 ? `家属${names[0]}来电咨询用药` : '按时服药' }))
+  await writeFile(join(profIn, 'rx.json'), JSON.stringify(rows))
+  await writeFile(join(profIn, 'rx2.json'), JSON.stringify(rows.slice(0, 7).map((row) => ({ ...row, HZXM: row.HZXM + '甲' }))))
+  const seen = { profile: 0, detectTexts: [], lists: [] }
+  const profModel = { model: 'prof', async chatJson(messages) {
+    const p = messages.map((m) => m.content).join('\n')
+    if (p.includes('结构化医疗数据')) {
+      seen.profile += 1
+      const fields = JSON.parse(p.slice(p.lastIndexOf('字段：') + 3))
+      return { json: { fields: fields.map((f) => ({ field: f.field, category: f.field === 'HZXM' ? 'identifier' : f.field === 'YPMC' ? 'vocabulary' : 'freetext', type: f.field === 'HZXM' ? '姓名' : '' })) } }
+    }
+    if (p.includes('另一位审查员')) return { json: { verdicts: [] } }
+    const segs = JSON.parse(p.slice(p.lastIndexOf('段落：') + 3))
+    if (p.includes('独立的数据安全审查员')) {
+      for (const seg of segs) if (String(seg.id).startsWith('num:')) seen.lists.push(seg)
+      return { json: { issues: [] } }
+    }
+    const entities = []
+    for (const seg of segs) {
+      seen.detectTexts.push(seg.text)
+      if (seg.text.includes(names[0])) entities.push({ segment: seg.id, type: '姓名', text: names[0] })
+    }
+    return { json: { entities } }
+  } }
+  const profRun = await runBatch({ inputDir: profIn, outputRoot: join(tmp, 'prof-out'), options: { runId: 'prof-1', llm: profModel } })
+  const profOut = JSON.parse(await readFile(join(outJoin(await outDirOf(join(tmp, 'prof-out'), 'prof-1')), 'rx.json'), 'utf8'))
+  await check('字段画像：未知的人名列整列替换，药品列不逐值识别、按列送盲审，同结构文件只画像一次', () => {
+    assert.equal(seen.profile, 1, `profile calls ${seen.profile}`)
+    assert.ok(profOut.every((row) => /^化名-[0-9A-F]{6}$/.test(row.HZXM)), JSON.stringify(profOut.map((r) => r.HZXM)))
+    assert.deepEqual(profOut.map((row) => row.YPMC), drugs)
+    assert.ok(!seen.detectTexts.some((text) => drugs.includes(text) || names.includes(text)), JSON.stringify(seen.detectTexts))
+    assert.ok(profOut[3].BZ.includes('化名-') && !profOut[3].BZ.includes(names[0]), profOut[3].BZ)
+    assert.ok(seen.lists.some((seg) => seg.field === 'YPMC' && drugs.every((d) => seg.text.includes(d))), JSON.stringify(seen.lists))
+    assert.equal(profRun.profileSummary.HZXM.category, 'identifier')
+    assert.equal(profRun.profileSummary.YPMC.files, 2)
   })
 
   mock.kill('SIGTERM')

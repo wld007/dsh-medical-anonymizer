@@ -18,6 +18,11 @@ const apply = (text, replacements) => {
 const defaults = resolvePolicy({})
 assert.ok(Object.values(defaults.identifiers).every((strategy) => strategy === 'pseudonym'))
 assert.equal(defaults.quasiEnabled, false)
+// 邮编 is an identifier: processed even with the quasi toggle off, never kept.
+assert.deepEqual(defaults.quasiActive, { 邮编: 'prefix3' })
+assert.equal(resolvePolicy({ quasiPolicy: { postalCode: 'keep' } }).quasi['邮编'], 'prefix3')
+assert.throws(() => normalizePolicyPatch({ quasiPolicy: { postalCode: 'keep' } }), /无效/)
+assert.equal(Object.keys(resolvePolicy({ quasiIdentifiers: true }).quasiActive).length, 4)
 // Unknown values fall back instead of breaking a run.
 assert.equal(resolvePolicy({ identifierPolicy: { name: 'bogus' } }).identifiers['姓名'], 'pseudonym')
 // Saving validates strictly.
