@@ -1146,6 +1146,13 @@ async function main() {
     assert.equal(profRun.profileSummary.YPMC.files, 2)
   })
 
+  await check('发现标识符（去重）按本批计，含之前批次已有的原值', async () => {
+    const again = await runBatch({ inputDir: join(fixtures, 'note1.txt'), outputRoot: join(tmp, 'resume-out'), options: { runId: 'dist-1' } })
+    assert.ok(again.totals.distinctIds > 0, JSON.stringify(again.totals))
+    assert.ok(again.totals.distinctIds <= again.totals.entities)
+    assert.ok(again.totals.newMappings < again.totals.distinctIds, `new ${again.totals.newMappings} distinct ${again.totals.distinctIds}`)
+  })
+
   mock.kill('SIGTERM')
   console.log(failures === 0 ? '\nPASS' : `\n${failures} FAILURE(S)`)
   process.exit(failures === 0 ? 0 : 1)
