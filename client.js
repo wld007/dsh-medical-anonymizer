@@ -1423,6 +1423,8 @@ window.__ModuleLoader__.load({
       .ws-busy-qlabel{position:absolute;right:2px;top:0;font-size:9.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none}
       .ws-busy-ld.ws-busy-q,.ws-busy-lv.ws-busy-q{stroke-width:1;opacity:.5}
       .ws-version{font-style:normal;margin-left:8px;padding:0 5px;border-radius:4px;border:1px solid var(--dsw-alias-border-l2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0;color:var(--dsw-alias-label-secondary)}
+      .ws-busy-fd{fill:color-mix(in srgb,var(--ws-accent) 11%,transparent);stroke:none}
+      .ws-busy-fv{fill:color-mix(in srgb,#3b82c4 11%,transparent);stroke:none}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
       .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
@@ -4156,6 +4158,9 @@ window.__ModuleLoader__.load({
                         h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: down(qMax), y2: down(qMax) }),
                         empty ? null : h('path', { className: 'ws-busy-ld ws-busy-q', d: qLine((p) => p[1]) }),
                         !empty && hasVerify ? h('path', { className: 'ws-busy-lv ws-busy-q', d: qLine((p) => p[3] ?? 0) }) : null,
+                        // Light fill between the in-flight lines and the axis.
+                        empty ? null : h('path', { className: 'ws-busy-fd', d: `${line((p) => p[0])} L${W} ${AX} L0 ${AX} Z` }),
+                        !empty && hasVerify ? h('path', { className: 'ws-busy-fv', d: `${line((p) => p[2] ?? 0)} L${W} ${AX} L0 ${AX} Z` }) : null,
                         h('line', { className: 'ws-busy-axis', x1: 0, x2: W, y1: AX, y2: AX }),
                         empty ? null : h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
                         !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0) }) : null),
