@@ -1422,6 +1422,7 @@ window.__ModuleLoader__.load({
       .ws-busy-wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--dsw-alias-label-secondary);pointer-events:none}
       .ws-busy-qlabel{position:absolute;right:2px;top:0;font-size:9.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none}
       .ws-busy-ld.ws-busy-q,.ws-busy-lv.ws-busy-q{stroke-width:1;opacity:.5}
+      .ws-version{font-style:normal;margin-left:8px;padding:0 5px;border-radius:4px;border:1px solid var(--dsw-alias-border-l2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0;color:var(--dsw-alias-label-secondary)}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
       .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
@@ -3820,7 +3821,7 @@ window.__ModuleLoader__.load({
             h('span', { className: 'ws-brand-mark' }, h(AnonymizerIcon, { size: 18 })),
             h('div', {},
               h('h2', {}, t('ws.title'), h('span', { className: 'ws-brand-info', 'aria-hidden': 'true' }, 'i')),
-              h('span', {}, t('ws.subtitle')))),
+              h('span', {}, t('ws.subtitle'), config?.version ? h('em', { className: 'ws-version' }, `v${config.version}`) : null))),
           h('div', { className: `ws-status ws-s-${lineStatus}` },
             h('span', { className: 'ws-lamp' }),
             h('div', {},
