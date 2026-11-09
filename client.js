@@ -259,6 +259,8 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.tab.advice': '改进',
+      'ws.adv.paramsTitle': '参数调整（下一批生效）',
       'ws.m.mReq': '请求',
       'ws.m.mCalls': '调用',
       'ws.m.mTokens': 'Token',
@@ -468,8 +470,8 @@ window.__ModuleLoader__.load({
       'ws.adv.spread': '扩散 {count} 处',
       'ws.adv.hits': '{count} 次提示',
       'ws.adv.plugin': '插件',
-      'ws.adv.draftTitle': '{count} 项问题需要改进插件',
-      'ws.adv.draftHint': '这些问题靠调参数解决不了。已生成改进草稿，只含问题类型、计数和扩展名，不含原值、路径和字段名。复制后发到对话里让 Agent 修改插件，或检查后提交到仓库 issue。',
+      'ws.adv.draftTitle': '插件可改进 {count} 项',
+      'ws.adv.draftHint': '这些问题靠调参数解决不了。已生成改进草稿，只含问题类型、计数、扩展名和内容类别，不含原值、路径和字段名。复制后发到对话里让 Agent 修改插件，或检查后提交到仓库 issue。',
       'ws.adv.copyDraft': '复制草稿',
       'ws.adv.preview': '预览',
       'ws.adv.hide': '收起',
@@ -742,6 +744,8 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.tab.advice': 'Improve',
+      'ws.adv.paramsTitle': 'Parameter changes (next batch)',
       'ws.m.mReq': 'Requests',
       'ws.m.mCalls': 'Calls',
       'ws.m.mTokens': 'Tokens',
@@ -1341,6 +1345,11 @@ window.__ModuleLoader__.load({
       .ws-mtable>b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);text-align:right;white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
       .ws-mt-label{white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
       .ws-mtable>b.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
+      .ws-adv-findings{margin:2px 0 4px;padding-left:16px;display:flex;flex-direction:column;gap:5px;font-size:12px}
+      .ws-adv-findings li{line-height:18px}
+      .ws-adv-findings b{margin-right:6px}
+      .ws-adv-findings i{display:block;font-style:normal;color:var(--dsw-alias-label-secondary);font-size:11.5px}
+      .ws-adv-sec{margin:6px 0 0;font-size:12px;color:var(--dsw-alias-label-secondary)}
       .ws-kv-warn b{color:var(--dsw-alias-state-warn-primary)}
       .ws-kv-bad b{color:var(--dsw-alias-state-error-primary)}
       .ws-spark-avg{stroke:var(--dsw-alias-label-secondary);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
@@ -3431,6 +3440,7 @@ window.__ModuleLoader__.load({
                 h('td', { className: 'ma-mono' }, entry.out ? `${compact(entry.in || 0)} / ${entry.out}` : '—'),
                 h('td', {}, h('span', { className: entry.result === 'ok' ? 'ma-chip ma-ok' : (entry.result === 'cancelled' || entry.result === 'cached') ? 'ma-chip' : 'ma-chip ma-bad' }, t(`ws.calls.r.${entry.result}`) === `ws.calls.r.${entry.result}` ? entry.result : t(`ws.calls.r.${entry.result}`))))))))
         }
+        if (drawer === 'advice') return advicePanel()
         if (drawer === 'warn') {
           const warnings = current.warnings ?? []
           return warnings.length === 0
@@ -3627,6 +3637,11 @@ window.__ModuleLoader__.load({
             h('div', { className: 'ws-cmp-pane' }, pane())))
       }
 
+      const adviceCount = (() => {
+        const advice = adviceRunId ? adviceByRun[adviceRunId] : undefined
+        if (!advice) return 0
+        return (advice.findings?.length ?? 0) + (advice.suggestions ?? []).filter((item) => !dismissed[`${adviceRunId}:${item.id}`] && !isApplied(item)).length
+      })()
       const advicePanel = () => {
         const advice = adviceRunId ? adviceByRun[adviceRunId] : undefined
         const items = (advice?.suggestions ?? []).filter((item) => !dismissed[`${adviceRunId}:${item.id}`])
@@ -3637,6 +3652,7 @@ window.__ModuleLoader__.load({
         if (!adviceRunId) body.push(h('p', { key: 'e', className: 'ma-empty' }, running ? t('ws.adv.running') : t('ws.adv.none')))
         else if (advice === undefined) body.push(h('p', { key: 'e', className: 'ma-empty' }, t('detail.loading')))
         else if (open.length === 0 && !draft) body.push(h('p', { key: 'e', className: 'ma-empty' }, done.length > 0 ? t('ws.adv.allDone') : t('ws.adv.clean')))
+        if (open.length > 0) body.push(h('h4', { key: 'ph', className: 'ws-adv-sec' }, t('ws.adv.paramsTitle')))
         for (const item of open) {
           const key = `${adviceRunId}:${item.id}`
           const choices = item.values
@@ -3657,8 +3673,12 @@ window.__ModuleLoader__.load({
               h('button', { className: 'ma-btn ma-small', onClick: () => dismiss(key) }, t('ws.adv.dismiss')))))
         }
         if (draft) {
-          body.push(h('div', { key: 'draft', className: 'ws-adv ws-adv-draft' },
+          // Plugin capability gaps come first: what the plugin itself should
+          // learn to handle, beyond parameter changes.
+          body.unshift(h('div', { key: 'draft', className: 'ws-adv ws-adv-draft' },
             h('div', { className: 'ws-adv-title' }, h('span', { className: 'ws-adv-flag' }, t('ws.adv.plugin')), h('b', {}, t('ws.adv.draftTitle', { count: advice.findings.length }))),
+            h('ul', { className: 'ws-adv-findings' }, advice.findings.map((finding, index) => h('li', { key: index },
+              h('b', {}, finding.area), h('span', {}, finding.detail), h('i', {}, finding.hint)))),
             h('p', { className: 'ws-adv-reason' }, t('ws.adv.draftHint')),
             showDraft ? h('pre', { className: 'ma-pre ws-adv-pre' }, draft) : null,
             h('div', { className: 'ma-actions' },
@@ -3669,12 +3689,8 @@ window.__ModuleLoader__.load({
         if (adviceNote) body.push(h('p', { key: 'note', className: adviceNote.ok ? 'ma-hint ma-ok' : 'ma-hint ma-error' }, adviceNote.text))
         if (anyRunning && open.length > 0) body.push(h('p', { key: 'lock', className: 'ma-hint' }, t('ws.paramsLocked')))
         const pending = open.length + (draft ? 1 : 0)
-        return h('section', { className: 'ws-panel ws-advice' },
-          h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'C3' }, t('ws.adv.title')),
-            h('span', { className: `ws-tag${pending > 0 ? ' ws-tag-hot' : ''}` }, String(pending))),
-          // C3 takes the space left in the column and scrolls inside, so the
-          // column itself never needs a scrollbar.
-          h('div', { className: 'ws-adv-body' }, ...body))
+        void pending
+        return h('div', { className: 'ws-adv-body' }, ...body)
       }
 
       return h('div', { className: 'ma-page ws-page', ref: rootRef },
@@ -3824,7 +3840,7 @@ window.__ModuleLoader__.load({
                     h('button', { className: 'ma-btn ma-small', onClick: copyPath }, copied ? t('detail.copied') : t('detail.copy')))
                   : null)),
             h('section', { className: 'ws-panel ws-drawer' },
-              h('div', { className: 'ma-tabs', role: 'tablist' }, ['parts', 'log', 'calls', 'warn', 'report'].map((id) => h('button', {
+              h('div', { className: 'ma-tabs', role: 'tablist' }, ['parts', 'log', 'calls', 'warn', 'advice', 'report'].map((id) => h('button', {
                 key: id, type: 'button', role: 'tab', className: 'ma-tab',
                 'aria-selected': drawer === id ? 'true' : 'false',
                 onClick: () => {
@@ -3834,6 +3850,7 @@ window.__ModuleLoader__.load({
                 },
               }, t(`ws.tab.${id}`),
               id === 'warn' && (current?.warnings?.length ?? 0) > 0 ? h('span', { className: 'ws-count' }, String(current.warnings.length)) : null,
+              id === 'advice' && adviceCount > 0 ? h('span', { className: 'ws-count' }, String(adviceCount)) : null,
               null))),
               h('div', { className: 'ws-drawer-wrap' },
                 h('div', { className: 'ws-drawer-body', ref: drawerRef, onScroll: onDrawerScroll }, drawerBody()),
@@ -3939,7 +3956,7 @@ window.__ModuleLoader__.load({
                     h('button', { className: 'ma-btn ma-small ma-primary', disabled: changed.length === 0 || savingParams || anyRunning, onClick: saveParams },
                       savingParams ? t('save.saving') : t('ws.paramsSave'))),
                   paramNote ? h('p', { className: paramNote.ok ? 'ma-hint ma-ok' : 'ma-hint ma-error' }, paramNote.text) : null)),
-            advicePanel())),
+            null)),
         deleting ? h('div', { className: 'ws-modal-back', onMouseDown: (event) => { if (event.target === event.currentTarget && !deleting.busy) setDeleting(null) } },
           h('div', { className: 'ws-modal ws-modal-del', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': t('ws.del.title') },
             h('div', { className: 'ws-modal-head' }, h('h3', {}, deleting.all ? t('ws.del.clearTitle') : t('ws.del.title'))),
