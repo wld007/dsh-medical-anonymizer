@@ -259,6 +259,10 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.m.speed': '处理速度 tok/s',
+      'ws.m.speedHint': '该模型每次调用的输入 + 输出 token 之和 ÷ 调用耗时之和（不含排队）。',
+      'ws.m.speedSplit': '拆分估算：提示处理（预填充）约 {prompt} tok/s · 生成（解码）约 {gen} tok/s。提示处理慢可提高模型并发或开启前缀缓存；生成慢才需要换更快的模型。',
+      'ws.m.speedFew': '拆分估算（提示处理 / 生成）需要至少 30 次调用。',
       'ws.tab.advice': '改进',
       'ws.adv.paramsTitle': '参数调整（下一批生效）',
       'ws.m.mReq': '请求',
@@ -744,6 +748,10 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.m.speed': 'Speed tok/s',
+      'ws.m.speedHint': 'Input + output tokens of all calls of this model ÷ their total time (queueing excluded).',
+      'ws.m.speedSplit': 'Split estimate: prompt (prefill) about {prompt} tok/s · generation (decode) about {gen} tok/s. Slow prefill: raise model concurrency or enable prefix caching; slow decode: consider a faster model.',
+      'ws.m.speedFew': 'The prompt / generation split needs at least 30 calls.',
       'ws.tab.advice': 'Improve',
       'ws.adv.paramsTitle': 'Parameter changes (next batch)',
       'ws.m.mReq': 'Requests',
@@ -3914,6 +3922,18 @@ window.__ModuleLoader__.load({
                 const slots = (r) => (r ? `${r.active}/${r.limit}${r.queued > 0 ? ` +${r.queued}` : ''}` : '—')
                 const slotTone = (r) => (r && r.active < r.limit && r.queued === 0 ? 'warn' : '')
                 const fits = Object.fromEntries(cols.map((key) => [key, fitSpeed(models[key]?.fit ?? (key === 'detect' ? totals.speedFit : null))]))
+                // One speed per model; the prefill / decode split is in the hint.
+                const speedOf = (key) => {
+                  const m = models[key]
+                  if (m?.ioMs > 0) return (m.ioTokens / m.ioMs) * 1000
+                  const f = m?.fit ?? (key === 'detect' ? totals.speedFit : null)
+                  return f?.y > 0 ? ((f.a + f.b) / f.y) * 1000 : null
+                }
+                const speedHint = (key) => {
+                  const fit = fits[key]
+                  const split = fit.gen === null ? t('ws.m.speedFew') : t('ws.m.speedSplit', { prompt: fmtSpeed(fit.prompt), gen: fmtSpeed(fit.gen) })
+                  return `${t('ws.m.speedHint')}\n${split}`
+                }
                 const avgCtx = (m) => (m?.ctxN ? compact(Math.round(m.ctxSum / m.ctxN)) : '—')
                 const lines = [
                   ...(running ? [[t('ws.m.mReq'), (key) => slots(current?.requests?.[key]), t('ws.m.reqHint'), (key) => slotTone(current?.requests?.[key])]] : []),
@@ -3921,16 +3941,15 @@ window.__ModuleLoader__.load({
                   [t('ws.m.mTokens'), (key) => compact(models[key]?.tokens ?? 0), t('ws.m.tokensHint')],
                   [t('ws.m.ctxAvg'), (key) => avgCtx(models[key]), t('ws.m.ctxHint')],
                   [t('ws.m.ctxMax'), (key) => (models[key]?.ctxMax ? compact(models[key].ctxMax) : '—'), t('ws.m.ctxHint')],
-                  [t('ws.m.speedGen'), (key) => fmtSpeed(fits[key].gen), t('ws.m.fitHint2')],
-                  [t('ws.m.speedPrompt'), (key) => fmtSpeed(fits[key].prompt), t('ws.m.fitHint2')],
+                  [t('ws.m.speed'), (key) => fmtSpeed(speedOf(key)), (key) => speedHint(key)],
                 ]
                 const table = h('div', { className: `ws-mtable${separate ? '' : ' ws-mtable-one'}` },
                   h('span', { className: 'ws-mt-head' }),
                   ...cols.map((key) => h('span', { key: `h${key}`, className: 'ws-mt-head', title: key === 'verify' ? (current?.config?.verifyModel ?? '') : (current?.config?.model ?? config?.model ?? '') },
                     key === 'detect' ? (separate ? t('ws.model') : t('ws.modelShared')) : t('ws.verifyModel'))),
                   ...lines.flatMap(([label, value, hint, tone]) => [
-                    h('span', { key: `l${label}`, className: 'ws-mt-label', title: hint }, label),
-                    ...cols.map((key) => h('b', { key: `${label}${key}`, className: tone?.(key) ? `ws-mt-${tone(key)}` : '', title: hint }, value(key))),
+                    h('span', { key: `l${label}`, className: 'ws-mt-label', title: typeof hint === 'function' ? hint(cols[0]) : hint }, label),
+                    ...cols.map((key) => h('b', { key: `${label}${key}`, className: tone?.(key) ? `ws-mt-${tone(key)}` : '', title: typeof hint === 'function' ? hint(key) : hint }, value(key))),
                   ]))
                 return h(React.Fragment, {}, h('div', { className: 'ws-minor' }, rows), table)
               })()),
