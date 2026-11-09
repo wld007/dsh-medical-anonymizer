@@ -259,11 +259,14 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
-      'ws.m.splitHint': '请求去向：实际调用 {sent} · 复用调用 {replayed} · 免送段落 {skipped}（免送按段落计，比例仅供参考）',
+      'ws.m.queueChart': '排队',
+      'ws.m.queueMax': '峰值 {max} · 当前 {now}',
+      'ws.m.splitHint': '段落去向（按段落计）：发给模型 {sent} · 复用缓存 {replayed} · 免送 {skipped}。免送是本批其他文件或上一轮已经问过的相同内容。',
+      'ws.m.segSent': '发给模型','ws.m.segReplayed': '复用','ws.m.segSkipped': '免送',
       'ws.m.ctxDist': '上下文分布',
       'ws.m.ctxDistHint': '单次调用上下文长度的分布：<0.5k、0.5–1k、1–2k、2–4k、4–8k、8–16k、≥16k（红色为 8k 以上）。悬停可看各档次数。',
       'ws.m.busy': '模型忙闲',
-      'ws.m.busyLimit': '虚线 = 上限 {limit}',
+      'ws.m.busyLimit': '进行中的请求 · 虚线 = 上限 {limit}',
       'ws.m.busySpan': '最近约 {minutes} 分钟',
       'ws.overview': '运行概况',
       'ws.expand': '展开',
@@ -758,7 +761,10 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
-      'ws.m.splitHint': 'Where requests went: sent {sent} · replayed {replayed} · skipped segments {skipped} (skipped counts segments; proportions are approximate)',
+      'ws.m.queueChart': 'Queued',
+      'ws.m.queueMax': 'peak {max} · now {now}',
+      'ws.m.splitHint': 'Where segments went: sent to a model {sent} · replayed from cache {replayed} · skipped {skipped} (identical content already asked about in this batch).',
+      'ws.m.segSent': 'sent','ws.m.segReplayed': 'replayed','ws.m.segSkipped': 'skipped',
       'ws.m.ctxDist': 'Context spread',
       'ws.m.ctxDistHint': 'Context length per call: <0.5k, 0.5–1k, 1–2k, 2–4k, 4–8k, 8–16k, ≥16k (red above 8k). Hover for counts.',
       'ws.m.busy': 'Model load',
@@ -1381,9 +1387,17 @@ window.__ModuleLoader__.load({
       .ws-mon-spark{flex:1;min-width:0}
       .ws-split{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:1px;margin:2px 0 4px;background:var(--dsw-alias-bg-layer-2)}
       .ws-split i{display:block;min-width:2px}
+      .ws-splitbox{display:flex;flex-direction:column;gap:2px;margin:2px 0 4px}
+      .ws-splitbox .ws-split{margin:0}
+      .ws-split-legend{display:flex;gap:10px;font-size:10px;color:var(--dsw-alias-label-secondary)}
+      .ws-split-legend span{display:inline-flex;align-items:center;gap:4px}
+      .ws-split-legend i{display:inline-block;width:8px;height:8px;border-radius:2px}
+      .ws-ctxcell{display:inline-flex;align-items:center;gap:6px}
+      .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
+      .ws-busy .ws-busy-qsvg{flex:none;height:16px;min-height:16px}
       .ws-split-sent{background:var(--ws-accent)}
       .ws-split-replayed{background:var(--dsw-alias-state-success-primary)}
-      .ws-split-skipped{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 45%,transparent)}
+      .ws-split-skipped{background:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
       .ws-hist{display:inline-flex;align-items:flex-end;gap:1px;height:14px;width:56px;justify-content:flex-end}
       .ws-hist i{display:block;width:6px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 45%,transparent);border-radius:1px 1px 0 0}
       .ws-hist i.ws-hist-hot{background:var(--dsw-alias-state-error-primary)}
@@ -3974,14 +3988,21 @@ window.__ModuleLoader__.load({
                     : null))
                 // Totals (both models): calls, reuse, tokens, memory.
                 // Where the work went: sent to a model / replayed / skipped.
-                const sent = Number(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0))
-                const replayed = Number(totals.replayedCalls ?? 0)
+                // All three counted in segments, so the bar compares like with like.
+                const sent = Number(totals.sentSegments ?? 0)
+                const replayed = Number(totals.replayedSegments ?? 0)
                 const skipped = Number(totals.memoHits ?? 0)
                 const whole = sent + replayed + skipped
-                const splitBar = whole > 0
-                  ? h('div', { className: 'ws-split', title: t('ws.m.splitHint', { sent, replayed, skipped }) },
-                    [['sent', sent], ['replayed', replayed], ['skipped', skipped]].filter(([, value]) => value > 0)
-                      .map(([kind, value]) => h('i', { key: kind, className: `ws-split-${kind}`, style: { flexGrow: value } })))
+                const pct = (value) => `${Math.round((value / whole) * 100)}%`
+                const splitBar = whole > 0 && sent + replayed > 0
+                  ? h('div', { className: 'ws-splitbox', title: t('ws.m.splitHint', { sent, replayed, skipped }) },
+                    h('div', { className: 'ws-split' },
+                      [['sent', sent], ['replayed', replayed], ['skipped', skipped]].filter(([, value]) => value > 0)
+                        .map(([kind, value]) => h('i', { key: kind, className: `ws-split-${kind}`, style: { flexGrow: value } }))),
+                    h('div', { className: 'ws-split-legend' },
+                      h('span', {}, h('i', { className: 'ws-split-sent' }), `${t('ws.m.segSent')} ${pct(sent)}`),
+                      replayed ? h('span', {}, h('i', { className: 'ws-split-replayed' }), `${t('ws.m.segReplayed')} ${pct(replayed)}`) : null,
+                      skipped ? h('span', {}, h('i', { className: 'ws-split-skipped' }), `${t('ws.m.segSkipped')} ${pct(skipped)}`) : null))
                   : null
                 // Row 1: what was sent (calls, tokens); row 2: what was saved.
                 row(t('ws.m.calls'), compact(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0)), { title: t('ws.m.callsHint') })
@@ -4028,9 +4049,10 @@ window.__ModuleLoader__.load({
                 const lines = [
                   ...(running ? [[t('ws.m.mReq'), (key) => slots(current?.requests?.[key]), t('ws.m.reqHint'), (key) => slotTone(current?.requests?.[key])]] : []),
                   [t('ws.m.mCalls'), (key) => compact(models[key]?.calls ?? 0), t('ws.m.callsHint')],
-                  [t('ws.m.ctx'), (key) => (models[key]?.ctxN ? `${avgCtx(models[key])} / ${compact(models[key].ctxMax)}` : '—'), t('ws.m.ctxHint')],
+                  [t('ws.m.ctx'), (key) => (models[key]?.ctxN
+                    ? h('span', { className: 'ws-ctxcell' }, histBar(models[key].ctxHist), `${compact(Math.round(models[key].ctxSum / models[key].ctxN))} / ${compact(models[key].ctxMax)}`)
+                    : '—'), `${t('ws.m.ctxHint')}\n${t('ws.m.ctxDistHint')}`],
                   [t('ws.m.speed'), (key) => fmtSpeed(speedOf(key)), (key) => speedHint(key)],
-                  [t('ws.m.ctxDist'), (key) => histBar(models[key]?.ctxHist), t('ws.m.ctxDistHint')],
                 ]
                 const table = h('div', { className: `ws-mtable${separate ? '' : ' ws-mtable-one'}` },
                   h('span', { className: 'ws-mt-head' }),
@@ -4052,28 +4074,33 @@ window.__ModuleLoader__.load({
                   const points = series?.points ?? []
                   if (points.length < 2) return null
                   const limit = Number(current?.requests?.detect?.limit ?? current?.config?.concurrency ?? config?.concurrency ?? 4)
-                  const top = Math.max(limit, ...points.map((p) => Math.max(p[0] + p[1], (p[2] ?? 0) + (p[3] ?? 0))))
-                  const W = 300
-                  const H = 60
-                  const x = (index) => (index / (points.length - 1)) * W
-                  const y = (value) => H - (Math.min(value, top) / top) * (H - 2)
-                  const line = (pick) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${y(pick(p)).toFixed(1)}`).join(' ')
-                  const band = (low, high) => `${line(high)} ${points.map((_, i) => points.length - 1 - i).map((index) => `L${x(index).toFixed(1)} ${y(low(points[index])).toFixed(1)}`).join(' ')} Z`
                   const hasVerify = points.some((p) => p.length > 2)
+                  const W = 300
+                  const H = 52
+                  const x = (index) => (index / (points.length - 1)) * W
+                  // Requests in flight on 0..limit: the full height means saturated.
+                  const y = (value) => H - 2 - (Math.min(value, limit) / limit) * (H - 6)
+                  const line = (pick) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${y(pick(p)).toFixed(1)}`).join(' ')
+                  // Queue on its own scale below, so a long queue does not flatten the lines.
+                  const qMax = Math.max(1, ...points.map((p) => Math.max(p[1], p[3] ?? 0)))
+                  const QH = 16
+                  const qArea = (pick) => `M0 ${QH} ${points.map((p, index) => `L${x(index).toFixed(1)} ${(QH - (pick(p) / qMax) * (QH - 1)).toFixed(1)}`).join(' ')} L${W} ${QH} Z`
                   const minutes = Math.round(((points.length - 1) * (series.step ?? 2000)) / 60000)
+                  const last = points[points.length - 1]
                   return h('div', { className: 'ws-busy' },
                     h('div', { className: 'ws-busy-head' },
                       h('span', {}, t('ws.m.busy')),
                       h('span', { className: 'ws-busy-legend' },
                         h('i', { className: 'ws-busy-d' }), t('ws.model'),
-                        hasVerify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel')) : null,
-                        h('i', { className: 'ws-busy-q' }), t('ws.m.queued'))),
+                        hasVerify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel')) : null)),
                     h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.m.busy') },
-                      h('path', { className: 'ws-busy-qd', d: band((p) => p[0], (p) => p[0] + p[1]) }),
-                      hasVerify ? h('path', { className: 'ws-busy-qv', d: band((p) => p[2] ?? 0, (p) => (p[2] ?? 0) + (p[3] ?? 0)) }) : null,
                       h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: y(limit), y2: y(limit) }),
                       h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
                       hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0) }) : null),
+                    h('div', { className: 'ws-busy-qhead' }, h('span', {}, t('ws.m.queueChart')), h('span', { className: 'ma-mono' }, t('ws.m.queueMax', { max: qMax, now: hasVerify ? `${last[1]} · ${last[3] ?? 0}` : String(last[1]) }))),
+                    h('svg', { className: 'ws-busy-qsvg', viewBox: `0 0 ${W} ${QH}`, preserveAspectRatio: 'none', 'aria-hidden': 'true' },
+                      h('path', { className: 'ws-busy-qd', d: qArea((p) => p[1]) }),
+                      hasVerify ? h('path', { className: 'ws-busy-qv', d: qArea((p) => p[3] ?? 0) }) : null),
                     h('div', { className: 'ws-spark-foot' }, h('span', {}, t('ws.m.busyLimit', { limit })), h('span', {}, t('ws.m.busySpan', { minutes: Math.max(1, minutes) }))))
                 })()
                 return h(React.Fragment, {}, splitBar, h('div', { className: 'ws-minor' }, rows), table, busy)

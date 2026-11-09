@@ -1099,6 +1099,7 @@ async function main() {
     assert.equal(sch.peak, 2)
     assert.equal(schRun.requests.detect.active, 0)
     assert.equal(schRun.requests.detect.queued, 0)
+    assert.ok(schRun.totals.sentSegments > 0)
     assert.ok(schRun.loadSeries.points.length >= 1 && schRun.loadSeries.points.every((p) => p.length === 2), JSON.stringify(schRun.loadSeries))
   })
 
