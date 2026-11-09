@@ -90,5 +90,24 @@ check('内存峰值高 → 减小每组文件数；分组且峰值低 → 增大
   assert.ok(!single.suggestions.some((s) => s.id.startsWith('chunk')))
 })
 
+check('插件能力缺口：无法检查的内容按类别、盲审补漏按类型、靠画像认出的字段名', () => {
+  const gaps = [
+    { relPath: 'a.json', kind: 'json', status: 'review', rounds: 1, issues: [
+      { severity: 'error', code: 'opaque', detail: '无法检查的内容：PNG 图片 ×3（约 12 KB）' },
+      { severity: 'error', code: 'opaque', detail: '无法检查的内容：无法解读的编码串 ×1（约 57 KB）' },
+      { severity: 'error', code: 'model-residual', type: '姓名', detail: '独立盲审报出：姓名 王**' },
+      { severity: 'error', code: 'unreadable', detail: '2 处无法解读的长字符串' },
+    ] },
+  ]
+  const r = advise({ status: 'review', files: gaps, profileSummary: { HZXM: { field: 'HZXM', category: 'identifier', type: '姓名' } } }, base)
+  const text = r.findings.map((f) => `${f.area}|${f.detail}|${f.hint}`).join('\n')
+  assert.match(text, /PNG 图片 3 处.*OCR/)
+  assert.match(text, /无法解读的编码串 1 处.*解码器/)
+  assert.match(text, /盲审补出.*姓名×1/)
+  assert.match(text, /疑似加密/)
+  assert.match(text, /字段名词典/)
+  assert.ok(!r.draft.includes('HZXM'))
+})
+
 console.log(failures === 0 ? 'ADVISOR PASS' : `${failures} FAILURE(S)`)
 process.exit(failures === 0 ? 0 : 1)
