@@ -1374,8 +1374,9 @@ window.__ModuleLoader__.load({
       .ws-kv-warn .ws-membar-fill{background:var(--dsw-alias-state-warn-primary)}
       .ws-kv-bad .ws-membar-fill{background:var(--dsw-alias-state-error-primary)}
       .ws-membar-peak{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;border-radius:1px;background:var(--dsw-alias-label-secondary);opacity:.7}
-      .ws-mtable{display:grid;grid-template-columns:auto 1fr 1fr;gap:1px 10px;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
-      .ws-mtable-one{grid-template-columns:auto 1fr}
+      .ws-mtable{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:1px 10px;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
+      .ws-mtable-one{grid-template-columns:auto minmax(0,1fr)}
+      .ws-mtable>b{min-width:0;overflow:hidden;text-overflow:ellipsis}
       .ws-mt-head{font-size:10.5px;font-weight:600;text-align:right;color:var(--dsw-alias-label-primary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:1px}
       .ws-mt-head:first-child{border-bottom-color:transparent}
       .ws-mtable>b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);text-align:right;white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
@@ -1394,14 +1395,14 @@ window.__ModuleLoader__.load({
       .ws-split-legend{display:flex;gap:10px;font-size:10px;color:var(--dsw-alias-label-secondary)}
       .ws-split-legend span{display:inline-flex;align-items:center;gap:4px}
       .ws-split-legend i{display:inline-block;width:8px;height:8px;border-radius:2px}
-      .ws-ctxcell{display:inline-flex;align-items:center;gap:6px}
+      .ws-ctxcell{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;max-width:100%}
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
       .ws-busy .ws-busy-qsvg{flex:none;height:16px;min-height:16px}
       .ws-split-sent{background:var(--ws-accent)}
       .ws-split-replayed{background:var(--dsw-alias-state-success-primary)}
       .ws-split-skipped{background:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
-      .ws-hist{display:inline-flex;align-items:flex-end;gap:1px;height:14px;width:56px;justify-content:flex-end}
-      .ws-hist i{display:block;width:6px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 45%,transparent);border-radius:1px 1px 0 0}
+      .ws-hist{display:inline-flex;align-items:flex-end;gap:1px;height:12px;width:48px;justify-content:flex-end}
+      .ws-hist i{display:block;width:5px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 45%,transparent);border-radius:1px 1px 0 0}
       .ws-hist i.ws-hist-hot{background:var(--dsw-alias-state-error-primary)}
       .ws-busy{display:flex;flex-direction:column;gap:2px;margin-top:6px;flex:1;min-height:70px}
       .ws-busy-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--dsw-alias-label-secondary)}
@@ -4047,12 +4048,14 @@ window.__ModuleLoader__.load({
                   return h('span', { className: 'ws-hist', title: hist.map((value, index) => `${HIST_LABELS[index]}: ${value}`).join('\n') },
                     hist.map((value, index) => h('i', { key: index, className: index >= 5 ? 'ws-hist-hot' : '', style: { height: `${value ? Math.max(12, (value / top) * 100) : 0}%` } })))
                 }
+                // Token counts as 2.3k / 4.6k so a cell stays narrow.
+                const kTok = (value) => (value >= 1000 ? `${(value / 1000).toFixed(value >= 100000 ? 0 : 1)}k` : String(Math.round(value)))
                 const avgCtx = (m) => (m?.ctxN ? compact(Math.round(m.ctxSum / m.ctxN)) : '—')
                 const lines = [
                   ...(running ? [[t('ws.m.mReq'), (key) => slots(current?.requests?.[key]), t('ws.m.reqHint'), (key) => slotTone(current?.requests?.[key])]] : []),
                   [t('ws.m.mCalls'), (key) => compact(models[key]?.calls ?? 0), t('ws.m.callsHint')],
                   [t('ws.m.ctx'), (key) => (models[key]?.ctxN
-                    ? h('span', { className: 'ws-ctxcell' }, histBar(models[key].ctxHist), `${compact(Math.round(models[key].ctxSum / models[key].ctxN))} / ${compact(models[key].ctxMax)}`)
+                    ? h('span', { className: 'ws-ctxcell' }, histBar(models[key].ctxHist), `${kTok(models[key].ctxSum / models[key].ctxN)} / ${kTok(models[key].ctxMax)}`)
                     : '—'), `${t('ws.m.ctxHint')}\n${t('ws.m.ctxDistHint')}`],
                   [t('ws.m.speed'), (key) => fmtSpeed(speedOf(key)), (key) => speedHint(key)],
                 ]
