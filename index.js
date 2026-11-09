@@ -62,7 +62,7 @@ export function apply(ctx, config = {}) {
     parameters: {
       inputDir: { type: 'string', description: '待处理的目录或单个文件（含 .zip）的绝对路径（或相对当前工作区的路径）。传单个文件时只处理该文件。' },
       outputRoot: { type: 'string', description: '输出根目录，不能与输入目录相同；交付数据直接放在它下面，记录放在其中的 _records。省略时用设置里的默认值，再缺省则为输入目录（或输入文件）旁的 _medical-anonymizer。' },
-      maxRounds: { type: 'number', description: '发现-复核的最大轮次（1–6）；省略时用设置里的默认值。' },
+      maxRounds: { type: 'number', description: '核验轮次上限（1–6）：每轮以核验结束，有可疑项时下一轮先复判修正再核验；省略时用设置里的默认值。' },
       inputs: { type: 'array', description: '同一目录下的多个文件或文件夹的绝对路径，作为一个批次处理，每一项分别交付到输出根目录。与 inputDir 二选一。' },
       resumeFrom: { type: 'string', description: '继续处理一个已取消或失败的批次（填它的批次 id）：沿用原输入和输出根目录，已完成的模型调用直接复用，只处理剩下的部分。填写时可省略 inputDir。' },
     },

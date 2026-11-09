@@ -610,7 +610,7 @@ async function main() {
     })
     assert.deepEqual(patch, { maxFiles: 50, concurrency: 8, maxDicomFiles: 1000, timeoutMs: 300000, temperature: 0.2, vaultPassphrase: 'correct horse' })
     assert.deepEqual(service.normalizeDefaults({ vaultPassphrase: '' }), { vaultPassphrase: '' })
-    assert.throws(() => service.normalizeDefaults({ concurrency: 0 }), /并发数/)
+    assert.throws(() => service.normalizeDefaults({ concurrency: 0 }), /模型并发/)
     assert.throws(() => service.normalizeDefaults({ maxFiles: 1.5 }), /每组文件数/)
     assert.throws(() => service.normalizeDefaults({ timeoutMs: 500 }), /超时/)
     assert.throws(() => service.normalizeDefaults({ temperature: 3 }), /温度/)
@@ -1138,7 +1138,10 @@ async function main() {
     assert.deepEqual(profOut.map((row) => row.YPMC), drugs)
     assert.ok(!seen.detectTexts.some((text) => drugs.includes(text) || names.includes(text)), JSON.stringify(seen.detectTexts))
     assert.ok(profOut[3].BZ.includes('化名-') && !profOut[3].BZ.includes(names[0]), profOut[3].BZ)
-    assert.ok(seen.lists.some((seg) => seg.field === 'YPMC' && drugs.every((d) => seg.text.includes(d))), JSON.stringify(seen.lists))
+    // Values reviewed clean in one file are not listed again (batch memo), so
+    // the lists of both files together cover the column.
+    const listedDrugs = new Set(seen.lists.filter((seg) => seg.field === 'YPMC').flatMap((seg) => seg.text.split('；')))
+    assert.ok(drugs.every((d) => listedDrugs.has(d)), JSON.stringify(seen.lists))
     assert.equal(profRun.profileSummary.HZXM.category, 'identifier')
     assert.equal(profRun.profileSummary.YPMC.files, 2)
   })
