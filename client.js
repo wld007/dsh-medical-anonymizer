@@ -1394,7 +1394,8 @@ window.__ModuleLoader__.load({
       .ws-mt-head{font-size:10.5px;font-weight:600;text-align:right;color:var(--dsw-alias-label-primary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:1px}
       .ws-mt-head:first-child{border-bottom-color:transparent}
       .ws-mtable>b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);text-align:right;white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
-      .ws-mt-label{white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
+      .ws-mt-label{display:flex;align-items:center;white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
+      .ws-mtable>b{display:flex;align-items:center;justify-content:flex-end}
       .ws-mtable>b.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-adv-findings{margin:2px 0 4px;padding-left:16px;display:flex;flex-direction:column;gap:5px;font-size:12px}
       .ws-adv-findings li{line-height:18px}
