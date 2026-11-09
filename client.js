@@ -3938,7 +3938,6 @@ window.__ModuleLoader__.load({
                 const lines = [
                   ...(running ? [[t('ws.m.mReq'), (key) => slots(current?.requests?.[key]), t('ws.m.reqHint'), (key) => slotTone(current?.requests?.[key])]] : []),
                   [t('ws.m.mCalls'), (key) => compact(models[key]?.calls ?? 0), t('ws.m.callsHint')],
-                  [t('ws.m.mTokens'), (key) => compact(models[key]?.tokens ?? 0), t('ws.m.tokensHint')],
                   [t('ws.m.ctxAvg'), (key) => avgCtx(models[key]), t('ws.m.ctxHint')],
                   [t('ws.m.ctxMax'), (key) => (models[key]?.ctxMax ? compact(models[key].ctxMax) : '—'), t('ws.m.ctxHint')],
                   [t('ws.m.speed'), (key) => fmtSpeed(speedOf(key)), (key) => speedHint(key)],
