@@ -259,6 +259,11 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'ws.spark.title': '速率 件/分',
+      'ws.spark.nowShort': '当前',
+      'ws.spark.avgShort': '平均 {rate}',
+      'ws.spark.peakShort': '峰值 {rate}',
+      'ws.spark.tip': '处理速率（文件/分）。全程平均 {avg}（每个文件约 {secs} 秒）；峰值 {peak}（30 秒内的最高值）。虚线为全程平均。',
       'ws.m.peakHint': '本批次的峰值：进行中 / 上限，+N 为排队峰值',
       'ws.m.busyIdle': '批次运行时显示',
       'ws.m.busyCollect': '正在采样…',
@@ -769,6 +774,11 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'ws.spark.title': 'Files/min',
+      'ws.spark.nowShort': 'now',
+      'ws.spark.avgShort': 'avg {rate}',
+      'ws.spark.peakShort': 'peak {rate}',
+      'ws.spark.tip': 'Files per minute. Overall average {avg} (about {secs} s per file); peak {peak} (highest 30-second value). The dashed line is the average.',
       'ws.m.peakHint': 'Peaks over this batch: in flight / limit, +N queued',
       'ws.m.busyIdle': 'Shown while a batch runs',
       'ws.m.busyCollect': 'Sampling…',
@@ -1729,7 +1739,7 @@ window.__ModuleLoader__.load({
       .ws-doc-hot path+path{stroke:#fff}
       .ws-doc-flow path{fill:var(--ws-paper)}
       .ws-spark{display:flex;flex-direction:column;gap:2px}
-      .ws-spark-head{display:flex;justify-content:space-between;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-spark-head{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .ws-spark svg{width:100%;height:34px;display:block;border-bottom:1px solid color-mix(in srgb,var(--ws-ink) 25%,transparent)}
       .ws-spark-grid{stroke:color-mix(in srgb,var(--ws-ink) 8%,transparent);stroke-width:1;vector-effect:non-scaling-stroke}
       .ws-spark-area{fill:var(--ws-accent-soft)}
@@ -3412,18 +3422,21 @@ window.__ModuleLoader__.load({
           ? series.map((value, index) => `${((index + 0.5) / BINS) * W},${H - 3 - (value / max) * (H - 8)}`)
           : [`0,${H - 3}`, `${W},${H - 3}`]
         const avgY = H - 3 - (rate / max) * (H - 8)
-        return h('div', { className: 'ws-spark' },
+        // Short labels that fit the narrow column; units and details in the tooltip.
+        const peakRate = BINS > 1 && has ? Math.max(...series) : null
+        const sparkTip = has ? t('ws.spark.tip', { avg: rate.toFixed(1), secs: rate > 0 ? (60 / rate).toFixed(1) : '—', peak: peakRate === null ? '—' : peakRate.toFixed(1) }) : ''
+        return h('div', { className: 'ws-spark', title: sparkTip },
           h('div', { className: 'ws-spark-head' },
-            h('span', {}, t('ws.trend')),
-            h('b', { className: 'ma-mono', title: running ? t('ws.spark.nowHint') : '' }, has ? `${running ? `${t('ws.spark.now')} ` : ''}${(running ? recentRate : rate).toFixed(1)} ${t('ws.perMin')}` : '—')),
+            h('span', {}, t('ws.spark.title')),
+            h('b', { className: 'ma-mono', title: running ? t('ws.spark.nowHint') : '' }, has ? `${running ? `${t('ws.spark.nowShort')} ` : ''}${(running ? recentRate : rate).toFixed(1)}` : '—')),
           h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' },
             [1, 2, 3].map((index) => h('path', { key: index, className: 'ws-spark-grid', d: `M0 ${(H / 4) * index}H${W}` })),
             has ? h('path', { className: 'ws-spark-area', d: `M0 ${H} L${pts.join(' L')} L${W} ${H} Z` }) : null,
             h('polyline', { className: 'ws-spark-line', points: pts.join(' ') }),
             has && rate > 0 ? h('path', { className: 'ws-spark-avg', d: `M0 ${avgY}H${W}` }) : null),
           has ? h('div', { className: 'ws-spark-foot' },
-            h('span', {}, t('ws.spark.avg', { rate: rate.toFixed(1), secs: rate > 0 ? (60 / rate).toFixed(1) : '—' })),
-            BINS > 1 ? h('span', {}, t('ws.spark.peak', { rate: Math.max(...series).toFixed(1) })) : null) : null)
+            h('span', {}, t('ws.spark.avgShort', { rate: rate.toFixed(1) })),
+            peakRate !== null ? h('span', {}, t('ws.spark.peakShort', { rate: peakRate.toFixed(1) })) : null) : null)
       }
 
       // ── Render helpers ──
