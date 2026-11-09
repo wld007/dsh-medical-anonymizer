@@ -299,7 +299,7 @@ window.__ModuleLoader__.load({
       'ws.m.mCalls': '调用',
       'ws.m.mTokens': 'Token',
       'ws.m.ctxAvg': '平均上下文',
-      'ws.m.ctx': '上下文 均/大',
+      'ws.m.ctx': '上下文 均/最大',
       'ws.m.fitHint2': '按该模型的全部调用拟合「耗时 = 固定开销 + 输入 token ÷ 提示处理速度 + 输出 token ÷ 生成速度」得到的估算值，至少 30 次调用后显示。生成即解码速度，提示处理即预填充速度。',
       'ws.m.ctxMax': '最大上下文',
       'ws.m.ctxHint': '单次调用的上下文长度 = 输入 token + 输出 token（按端点返回的用量）。前一个是平均值，反映负载和速度；后一个是最大值，接近模型的上下文窗口时有被截断的风险。',
