@@ -2031,9 +2031,10 @@ window.__ModuleLoader__.load({
       .ws-brand-mark svg{width:20px;height:20px}
       .ws-panel-head h3::before{content:attr(data-code);display:inline-block;margin-right:7px;padding:0 4px;border-radius:3px;background:var(--ws-accent);color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:15px;letter-spacing:.5px;vertical-align:1px}
       .ws-panel-head{padding-bottom:6px;border-bottom:1px solid color-mix(in srgb,var(--ws-ink) 12%,transparent)}
-      .ws-drawer-head{display:flex;align-items:flex-end;gap:8px}
-      .ws-drawer-head>.ma-tabs{flex:1;min-width:0}
-      .ws-drawer-max{flex:none;align-self:center;width:26px;height:26px;padding:0;border:0;background:none;color:var(--dsw-alias-label-secondary);font-size:17px;line-height:1;cursor:pointer}
+      .ws-drawer-head{position:relative;align-self:stretch;width:100%}
+      .ws-drawer-head>.ma-tabs{padding-right:30px}
+      .ws-drawer-wrap{align-self:stretch;width:100%}
+      .ws-drawer-max{position:absolute;right:0;top:50%;transform:translateY(-50%);width:26px;height:26px;padding:0;border:0;background:none;color:var(--dsw-alias-label-secondary);font-size:17px;line-height:1;cursor:pointer}
       .ws-drawer-max:hover{color:var(--ws-accent)}
       .ws-drawer-max:focus-visible{outline:2px solid var(--ws-accent);outline-offset:1px;border-radius:4px}
       .ws-page .ws-panel.ws-drawer-full{position:fixed;inset:14px;z-index:900;box-shadow:0 10px 40px rgba(0,0,0,.25)}
