@@ -363,6 +363,9 @@ window.__ModuleLoader__.load({
       'ws.m.queueMax': '峰值 {max} · 当前 {now}',
       'ws.m.splitHint': '段落去向（按段落计）：发给模型 {sent} · 复用缓存 {replayed} · 免送 {skipped}。免送是本批其他文件或上一轮已经问过的相同内容。',
       'ws.m.segSent': '发给模型','ws.m.segReplayed': '复用','ws.m.segSkipped': '免送',
+      'ws.m.segCount': '{label} {n} 段 {pct}',
+      'ws.m.callsShort': '调用',
+      'ws.m.replayedShort': '复用',
       'ws.m.ctxDist': '上下文分布',
       'ws.m.ctxDistHint': '单次调用上下文长度的分布：<0.5k、0.5–1k、1–2k、2–4k、4–8k、8–16k、≥16k（红色为 8k 以上）。悬停可看各档次数。',
       'ws.m.busy': '请求占用',
@@ -1002,6 +1005,9 @@ window.__ModuleLoader__.load({
       'ws.m.queueMax': 'peak {max} · now {now}',
       'ws.m.splitHint': 'Where segments went: sent to a model {sent} · replayed from cache {replayed} · skipped {skipped} (identical content already asked about in this batch).',
       'ws.m.segSent': 'sent','ws.m.segReplayed': 'replayed','ws.m.segSkipped': 'skipped',
+      'ws.m.segCount': '{label} {n} seg. {pct}',
+      'ws.m.callsShort': 'Calls',
+      'ws.m.replayedShort': 'Replayed',
       'ws.m.ctxDist': 'Context spread',
       'ws.m.ctxDistHint': 'Context length per call: <0.5k, 0.5–1k, 1–2k, 2–4k, 4–8k, 8–16k, ≥16k (red above 8k). Hover for counts.',
       'ws.m.busy': 'Request slots',
@@ -1765,6 +1771,9 @@ window.__ModuleLoader__.load({
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
       .ws-busy .ws-busy-qsvg{flex:none;height:16px;min-height:16px}
       .ws-split-sent{background:var(--ws-accent)}
+      .ws-m-sum{display:flex;align-items:baseline;gap:6px;font-size:11.5px;color:var(--dsw-alias-label-secondary);margin:2px 0 6px}
+      .ws-m-sum b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-size:12.5px}
+      .ws-m-sum>i{font-style:normal;opacity:.5}
       .ws-split-replayed{background:var(--dsw-alias-state-success-primary)}
       .ws-split-skipped{background:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
       .ws-hist{display:inline-flex;align-items:flex-end;gap:1px;height:12px;width:48px;justify-content:flex-end}
@@ -4906,15 +4915,6 @@ window.__ModuleLoader__.load({
               resCollapsed ? null : (() => {
                 // Secondary readouts: one aligned label/value grid instead of
                 // a wrapping run of text.
-                const rows = []
-                const row = (label, value, extra = {}) => rows.push(h('div', { key: label, className: `ws-kv${extra.tone ? ` ws-kv-${extra.tone}` : ''}${extra.bar ? ' ws-kv-bar' : ''}`, title: extra.title ?? '' },
-                  h('span', {}, label), h('b', {}, value),
-                  // Usage bar: current fill, peak tick, 70% / 85% thresholds.
-                  extra.bar
-                    ? h('i', { className: 'ws-membar', 'aria-hidden': 'true' },
-                      h('i', { className: 'ws-membar-fill', style: { width: `${Math.min(100, extra.bar.pct)}%` } }),
-                      extra.bar.peak > extra.bar.pct ? h('i', { className: 'ws-membar-peak', style: { left: `${Math.min(100, extra.bar.peak)}%` } }) : null)
-                    : null))
                 // Totals (both models): calls, reuse, tokens, memory.
                 // Where the work went: sent to a model / replayed / skipped.
                 // All three counted in segments, so the bar compares like with like.
@@ -4929,15 +4929,19 @@ window.__ModuleLoader__.load({
                       [['sent', sent], ['replayed', replayed], ['skipped', skipped]].filter(([, value]) => value > 0)
                         .map(([kind, value]) => h('i', { key: kind, className: `ws-split-${kind}`, style: { flexGrow: value } }))),
                     h('div', { className: 'ws-split-legend' },
-                      h('span', {}, h('i', { className: 'ws-split-sent' }), `${t('ws.m.segSent')} ${pct(sent)}`),
-                      replayed ? h('span', {}, h('i', { className: 'ws-split-replayed' }), `${t('ws.m.segReplayed')} ${pct(replayed)}`) : null,
-                      skipped ? h('span', {}, h('i', { className: 'ws-split-skipped' }), `${t('ws.m.segSkipped')} ${pct(skipped)}`) : null))
+                      h('span', {}, h('i', { className: 'ws-split-sent' }), t('ws.m.segCount', { label: t('ws.m.segSent'), n: compact(sent), pct: pct(sent) })),
+                      replayed ? h('span', {}, h('i', { className: 'ws-split-replayed' }), t('ws.m.segCount', { label: t('ws.m.segReplayed'), n: compact(replayed), pct: pct(replayed) })) : null,
+                      skipped ? h('span', { title: t('ws.m.memoHint') }, h('i', { className: 'ws-split-skipped' }), t('ws.m.segCount', { label: t('ws.m.segSkipped'), n: compact(skipped), pct: pct(skipped) })) : null))
                   : null
-                // Row 1: what was sent (calls, tokens); row 2: what was saved.
-                row(t('ws.m.calls'), compact(running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0)), { title: t('ws.m.callsHint') })
-                row(t('ws.m.tokens'), totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0'), { title: t('ws.m.tokensHint') })
-                row(t('ws.m.replayed'), compact(totals.replayedCalls ?? 0), { title: t('ws.m.replayedHint') })
-                row(t('ws.m.memo'), compact(totals.memoHits ?? 0), { title: t('ws.m.memoHint') })
+                // Totals in one line (skipped segments are in the bar legend;
+                // per-model calls in the table). Replayed only when there are any.
+                const callsTotal = running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0)
+                const tokensText = totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0')
+                const sumLine = h('div', { className: 'ws-m-sum' },
+                  h('span', { title: t('ws.m.callsHint') }, t('ws.m.callsShort'), ' ', h('b', {}, compact(callsTotal))),
+                  h('i', {}, '·'),
+                  h('span', { title: t('ws.m.tokensHint') }, 'Token ', h('b', {}, tokensText)),
+                  totals.replayedCalls ? h(React.Fragment, {}, h('i', {}, '·'), h('span', { title: t('ws.m.replayedHint') }, t('ws.m.replayedShort'), ' ', h('b', {}, compact(totals.replayedCalls)))) : null)
                 // Per model: detector on the left, verifier on the right.
                 const models = totals.models ?? {}
                 const separate = Boolean(models.verify || current?.requests?.verify || (current?.config ? current.config.verifyModel : config?.verifyModel))
@@ -5069,7 +5073,7 @@ window.__ModuleLoader__.load({
                       empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null,
                     ))
                 })()
-                return h(React.Fragment, {}, splitBar, h('div', { className: 'ws-minor' }, rows), table, busy)
+                return h(React.Fragment, {}, splitBar, sumLine, table, busy)
               })()),
             crossCheckPanel(),
             null)),
