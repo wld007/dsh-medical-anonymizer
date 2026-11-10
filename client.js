@@ -1554,7 +1554,7 @@ window.__ModuleLoader__.load({
       .ws-subhead::after{content:'';flex:1;order:1;border-top:1px solid var(--dsw-alias-border-l1)}
       .ws-subhead>span:first-child{font-weight:600;color:var(--dsw-alias-label-primary)}
       .ws-subhead>span+span{order:2}
-      .ws-minor{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-minor{display:grid;grid-template-columns:1fr 1fr;gap:1px 8px;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .ws-kv{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent);padding:1px 0}
       .ws-kv span{white-space:nowrap}
       .ws-kv b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1566,7 +1566,7 @@ window.__ModuleLoader__.load({
       .ws-kv-warn .ws-membar-fill{background:var(--dsw-alias-state-warn-primary)}
       .ws-kv-bad .ws-membar-fill{background:var(--dsw-alias-state-error-primary)}
       .ws-membar-peak{position:absolute;top:-2px;bottom:-2px;width:2px;margin-left:-1px;border-radius:1px;background:var(--dsw-alias-label-secondary);opacity:.7}
-      .ws-mtable{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:1px 10px;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
+      .ws-mtable{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:0;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px}
       .ws-mtable-one{grid-template-columns:auto minmax(0,1fr)}
       .ws-mtable>b{min-width:0;overflow:hidden;text-overflow:ellipsis}
       .ws-mt-head{font-size:10.5px;font-weight:600;text-align:right;color:var(--dsw-alias-label-primary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:1px}
@@ -1574,6 +1574,14 @@ window.__ModuleLoader__.load({
       .ws-mtable>b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);text-align:right;white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
       .ws-mt-label{display:flex;align-items:center;white-space:nowrap;border-bottom:1px dotted color-mix(in srgb,var(--dsw-alias-label-primary) 14%,transparent)}
       .ws-mtable>b{display:flex;align-items:center;justify-content:flex-end}
+      .ws-mtable>b,.ws-mt-label,.ws-mt-head{padding:2px 5px;border-bottom:0!important}
+      .ws-mt-head{padding-bottom:3px;border-bottom:1px solid var(--dsw-alias-border-l2)!important}
+      .ws-mt-head:first-child{border-bottom-color:transparent!important}
+      .ws-mt-z{background:color-mix(in srgb,var(--dsw-alias-label-primary) 6%,transparent)}
+      .ws-mt-label.ws-mt-z{border-radius:4px 0 0 4px}
+      .ws-mtable>b.ws-mt-z:last-child,.ws-mtable>b.ws-mt-z:nth-child(3n){border-radius:0 4px 4px 0}
+      .ws-minor>.ws-kv{padding:2px 5px;border-bottom:0;border-radius:4px}
+      .ws-minor>.ws-kv:nth-child(4n+1),.ws-minor>.ws-kv:nth-child(4n+2){background:color-mix(in srgb,var(--dsw-alias-label-primary) 6%,transparent)}
       .ws-mtable>b.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-adv-findings{margin:2px 0 4px;padding-left:16px;display:flex;flex-direction:column;gap:5px;font-size:12px}
       .ws-adv-findings li{line-height:18px}
@@ -4681,9 +4689,10 @@ window.__ModuleLoader__.load({
                       h('em', {}, role),
                       h('span', { className: 'ws-mt-name' }, name ? modelDot(ping?.[key], name) : null, h('i', {}, name || '—')))
                   }),
-                  ...lines.flatMap(([label, value, hint, tone]) => [
-                    h('span', { key: `l${label}`, className: 'ws-mt-label', title: typeof hint === 'function' ? hint(cols[0]) : hint }, label),
-                    ...cols.map((key) => h('b', { key: `${label}${key}`, className: tone?.(key) ? `ws-mt-${tone(key)}` : '', title: typeof hint === 'function' ? hint(key) : hint }, value(key))),
+                  // Zebra rows: every other row gets a light band across all cells.
+                  ...lines.flatMap(([label, value, hint, tone], rowIndex) => [
+                    h('span', { key: `l${label}`, className: `ws-mt-label${rowIndex % 2 ? '' : ' ws-mt-z'}`, title: typeof hint === 'function' ? hint(cols[0]) : hint }, label),
+                    ...cols.map((key) => h('b', { key: `${label}${key}`, className: `${tone?.(key) ? `ws-mt-${tone(key)}` : ''}${rowIndex % 2 ? '' : ' ws-mt-z'}`, title: typeof hint === 'function' ? hint(key) : hint }, value(key))),
                   ]))
                 // Busy chart: requests in flight per model over time; the
                 // queued part is shaded above each line, the dashed line is the limit.
