@@ -94,7 +94,7 @@ Configuration only, with a collapsible **How it works** guide at the top:
 - **Local model**: endpoint, model, API key, disable thinking, model call timeout, temperature, **Test
   connection** (flags a model name the endpoint does not serve).
 - **Batch defaults**: output root, max rounds, files per chunk, files processed at the same time, DICOM cap per batch.
-- **Vault encryption**: set, change, or clear `vaultPassphrase` (entered twice, never shown again). After changing or clearing it, vaults encrypted with the old passphrase can no longer be read.
+- **Vault encryption**: set, change, or clear `vaultPassphrase` (entered twice, never shown again). Saving a new passphrase (or clearing it) on the settings page immediately re-encrypts the vaults in the output locations used on this machine (clearing turns them back into plaintext); vaults elsewhere that were encrypted with the old passphrase need the old passphrase to be read. After a passphrase is first enabled, a still-plaintext vault is encrypted at the next batch's save at the latest.
 - **Anonymization rules**: treatment per identifier type, the quasi-identifier
   switch, and treatment per quasi-identifier type, each with a live example.
 - **Interface**: show or hide the **Medical Anonymization** entry in the left
@@ -233,7 +233,10 @@ stable pseudonym, and quasi-identifiers are left untouched.
 Masks: names keep the first character; ID keeps the first 3 and last 4
 characters; phone the first 3 and last 4 digits; bank card and record numbers
 the last 4; email the first letter and domain; address the province/city/district
-prefix; hospital the first 2 characters and the suffix.
+prefix; hospital the first 2 characters and the suffix. Digits and codes always
+hide at least 4 characters and at least a third, and show at most 7, so short
+values show less (`66809363` → `****9363`, `123456` → `****56`, 4 or fewer
+fully masked); the last address component is always hidden (`杭州市` → `****`).
 
 Date, age, and sex are processed only when **quasiIdentifiers** is on. Postal
 codes are identifiers (one of the HIPAA 18) and are always processed; they cannot
@@ -250,6 +253,12 @@ deterministically after identifiers, without the model:
 - Detection covers prose (`2024-03-01`, `2024年3月1日`, `45岁`, `年龄：45`,
   `性别：男`, `邮编：100020`) and fields named like `BTH_DT`, `*_DT`, `出生日期`,
   `AGE`, `GDR_NM`, `SEX`, `ZIP`, `邮编`; compact `YYYYMMDD` only in date fields.
+- Year-month dates (`2024年3月`, `2024-03`, `YYYYMM` in date fields) are handled
+  like full dates: shifting moves the 15th of the month and keeps year and month,
+  so a true month never sits next to shifted dates and reveals the offset.
+  A number with a unit right after the month is a count, not a day
+  (`2019年5月2型糖尿病`, `2024年3月2周后`, `2024年3月3次化疗`): only the year and
+  month change, the number stays.
 - Date shifting uses one offset (±1–365 days) per output root, derived from the
   vault salt, so intervals between dates and across batches are preserved. The
   offset never appears in reports. Do not re-run shifting on its own output.
@@ -292,7 +301,14 @@ byte for byte: never decoded, modified, or sent to a model.
   - dates shift by the same offset as text; times kept; age kept (≥90 → `090Y`);
     sex, size and weight kept;
   - study/series description and protocol name kept but rule-scanned; any hit
-    (phone, ID number, …) removes the whole attribute.
+    (phone, ID number, …) removes the whole attribute;
+  - attributes of unknown VR (standard tags missing from the dictionary in
+    implicit-VR files, explicit UN) are removed, with a notice, when they hold
+    free text; numbers and codes are kept. UN attributes holding a sequence are
+    parsed as implicit VR and processed item by item; unparseable ones are removed;
+  - encapsulated documents ((0042,0011), e.g. encapsulated PDF/CDA reports)
+    cannot be inspected: by default the file goes to manual review and is not
+    delivered before it; with opaque content set to remove, the attribute is emptied.
 - With quasi-identifier handling on, DICOM follows the same date/age/sex policy
   (age bands are written as their lower bound, e.g. `040Y`).
 - Writes `PatientIdentityRemoved=YES`, the de-identification method and code
@@ -391,9 +407,14 @@ Output files are not deleted.
   entries are supported; encrypted and multi-volume archives are not processed.
 - Safety limits: entries with absolute paths, `..`, or otherwise escaping the
   extraction root are rejected. By default at most 20000 entries, 2 GiB
-  extracted in total, 500 MiB per file, and a 1000:1 compression ratio (for
-  entries over 1 MiB); anything beyond is rejected as a suspected zip bomb.
-  Every entry's CRC is verified.
+  extracted in total (one budget per top-level archive, shared with the zips
+  nested in it, an inner zip itself not counted twice; independent archives
+  of a batch are counted separately), 500 MiB per file, and a 1000:1
+  compression ratio (for entries over 64 KiB, and for the archive as a whole);
+  anything beyond is rejected (a ratio over the limit is reported as a
+  suspected zip bomb). Entries are streamed to
+  disk one at a time and every CRC is verified; on an error, whatever was
+  already extracted is deleted.
 - For an archive that cannot be extracted, the report gives only the reason
   category, never the names of files inside it (they may contain names).
 

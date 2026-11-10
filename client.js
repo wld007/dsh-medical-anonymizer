@@ -481,6 +481,7 @@ window.__ModuleLoader__.load({
       'ws.rv.allowHint': '保留原文，并加入「不匹配的值」，以后不再识别',
       'ws.rv.accept': '确认保留',
       'ws.rv.noText': '该项没有可定位的文字',
+      'ws.rv.runningHint': '有批次正在运行，替换会写入映射库，请等它结束后再替换',
       'ws.rv.replaced': '已替换为 {to}（{count} 处）',
       'ws.rv.allowed': '已确认不是标识符，并加入不匹配的值',
       'ws.rv.accepted': '已确认保留',
@@ -488,6 +489,8 @@ window.__ModuleLoader__.load({
       'ws.rv.code.residual': '规则复扫残留',
       'ws.rv.code.disputed': '核验与识别意见不一致',
       'ws.rv.code.model-residual': '模型复核残留',
+      'ws.rv.code.model-unlocated': '盲审报出但无法定位',
+      'ws.rv.code.batch-recheck': '批次复扫未完成',
       'ws.rv.code.not-removed': '原值未清除',
       'ws.rv.code.structure': '结构校验未通过',
       'ws.rv.code.embedded': '假名嵌入编码',
@@ -546,6 +549,7 @@ window.__ModuleLoader__.load({
       'ws.calls.timeout': '超时',
       'ws.calls.failed': '失败',
       'ws.calls.latest': '仅显示最近 {count} 条',
+      'ws.calls.window': '显示所选调用前后 {count} 条',
       'ws.calls.segments': '片段',
       'ws.calls.ms': '耗时',
       'ws.calls.r.ok': '成功',
@@ -554,6 +558,13 @@ window.__ModuleLoader__.load({
       'ws.calls.r.cancelled': '已取消',
       'ws.calls.r.network': '连接失败',
       'ws.calls.r.empty-response': '空回复',
+      'ws.calls.r.http': 'HTTP {status} 错误',
+      'ws.calls.r.http-error': 'HTTP 错误',
+      'ws.calls.r.error': '出错',
+      'ws.calls.r.llm-error': '模型出错',
+      'ws.calls.r.llm-failed': '模型调用失败',
+      'ws.calls.r.no-model': '未配置模型',
+      'ws.calls.r.no-base-url': '未配置端点',
       'ws.src.panel': '来源：面板',
       'ws.src.command': '来源：/anonymize',
       'ws.src.agent': '来源：Agent 会话',
@@ -1067,6 +1078,7 @@ window.__ModuleLoader__.load({
       'ws.rv.allowHint': 'Keep the text and add it to allowed values so it is no longer detected',
       'ws.rv.accept': 'Keep',
       'ws.rv.noText': 'No locatable text for this item',
+      'ws.rv.runningHint': 'A batch is running; replacing writes to the mapping vault, so wait until it finishes',
       'ws.rv.replaced': 'Replaced with {to} ({count}×)',
       'ws.rv.allowed': 'Confirmed not an identifier; added to allowed values',
       'ws.rv.accepted': 'Kept',
@@ -1074,6 +1086,8 @@ window.__ModuleLoader__.load({
       'ws.rv.code.residual': 'Rule rescan residual',
       'ws.rv.code.disputed': 'Verifier and detector disagree',
       'ws.rv.code.model-residual': 'Model review residual',
+      'ws.rv.code.model-unlocated': 'Reported by the review, not located',
+      'ws.rv.code.batch-recheck': 'Batch re-check incomplete',
       'ws.rv.code.not-removed': 'Original not removed',
       'ws.rv.code.structure': 'Structure check failed',
       'ws.rv.code.embedded': 'Pseudonym inside a code',
@@ -1132,6 +1146,7 @@ window.__ModuleLoader__.load({
       'ws.calls.timeout': 'timeouts',
       'ws.calls.failed': 'failed',
       'ws.calls.latest': 'latest {count} shown',
+      'ws.calls.window': '{count} around the selected call shown',
       'ws.calls.segments': 'Segments',
       'ws.calls.ms': 'Time',
       'ws.calls.r.ok': 'OK',
@@ -1140,6 +1155,13 @@ window.__ModuleLoader__.load({
       'ws.calls.r.cancelled': 'Cancelled',
       'ws.calls.r.network': 'Unreachable',
       'ws.calls.r.empty-response': 'Empty reply',
+      'ws.calls.r.http': 'HTTP {status}',
+      'ws.calls.r.http-error': 'HTTP error',
+      'ws.calls.r.error': 'Error',
+      'ws.calls.r.llm-error': 'Model error',
+      'ws.calls.r.llm-failed': 'Model call failed',
+      'ws.calls.r.no-model': 'No model configured',
+      'ws.calls.r.no-base-url': 'No endpoint configured',
       'ws.src.panel': 'From: page',
       'ws.src.command': 'From: /anonymize',
       'ws.src.agent': 'From: agent session',
@@ -1983,6 +2005,89 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'ma-stat' }, h('b', {}, String(value)), h('span', {}, label))
     }
 
+    // ── Small pure helpers (also exercised by test/fix2-client.mjs) ────────
+
+    /** Readable label of a model-call result code; never a raw locale key. */
+    function callResultLabel(t, code) {
+      if (code === undefined || code === null || code === '') return ''
+      const key = `ws.calls.r.${code}`
+      const label = t(key)
+      if (label !== key) return label
+      const http = /^http-(\d{3})$/.exec(String(code))
+      if (http) return t('ws.calls.r.http', { status: http[1] })
+      return String(code)
+    }
+
+    /** Status chip of one call row: result label plus retry / dropped markers. */
+    function callStatusChip(t, entry) {
+      const className = entry.result === 'ok' ? 'ma-chip ma-ok' : (entry.result === 'cancelled' || entry.result === 'cached') ? 'ma-chip' : 'ma-chip ma-bad'
+      return h('span', { className }, callResultLabel(t, entry.result),
+        entry.attempts > 1 ? h('i', { className: 'ws-call-mark', title: t('ws.calls.retryHint', { n: entry.attempts - 1 }) }, `↻${entry.attempts - 1}`) : null,
+        entry.dropped ? h('i', { className: 'ws-call-mark ws-call-drop', title: t('ws.calls.dropHint', { n: entry.dropped }) }, `−${entry.dropped}`) : null)
+    }
+
+    // The host keeps at most this many calls per batch and answers 2000 per page.
+    const CALL_KEEP = 20000
+    const CALL_PAGE = 2000
+    /**
+     * Pull every call after `have.last`, page by page, so a finished batch
+     * shows all its calls and a busy one never falls behind. Returns the
+     * merged log, or null when `alive()` turned false before anything new came.
+     */
+    async function pullCallPages(fetchPage, have, alive = () => true) {
+      let entries = have.entries
+      let last = have.last
+      for (;;) {
+        const value = await fetchPage(last)
+        if (!alive()) return entries === have.entries ? null : { entries, last }
+        const page = Array.isArray(value?.entries) ? value.entries : []
+        const next = Number(value?.last) || last
+        if (page.length > 0 && next > last) entries = [...entries, ...page].slice(-CALL_KEEP)
+        const advanced = next > last
+        last = Math.max(last, next)
+        if (page.length < CALL_PAGE || !advanced) return { entries, last }
+      }
+    }
+
+    const sameEndpoint = (a, b) => String(a ?? '').trim().replace(/\/+$/, '') === String(b ?? '').trim().replace(/\/+$/, '')
+    /**
+     * Key fields of a model test / model listing. The saved key may only be
+     * used against the endpoint it was saved for, and never once the user
+     * checked "clear the saved key".
+     */
+    function pingKeyFields({ endpoint, savedEndpoint, apiKey, clearKey }) {
+      return { baseURL: String(endpoint ?? '').trim(), apiKey: String(apiKey ?? ''), useSavedKey: !clearKey && sameEndpoint(endpoint, savedEndpoint) }
+    }
+
+    /**
+     * The batch whose records (report, review items, comparison, advice) can
+     * be read: finished, and no longer the host's active batch. The host
+     * reports the final status a little before the records are written.
+     */
+    function recordsRunId(run, activeRunId) {
+      return run && run.status !== 'running' && run.id !== activeRunId ? run.id : null
+    }
+
+    /** Back-off before retrying a failed records load; null once given up. */
+    function recordsRetryDelay(tries) {
+      return tries > 5 ? null : Math.min(30000, 1000 * 2 ** tries)
+    }
+
+    /** Loaded reports by batch id (oldest dropped beyond `limit`). */
+    function createReportCache(limit = 20) {
+      const map = new Map()
+      return {
+        has: (id) => map.has(id),
+        get: (id) => map.get(id),
+        set(id, markdown) {
+          map.delete(id)
+          map.set(id, markdown)
+          while (map.size > limit) map.delete(map.keys().next().value)
+        },
+        forget: (id) => { map.delete(id) },
+      }
+    }
+
     function GuideBody() {
       const sections = services.ctx?.locale?.getLocale?.().active === 'zh' ? GUIDE.zh : GUIDE.en
       return h('div', { className: 'ma-guide-body ma-card' },
@@ -2102,11 +2207,24 @@ window.__ModuleLoader__.load({
           || opaquePolicy !== (config.opaquePolicy === 'remove' ? 'remove' : 'review')],
       ].filter(([, changed]) => changed).map(([key]) => key) : []
 
+      // Tests and model listings only use a saved key against the endpoint it
+      // was saved for, and never once "clear the saved key" is checked.
+      const detectKeyFields = () => pingKeyFields({ endpoint, savedEndpoint: config?.baseURL, apiKey, clearKey })
+      const verifyKeyFields = () => ({
+        ...pingKeyFields({
+          endpoint: verifyEndpoint.trim() || endpoint,
+          savedEndpoint: config?.verifyBaseURL || config?.baseURL,
+          apiKey: verifyKey,
+          clearKey: clearVerifyKey,
+        }),
+        keySource: 'verify',
+      })
+
       async function testConnection() {
         setTesting(true)
         setPing(null)
         try {
-          setPing(await call('ping', { baseURL: endpoint.trim(), model: model.trim(), apiKey }))
+          setPing(await call('ping', { ...detectKeyFields(), model: model.trim() }))
         } catch (cause) {
           setPing({ ok: false, error: message(cause) })
         } finally {
@@ -2210,8 +2328,8 @@ window.__ModuleLoader__.load({
             h('div', { className: 'ma-field' }, t('model.name'),
               h(ModelPicker, {
                 value: model, onChange: setModel, placeholder: t('model.namePlaceholder'),
-                source: `${endpoint.trim()}|${apiKey}`,
-                fetchModels: () => call('ping', { baseURL: endpoint.trim(), apiKey }),
+                source: `${endpoint.trim()}|${apiKey}|${clearKey}`,
+                fetchModels: () => call('ping', detectKeyFields()),
               })),
             h('label', { className: 'ma-field ma-wide' }, t('model.key'),
               h('input', {
@@ -2243,8 +2361,8 @@ window.__ModuleLoader__.load({
             h('div', { className: 'ma-field' }, t('model.name'),
               h(ModelPicker, {
                 value: verifyModelName, onChange: (next) => { setVerifyModelName(next); setVerifyPing(null) }, placeholder: t('verify.modelPlaceholder'),
-                source: `${verifyEndpoint.trim() || endpoint.trim()}|${verifyKey}`,
-                fetchModels: () => call('ping', { baseURL: verifyEndpoint.trim() || endpoint.trim(), apiKey: verifyKey, keySource: 'verify' }),
+                source: `${verifyEndpoint.trim() || endpoint.trim()}|${verifyKey}|${clearVerifyKey}`,
+                fetchModels: () => call('ping', verifyKeyFields()),
               })),
             h('label', { className: 'ma-field ma-wide' }, t('model.key'),
               h('input', {
@@ -2264,7 +2382,7 @@ window.__ModuleLoader__.load({
               onClick: async () => {
                 setVerifyPing({ pending: true })
                 try {
-                  setVerifyPing(await call('ping', { baseURL: verifyEndpoint.trim() || endpoint.trim(), model: verifyModelName.trim(), apiKey: verifyKey, keySource: 'verify' }))
+                  setVerifyPing(await call('ping', { ...verifyKeyFields(), model: verifyModelName.trim() }))
                 } catch (cause) { setVerifyPing({ ok: false, error: message(cause) }) }
               },
             }, verifyPing?.pending ? t('model.testing') : t('model.test')),
@@ -2681,7 +2799,7 @@ window.__ModuleLoader__.load({
           : null)
     }
 
-    const OPAQUE_REVIEW = new Set(['opaque', 'opaque-token', 'unreadable', 'zip-failed', 'over-limit', 'opaque-check'])
+    const OPAQUE_REVIEW = new Set(['opaque', 'opaque-token', 'unreadable', 'zip-failed', 'over-limit', 'opaque-check', 'dicom-document'])
 
     // Token-level diff (Myers) between an original segment and its result.
     // Tokens: Latin/digit runs, single CJK characters, single other chars.
@@ -2836,7 +2954,15 @@ window.__ModuleLoader__.load({
       const [activeRunId, setActiveRunId] = React.useState(null)
       const [selectedId, setSelectedId] = React.useState(null)
       const [detail, setDetail] = React.useState(null)
-      const [reportText, setReportText] = React.useState('')
+      // Loaded reports by batch id: the view may fall back to another batch
+      // (after a delete) whose report was fetched earlier.
+      const reportCache = React.useRef(createReportCache())
+      const reportPending = React.useRef(new Set())
+      const [, setReportVersion] = React.useState(0)
+      function forgetReport(id) {
+        if (id) reportCache.current.forget(id)
+        setReportVersion((n) => n + 1)
+      }
       const [busy, setBusy] = React.useState(false)
       const [cancelling, setCancelling] = React.useState(false)
       const [error, setError] = React.useState('')
@@ -2867,7 +2993,6 @@ window.__ModuleLoader__.load({
       const [dismissed, setDismissed] = React.useState(() => {
         try { return JSON.parse(localStorage.getItem('ma-advice-dismissed') ?? '{}') } catch { return {} }
       })
-      const reportLoaded = React.useRef(new Set())
       const seen = React.useRef({ id: null, keys: new Set(), status: null, done: new Set() })
       const lastActive = React.useRef(null)
       const rootRef = React.useRef(null)
@@ -3015,12 +3140,14 @@ window.__ModuleLoader__.load({
               const run = response?.run ?? null
               setDetail(run)
               trackEvents(run)
-              if (run && run.status !== 'running' && !reportLoaded.current.has(run.id)) {
-                reportLoaded.current.add(run.id)
+              if (run && run.status !== 'running' && !reportCache.current.has(run.id) && !reportPending.current.has(run.id)) {
+                reportPending.current.add(run.id)
                 try {
                   const report = await call('report', { runId: run.id })
-                  if (alive) setReportText(report.markdown ?? '')
-                } catch { reportLoaded.current.delete(run.id) }
+                  // Kept under its own id even if the view moved on meanwhile.
+                  reportCache.current.set(run.id, report.markdown ?? '')
+                  if (alive) setReportVersion((n) => n + 1)
+                } catch { /* not written yet: retried on the next tick */ } finally { reportPending.current.delete(run.id) }
               }
             }
           } catch { /* transient while the host reloads */ }
@@ -3044,8 +3171,8 @@ window.__ModuleLoader__.load({
         piecesKey.current = null
         setSelectedId(id)
         setDetail(null)
-        setReportText('')
-        reportLoaded.current.delete(id)
+        forgetReport(id)
+        forgetRecordFailures(id)
       }
 
       // Several picks of one folder become a list; one pick fills the field.
@@ -3104,11 +3231,10 @@ window.__ModuleLoader__.load({
             ? { ...batchParams, inputs: pickedInputs, outputRoot: outputRoot.trim() }
             : { ...batchParams, inputDir: inputDir.trim(), outputRoot: outputRoot.trim() })
           setNotice(t('notice.started'))
-          reportLoaded.current.delete(result.runId)
+          forgetReport(result.runId)
           setActiveRunId(result.runId)
           setSelectedId(result.runId)
           setDetail(null)
-          setReportText('')
           followLog.current = true
           setLogPinned(false)
           setDrawer('log')
@@ -3123,6 +3249,7 @@ window.__ModuleLoader__.load({
       const current = detail && detail.id === viewId ? detail : (runs.find((run) => run.id === viewId) ?? null)
       const running = current?.status === 'running'
       const anyRunning = Boolean(activeRunId)
+      const reportText = (current && reportCache.current.get(current.id)) ?? ''
 
       async function resumeRun() {
         if (!current?.id) return
@@ -3134,12 +3261,11 @@ window.__ModuleLoader__.load({
           if (Array.isArray(result.inputs) && result.inputs.length > 1) { setPickedInputs(result.inputs); setInputDir('') }
           else if (result.inputDir) { setPickedInputs([]); setInputDir(result.inputDir) }
           if (result.outputRoot) setOutputRoot(result.outputRoot)
-          reportLoaded.current.delete(result.runId)
+          forgetReport(result.runId)
           piecesKey.current = null
           setActiveRunId(result.runId)
           setSelectedId(result.runId)
           setDetail(null)
-          setReportText('')
           await refreshRuns()
         } catch (cause) {
           setError(message(cause))
@@ -3266,7 +3392,29 @@ window.__ModuleLoader__.load({
         }
       }
 
-      const adviceRunId = current && current.status !== 'running' ? current.id : null
+      // Review items, comparison and advice come from the batch's records,
+      // which exist once the host no longer runs it (its status turns final
+      // a little earlier). A failed load is retried with back-off.
+      const adviceRunId = recordsRunId(current, activeRunId)
+      const recordsTries = React.useRef({})
+      const [recordsRetry, setRecordsRetry] = React.useState(0)
+      const recordLoaded = (kind, id) => { delete recordsTries.current[`${kind}:${id}`] }
+      function recordFailed(kind, id, setMap) {
+        const key = `${kind}:${id}`
+        const tries = (recordsTries.current[key] ?? 0) + 1
+        recordsTries.current[key] = tries
+        const delay = recordsRetryDelay(tries)
+        // Data already shown stays; a first load is retried, then given up as null.
+        setMap((map) => (map[id] ? map : { ...map, [id]: delay === null ? null : undefined }))
+        if (delay !== null) setTimeout(() => setRecordsRetry((n) => n + 1), delay)
+      }
+      function forgetRecordFailures(id) {
+        for (const kind of ['review', 'compare', 'advice']) delete recordsTries.current[`${kind}:${id}`]
+        const drop = (map) => (map[id] === null ? (({ [id]: _, ...rest }) => rest)(map) : map)
+        setReviewByRun(drop)
+        setCompareByRun(drop)
+        setAdviceByRun(drop)
+      }
       // Manual review: items with context, fetched for a finished batch.
       const [reviewByRun, setReviewByRun] = React.useState({})
       const [reviewBusy, setReviewBusy] = React.useState(null)
@@ -3274,13 +3422,14 @@ window.__ModuleLoader__.load({
       const loadReview = React.useCallback(async (id) => {
         try {
           const value = await call('reviewItems', { runId: id })
+          recordLoaded('review', id)
           setReviewByRun((map) => ({ ...map, [id]: value }))
-        } catch { setReviewByRun((map) => ({ ...map, [id]: null })) }
+        } catch { recordFailed('review', id, setReviewByRun) }
       }, [])
       React.useEffect(() => {
         if (!adviceRunId || reviewByRun[adviceRunId] !== undefined) return
         loadReview(adviceRunId)
-      }, [adviceRunId, current?.status])
+      }, [adviceRunId, current?.status, recordsRetry])
       const reviewData = adviceRunId ? reviewByRun[adviceRunId] : undefined
       const reviewOpen = (reviewData?.files ?? []).reduce((sum, file) => sum + file.items.filter((item) => !item.decision).length, 0)
 
@@ -3294,8 +3443,9 @@ window.__ModuleLoader__.load({
       async function loadCompareList(id) {
         try {
           const value = await call('compareList', { runId: id })
+          recordLoaded('compare', id)
           setCompareByRun((map) => ({ ...map, [id]: value?.files ?? null }))
-        } catch { setCompareByRun((map) => ({ ...map, [id]: null })) }
+        } catch { recordFailed('compare', id, setCompareByRun) }
       }
       async function loadCompareFile(id, n, force = false) {
         const key = `${id}:${n}`
@@ -3328,9 +3478,11 @@ window.__ModuleLoader__.load({
       }, [modal, adviceRunId, compareSel])
       React.useEffect(() => {
         if (adviceRunId && compareByRun[adviceRunId] === undefined) loadCompareList(adviceRunId)
-      }, [adviceRunId])
+      }, [adviceRunId, recordsRetry])
 
       async function decideReview(file, item, action) {
+        // The button may be stale; the host refuses as well.
+        if (action === 'replace' && anyRunning) { setReviewNote({ ok: false, text: t('ws.rv.runningHint') }); return }
         setReviewBusy(item.id)
         setReviewNote(null)
         try {
@@ -3345,9 +3497,8 @@ window.__ModuleLoader__.load({
             if (hit) await loadCompareFile(adviceRunId, hit.n, true)
           }
           if (result.completed) {
-            reportLoaded.current.delete(adviceRunId)
+            forgetReport(adviceRunId)
             setDetail(null)
-            setReportText('')
             setReviewNote({ ok: true, text: t('ws.rv.allDone') })
             await refreshRuns()
           }
@@ -3360,11 +3511,13 @@ window.__ModuleLoader__.load({
       React.useEffect(() => {
         if (!adviceRunId || adviceByRun[adviceRunId] !== undefined) return undefined
         let alive = true
-        call('advice', { runId: adviceRunId }).then((value) => {
-          if (alive) setAdviceByRun((map) => ({ ...map, [adviceRunId]: value ?? null }))
-        }, () => {})
+        const id = adviceRunId
+        call('advice', { runId: id }).then((value) => {
+          recordLoaded('advice', id)
+          if (alive) setAdviceByRun((map) => ({ ...map, [id]: value ?? null }))
+        }, () => { if (alive) recordFailed('advice', id, setAdviceByRun) })
         return () => { alive = false }
-      }, [adviceRunId, current?.status])
+      }, [adviceRunId, current?.status, recordsRetry])
 
       async function confirmDelete() {
         if (!deleting) return
@@ -3372,7 +3525,11 @@ window.__ModuleLoader__.load({
         try {
           if (deleting.all) {
             const result = await call('clearRuns', { deliverable: deleting.deliverable })
-            if (!activeRunId) { setSelectedId(null); setDetail(null); setReportText('') }
+            // The running batch survives; a selection of any other (now
+            // deleted) batch would hide it and its Stop button.
+            if (!activeRunId || selectedId !== activeRunId) setSelectedId(null)
+            if (!activeRunId || detail?.id !== activeRunId) setDetail(null)
+            for (const run of runs) if (run.id !== activeRunId) forgetReport(run.id)
             setAdviceByRun({})
             if (result.failed?.length) {
               await refreshRuns()
@@ -3381,7 +3538,8 @@ window.__ModuleLoader__.load({
             }
           } else {
             await call('deleteRun', { runId: deleting.run.id, deliverable: deleting.deliverable })
-            if (selectedId === deleting.run.id || viewId === deleting.run.id) { setSelectedId(null); setDetail(null); setReportText('') }
+            if (selectedId === deleting.run.id || viewId === deleting.run.id) { setSelectedId(null); setDetail(null) }
+            forgetReport(deleting.run.id)
             setAdviceByRun((map) => { const next = { ...map }; delete next[deleting.run.id]; return next })
           }
           setDeleting(null)
@@ -3538,16 +3696,20 @@ window.__ModuleLoader__.load({
         if (drawer !== 'calls' || !current?.id) return undefined
         const id = current.id
         let alive = true
+        let pulling = false
         const pull = async () => {
+          if (pulling) return
+          pulling = true
           const have = callStore.current.id === id ? callStore.current : { id, entries: [], last: 0 }
           try {
-            const value = await call('calls', { runId: id, since: have.last })
-            if (!alive) return
-            if (value.entries.length > 0 || callStore.current.id !== id) {
-              callStore.current = { id, entries: [...have.entries, ...value.entries].slice(-5000), last: value.last }
+            // Every page, not only the first 2000 calls of a finished batch.
+            const value = await pullCallPages((since) => call('calls', { runId: id, since }), have, () => alive)
+            if (!alive || !value) return
+            if (value.entries !== have.entries || callStore.current.id !== id) {
+              callStore.current = { id, entries: value.entries, last: value.last }
               setCallLog(callStore.current)
             }
-          } catch { /* transient */ }
+          } catch { /* transient */ } finally { pulling = false }
         }
         pull()
         const timer = running ? setInterval(pull, 2000) : null
@@ -3826,7 +3988,7 @@ window.__ModuleLoader__.load({
                 key: index, x: index + 0.12, width: 0.76, y: 40 - Math.max(1.5, (bar.ms / maxMs) * 38), height: Math.max(1.5, (bar.ms / maxMs) * 38),
                 className: `ws-bar-${bar.result === 'ok' ? 'ok' : (bar.result === 'cancelled' || bar.result === 'cached') ? 'cancel' : bar.result === 'timeout' ? 'timeout' : 'bad'}${bar.seq === callFocus ? ' ws-bar-focus' : ''}`,
                 onClick: () => { followLog.current = false; setLogPinned(true); setCallFocus(bar.seq) },
-              }, h('title', {}, `${hhmmss(new Date(bar.at))} · ${secs(bar.ms)} · ${t(`ws.calls.r.${bar.result}`)}`)))),
+              }, h('title', {}, `${hhmmss(new Date(bar.at))} · ${secs(bar.ms)} · ${callResultLabel(t, bar.result)}`)))),
             h('div', { className: 'ws-strip-axis' }, h('span', {}, hhmmss(new Date(entries[0].at))), h('span', {}, `max ${secs(maxMs)}`), h('span', {}, hhmmss(new Date(entries[entries.length - 1].at)))))
           return h(React.Fragment, {},
             h('div', { className: 'ws-calls-top' },
@@ -3842,7 +4004,7 @@ window.__ModuleLoader__.load({
               replayed ? h('span', {}, `${t('ws.calls.r.cached')} ${replayed}`) : null,
               (() => { const retries = entries.reduce((sum, entry) => sum + Math.max(0, (entry.attempts ?? 1) - 1), 0); return retries ? h('span', { title: t('ws.calls.retrySumHint') }, `${t('ws.calls.retries')} ${retries}`) : null })(),
               (() => { const dropped = entries.reduce((sum, entry) => sum + (entry.dropped ?? 0), 0); return dropped ? h('span', { title: t('ws.calls.dropSumHint') }, `${t('ws.calls.dropped')} ${dropped}`) : null })(),
-              entries.length > shown.length ? h('span', {}, t('ws.calls.latest', { count: shown.length })) : null)),
+              entries.length > shown.length ? h('span', {}, focusIndex >= 0 ? t('ws.calls.window', { count: shown.length }) : t('ws.calls.latest', { count: shown.length })) : null)),
             h('table', { className: 'ma-table ws-table ws-calls' },
               h('thead', {}, h('tr', {},
                 h('th', {}, t('runs.time')), h('th', {}, t('runs.file')), h('th', {}, t('ws.station')), h('th', {}, t('runs.rounds')),
@@ -3856,9 +4018,7 @@ window.__ModuleLoader__.load({
                 h('td', { className: 'ma-mono' }, secs(entry.ms)),
                 h('td', { className: 'ma-mono' }, entry.tokens ? compact(entry.tokens) : '—'),
                 h('td', { className: 'ma-mono' }, entry.out ? `${compact(entry.in || 0)} / ${entry.out}` : '—'),
-                h('td', {}, h('span', { className: entry.result === 'ok' ? 'ma-chip ma-ok' : (entry.result === 'cancelled' || entry.result === 'cached') ? 'ma-chip' : 'ma-chip ma-bad' }, t(`ws.calls.r.${entry.result}`) === `ws.calls.r.${entry.result}` ? entry.result : t(`ws.calls.r.${entry.result}`,
-                  entry.attempts > 1 ? h('i', { className: 'ws-call-mark', title: t('ws.calls.retryHint', { n: entry.attempts - 1 }) }, `↻${entry.attempts - 1}`) : null,
-                  entry.dropped ? h('i', { className: 'ws-call-mark ws-call-drop', title: t('ws.calls.dropHint', { n: entry.dropped }) }, `−${entry.dropped}`) : null))))))))
+                h('td', {}, callStatusChip(t, entry)))))))
         }
         if (drawer === 'cross') {
           const list = crossData.id === current?.id ? crossData.entries : undefined
@@ -3943,10 +4103,11 @@ window.__ModuleLoader__.load({
           const result = await call('reviewBulk', { runId: adviceRunId, itemIds: ids, action })
           await loadReview(adviceRunId)
           setCompareFiles({})
+          // The open file was dropped from the cache with the rest: fetch it again.
+          if (typeof compareSel === 'number') await loadCompareFile(adviceRunId, compareSel, true)
           if (result.completed) {
-            reportLoaded.current.delete(adviceRunId)
+            forgetReport(adviceRunId)
             setDetail(null)
-            setReportText('')
             setReviewNote({ ok: true, text: t('ws.rv.allDone') })
             await refreshRuns()
           } else {
@@ -3980,8 +4141,9 @@ window.__ModuleLoader__.load({
               h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.keepOpaque')))
             : h('div', { className: 'ma-actions' },
             h('button', {
-              className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable || !item.text,
-              title: !item.text ? t('ws.rv.noText') : file.editable ? '' : file.reason, onClick: () => decideReview(file, item, 'replace'),
+              // A replacement writes the mapping vault, which a running batch holds.
+              className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable || !item.text || anyRunning,
+              title: !item.text ? t('ws.rv.noText') : !file.editable ? file.reason : anyRunning ? t('ws.rv.runningHint') : '', onClick: () => decideReview(file, item, 'replace'),
             }, reviewBusy === item.id ? t('save.saving') : (item.replacement ? t('ws.rv.replaceWith', { to: item.replacement }) : t('ws.rv.replace'))),
             item.text ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || anyRunning, title: t('ws.rv.allowHint'), onClick: () => decideReview(file, item, 'allow') }, t('ws.rv.allow')) : null,
             h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept'))))
@@ -4475,7 +4637,7 @@ window.__ModuleLoader__.load({
                 // Token counts as 2.3k / 4.6k so a cell stays narrow.
                 const kTok = (value) => (value >= 1000 ? `${(value / 1000).toFixed(value >= 100000 ? 0 : 1)}k` : String(Math.round(value)))
                 // Failed calls (cancelled ones excluded) and retries per model.
-                const FAIL_LABEL = (code) => (t(`ws.calls.r.${code}`) === `ws.calls.r.${code}` ? code : t(`ws.calls.r.${code}`))
+                const FAIL_LABEL = (code) => callResultLabel(t, code)
                 const failCell = (m) => {
                   if (!m?.calls) return '—'
                   const fails = Object.values(m.fails ?? {}).reduce((a, b) => a + b, 0)
@@ -4880,7 +5042,7 @@ window.__ModuleLoader__.load({
       h('path', { d: 'M8 18.4h4.5', strokeWidth: 2.4 }))
     }
 
-    return {
+    const plugin = {
       inject: ['slots', 'locale'],
       apply(ctx) {
         services.ctx = ctx
@@ -4932,5 +5094,11 @@ window.__ModuleLoader__.load({
         })
       },
     }
+    // Pure helpers for the Node test suite; non-enumerable, so the plugin
+    // object the host sees still has only `inject` and `apply`.
+    Object.defineProperty(plugin, 'helpers', {
+      value: { callResultLabel, callStatusChip, pullCallPages, pingKeyFields, recordsRunId, recordsRetryDelay, createReportCache, locales: { zh: ZH, en: EN } },
+    })
+    return plugin
   },
 })

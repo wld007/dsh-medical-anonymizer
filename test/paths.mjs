@@ -43,7 +43,8 @@ const policy = resolvePolicy({})
   const paths = createPathAnonymizer({ vault, policy })
   const out = paths.map(`64_莫小卿_${ID}.zip`)
   assert.equal(out, `64_${vault.token('姓名', '莫小卿')}_${vault.token('身份证号', ID)}.zip`)
-  assert.equal(paths.map(out), out, 'idempotent')
+  // Idempotent: a later batch over the output (a new anonymizer) keeps it.
+  assert.equal(createPathAnonymizer({ vault, policy }).map(out), out, 'idempotent')
   // Name without surname-list match is still caught next to an ID card.
   assert.equal(paths.map(`7_佚名甲_${ID2}.zip`), `7_${vault.token('姓名', '佚名甲')}_${vault.token('身份证号', ID2)}.zip`)
   // Phone in a name.
@@ -73,7 +74,8 @@ const policy = resolvePolicy({})
   const visit = paths.entries().find((e) => e.original.endsWith('examine.json'))
   assert.deepEqual(visit.items, [{ type: '病历号', pseudonym: p }, { type: '就诊号', pseudonym: m2 }])
   // Idempotent on outputs.
-  for (const entry of paths.entries()) assert.equal(paths.map(entry.anonymized), entry.anonymized)
+  const again = createPathAnonymizer({ vault, policy })
+  for (const entry of paths.entries()) assert.equal(again.map(entry.anonymized), entry.anonymized)
   // No originals leak into entries' items.
   assert.ok(!JSON.stringify(paths.entries().map((e) => e.items)).includes('900001'))
 }
@@ -108,7 +110,7 @@ const policy = resolvePolicy({})
 }
 
 {
-  // Known content values: consistent type/token, segment-bounded only.
+  // Known content values: consistent type/token, Han values also inside other text.
   const vault = await freshVault('known')
   const known = [
     { type: '姓名', text: '佚名乙' },
@@ -118,7 +120,7 @@ const policy = resolvePolicy({})
   ]
   const paths = createPathAnonymizer({ vault, policy, known })
   assert.equal(paths.map('佚名乙_MRN-2024-001.txt'), `${vault.token('姓名', '佚名乙')}_${vault.token('病历号', 'MRN-2024-001')}.txt`)
-  assert.equal(paths.map('x佚名乙.txt'), 'x佚名乙.txt')
+  assert.equal(paths.map('x佚名乙.txt'), `x${vault.token('姓名', '佚名乙')}.txt`)
   assert.equal(paths.map('1234_a.txt'), '1234_a.txt')
   // Known type wins over the prefix rule for the same value.
   assert.equal(paths.map('mzh_7000009.json'), `mzh_${vault.token('住院号', '7000009')}.json`)
@@ -147,29 +149,31 @@ const policy = resolvePolicy({})
   const out = paths.map(`64_莫小卿_${ID}.zip`)
   assert.equal(out, `64_莫小卿_110xxxxxxxxxxx${ID.slice(-4)}.zip`)
   assert.ok(!out.includes('*'))
-  assert.equal(paths.map(out), out, 'mask idempotent')
+  assert.equal(createPathAnonymizer({ vault, policy: custom }).map(out), out, 'mask idempotent')
   assert.equal(paths.map('patient_900001/a.json'), 'patient_[病历号]/a.json')
-  assert.equal(paths.map('patient_[病历号]/a.json'), 'patient_[病历号]/a.json')
+  assert.equal(createPathAnonymizer({ vault, policy: custom }).map('patient_[病历号]/a.json'), 'patient_[病历号]/a.json')
   assert.equal(paths.map(`call_${PHONE}.txt`), 'call_138xxxx8000.txt')
   assert.equal(paths.map('zyh_7000001/a.json'), 'zyh_7000001/a.json', 'allowValues')
   assert.equal(vault.size(), 0)
 }
 
 {
-  // Collision: two originals masked to the same output get ~2.
+  // Collision: two originals masked to the same output get ~2 (a 6-character
+  // code keeps only its last 2 characters).
   const vault = await freshVault('collide')
   const paths = createPathAnonymizer({ vault, policy: resolvePolicy({ identifierPolicy: { mrn: 'mask' } }) })
   const a = paths.map('patient_113453/a.json')
   const b = paths.map('patient_993453/a.json')
   const c = paths.map('patient_883453.json')
   const d = paths.map('patient_773453.json')
-  assert.equal(a, 'patient_xx3453/a.json')
-  assert.equal(b, 'patient_xx3453~2/a.json')
-  assert.equal(c, 'patient_xx3453.json')
-  assert.equal(d, 'patient_xx3453~2.json')
-  assert.equal(paths.map('patient_113453/b.json'), 'patient_xx3453/b.json', 'stable')
-  assert.equal(paths.map('patient_993453/b.json'), 'patient_xx3453~2/b.json', 'stable')
-  assert.equal(paths.map(b), b, 'idempotent on suffixed output')
+  assert.equal(a, 'patient_xxxx53/a.json')
+  assert.equal(b, 'patient_xxxx53~2/a.json')
+  assert.equal(c, 'patient_xxxx53.json')
+  assert.equal(d, 'patient_xxxx53~2.json')
+  assert.equal(paths.map('patient_113453/b.json'), 'patient_xxxx53/b.json', 'stable')
+  assert.equal(paths.map('patient_993453/b.json'), 'patient_xxxx53~2/b.json', 'stable')
+  const again = createPathAnonymizer({ vault, policy: resolvePolicy({ identifierPolicy: { mrn: 'mask' } }) })
+  assert.equal(again.map(b), b, 'idempotent on suffixed output')
   assert.equal(paths.prefixes().filter((e) => e.anonymized.includes('~2')).length, 2)
 }
 

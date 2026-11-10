@@ -8,3 +8,4 @@ test/fixtures/records/labs.xlsx
 scripts/check-public.local.json
 .medical-anonymizer/
 _medical-anonymizer/
+.claude/

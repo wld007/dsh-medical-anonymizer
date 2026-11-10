@@ -8,6 +8,7 @@ import { execFile } from 'node:child_process'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createService } from './lib/service.js'
+import { parseAnonymizeArgs } from './lib/command.js'
 
 /**
  * Native macOS chooser on the machine running the Harness. The browser's own
@@ -55,6 +56,9 @@ export function apply(ctx, config = {}) {
     ? join(process.env.DSH_PROFILE_DIR, 'plugin-data', 'medical-anonymizer')
     : join(homedir(), '.dsh', 'plugin-data', 'medical-anonymizer')
   const service = createService({ config, defaultDirectory, stateDir })
+  // Reapply (config save, profile edit) or unload: a running batch is
+  // cancelled rather than left running unseen by the next instance.
+  if (typeof ctx.effect === 'function') ctx.effect(() => () => service.dispose(), 'medical-anonymizer: cancel running batch')
 
   ctx.tools.register(tool({
     name: 'anonymize_start',
@@ -213,26 +217,11 @@ export function apply(ctx, config = {}) {
       description: '批量匿名化医疗数据：/anonymize <目录或文件> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think]',
       input: { hint: '目录或文件 [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think]' },
       handler: async (invocation) => {
-        const usage = '用法：/anonymize <输入目录或文件> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think]'
-        const tokens = String(invocation.rawInput ?? '').trim().split(/\s+/).filter(Boolean)
-        const inputDir = tokens.shift()
-        if (!inputDir) return { kind: 'error', text: usage }
-        const request = { inputDir, source: { kind: 'command', sessionId: sessionIdOf(invocation.agent) } }
-        while (tokens.length > 0) {
-          const token = tokens.shift()
-          if (token === '--no-think') { request.disableThinking = true; continue }
-          if (token === '--think') { request.disableThinking = false; continue }
-          if (token === '--model' || token === '--endpoint' || token === '--base-url' || token === '--rounds' || token === '--output') {
-            const value = tokens.shift()
-            if (!value) return { kind: 'error', text: `缺少 ${token} 的值。${usage}` }
-            if (token === '--model') request.model = value
-            else if (token === '--endpoint' || token === '--base-url') request.baseURL = value
-            else if (token === '--output') request.outputRoot = value
-            else request.maxRounds = Number(value)
-            continue
-          }
-          return { kind: 'error', text: `未知参数 ${token}。${usage}` }
-        }
+        const usage = '用法：/anonymize <输入目录或文件> [--model 名称] [--endpoint URL] [--rounds N] [--output 目录] [--no-think]（路径含空格时可用引号括起来）'
+        const parsed = parseAnonymizeArgs(invocation.rawInput)
+        if (parsed.error === 'missing-input') return { kind: 'error', text: usage }
+        if (parsed.error) return { kind: 'error', text: `${parsed.error}。${usage}` }
+        const request = { ...parsed.options, inputDir: parsed.inputDir, source: { kind: 'command', sessionId: sessionIdOf(invocation.agent) } }
         try {
           const info = await service.start(request)
           return {
@@ -313,7 +302,6 @@ export function apply(ctx, config = {}) {
    * future batch sends patient text.
    */
   async function saveDefaults(request) {
-    if (service.isRunning()) throw new Error('有批次正在运行；请等它完成或取消后再保存默认配置')
     const patch = service.normalizeDefaults(request)
     const editor = ctx.get('configEditor')
     if (!editor?.edit || !editor?.entries) {
@@ -324,8 +312,25 @@ export function apply(ctx, config = {}) {
     try { entry = entries.find((item) => item.fiber === ctx.fiber) } catch { /* fall back to id */ }
     entry ??= entries.find((item) => item.options?.id === ENTRY_ID)
     if (!entry) throw new Error(`找不到插件配置行 ${ENTRY_ID}`)
-    await editor.edit(entry, (current) => ({ ...current, ...patch }))
-    return { saved: true, config: patch }
+    // No batch may start between this check and the reapply the save causes.
+    const release = service.holdForConfigSave()
+    try {
+      // A new or cleared passphrase re-encrypts the known vaults now (with
+      // the current passphrase to read them), so they stay readable.
+      const previous = service.settings.vaultPassphrase
+      const rekey = patch.vaultPassphrase !== undefined && patch.vaultPassphrase !== previous
+        ? await service.rekeyVaults(patch.vaultPassphrase)
+        : null
+      try {
+        await editor.edit(entry, (current) => ({ ...current, ...patch }))
+      } catch (error) {
+        if (rekey?.rekeyed.length) await service.rekeyVaults(previous, { from: patch.vaultPassphrase, targets: rekey.rekeyed }).catch(() => {})
+        throw error
+      }
+      return { saved: true, config: patch, ...(rekey ? { vaults: { rekeyed: rekey.rekeyed.length, failed: rekey.failed } } : {}) }
+    } finally {
+      release()
+    }
   }
 
   async function dispatch(endpoint, payload) {
