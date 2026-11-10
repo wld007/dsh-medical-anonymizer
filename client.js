@@ -1559,6 +1559,8 @@ window.__ModuleLoader__.load({
       .ws-kv span{white-space:nowrap}
       .ws-kv b{font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .ws-kv-bar{grid-column:1 / -1;flex-wrap:wrap;row-gap:3px}
+      .ws-heaprow{font-size:12px;color:var(--dsw-alias-label-secondary)}
+      .ws-heaprow b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary)}
       .ws-membar{position:relative;flex-basis:100%;height:5px;border-radius:3px;background:linear-gradient(90deg,transparent 0 70%,color-mix(in srgb,var(--dsw-alias-state-warn-primary) 18%,transparent) 70% 85%,color-mix(in srgb,var(--dsw-alias-state-error-primary) 18%,transparent) 85%),var(--dsw-alias-bg-layer-2);overflow:visible}
       .ws-membar-fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--dsw-alias-state-success-primary);transition:width .6s ease}
       .ws-kv-warn .ws-membar-fill{background:var(--dsw-alias-state-warn-primary)}
@@ -4392,19 +4394,6 @@ window.__ModuleLoader__.load({
               current?.resumedFrom
                 ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
                 : (current?.source ? sourceLabel(current.source) : null))),
-          // Heap of the plugin process: a global safety readout, always visible.
-          current?.memory?.heapLimit ? (() => {
-            const m = current.memory
-            const used = running ? m.heapUsed : m.peakHeap
-            const ratio = m.peakHeap / m.heapLimit
-            const tone = ratio >= 0.85 ? ' ws-heap-bad' : ratio >= 0.7 ? ' ws-heap-warn' : ''
-            return h('div', { className: `ws-clock ws-heap${tone}`, title: `${t('ws.m.mem', { now: (used / 1024 ** 3).toFixed(1), peak: (m.peakHeap / 1024 ** 3).toFixed(1), limit: (m.heapLimit / 1024 ** 3).toFixed(1), pct: Math.round(ratio * 100) })}\n${t('ws.m.memHint')}` },
-              h('span', {}, running ? t('ws.m.memory') : t('ws.m.memoryPeak')),
-              h('b', {}, `${(used / 1024 ** 3).toFixed(1)}`, h('small', {}, ` / ${(m.heapLimit / 1024 ** 3).toFixed(1)} GB`)),
-              h('i', { className: 'ws-membar', 'aria-hidden': 'true' },
-                h('i', { className: 'ws-membar-fill', style: { width: `${Math.min(100, (used / m.heapLimit) * 100)}%` } }),
-                ratio * 100 > (used / m.heapLimit) * 100 ? h('i', { className: 'ws-membar-peak', style: { left: `${Math.min(100, ratio * 100)}%` } }) : null))
-          })() : null,
           h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           running
             ? null
@@ -4571,6 +4560,24 @@ window.__ModuleLoader__.load({
                 readout(t('ws.m.entities'), compact(totals.entities ?? 0), '', t('ws.m.entitiesHint')),
                 readout(t('ws.m.review'), String(totals.unresolved ?? 0), (totals.unresolved ?? 0) > 0 ? 'warn' : ''),
                 readout(t('ws.m.failed'), String(totals.filesFailed ?? 0), (totals.filesFailed ?? 0) > 0 ? 'bad' : '')),
+              // Heap of the plugin process: kept in C1, which never folds.
+              (() => {
+                const m = current?.memory
+                if (!m?.heapLimit) {
+                  return h('div', { className: 'ws-kv ws-kv-bar ws-heaprow', title: t('ws.m.memHint') },
+                    h('span', {}, t('ws.m.memory')), h('b', {}, '—'),
+                    h('i', { className: 'ws-membar', 'aria-hidden': 'true' }))
+                }
+                const used = running ? m.heapUsed : m.peakHeap
+                const ratio = m.peakHeap / m.heapLimit
+                const tone = ratio >= 0.85 ? ' ws-kv-bad' : ratio >= 0.7 ? ' ws-kv-warn' : ''
+                return h('div', { className: `ws-kv ws-kv-bar ws-heaprow${tone}`, title: `${t('ws.m.mem', { now: (used / 1024 ** 3).toFixed(1), peak: (m.peakHeap / 1024 ** 3).toFixed(1), limit: (m.heapLimit / 1024 ** 3).toFixed(1), pct: Math.round(ratio * 100) })}\n${t('ws.m.memHint')}` },
+                  h('span', {}, running ? t('ws.m.memory') : t('ws.m.memoryPeak')),
+                  h('b', {}, `${(used / 1024 ** 3).toFixed(1)} / ${(m.heapLimit / 1024 ** 3).toFixed(1)} GB`),
+                  h('i', { className: 'ws-membar', 'aria-hidden': 'true' },
+                    h('i', { className: 'ws-membar-fill', style: { width: `${Math.min(100, (used / m.heapLimit) * 100)}%` } }),
+                    ratio * 100 > (used / m.heapLimit) * 100 ? h('i', { className: 'ws-membar-peak', style: { left: `${Math.min(100, ratio * 100)}%` } }) : null))
+              })(),
             ),
             // C2: model usage, throughput and process resources (collapsible).
             h('section', { className: `ws-panel ws-res${resCollapsed ? ' ws-collapsed' : ''}` },
