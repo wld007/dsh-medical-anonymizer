@@ -1709,16 +1709,8 @@ window.__ModuleLoader__.load({
       .ws-params{position:static;flex:none}
       .ws-params-head{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
       .ws-params-head:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--ws-accent)}
-      .ws-params-open .ws-params-head{color:var(--dsw-alias-label-primary);border-color:var(--ws-accent)}
-      .ws-params-mod{border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 60%,transparent)}
-      .ws-params-body{position:absolute;z-index:30;left:8px;top:40px;width:max(calc(100% - 16px),300px);display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 10px 28px rgba(0,0,0,.22)}
-      .ws-params-sum{display:none}
       .ws-params-head:disabled{cursor:default}
       .ws-params-title{font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-      .ws-psum{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;min-width:0}
-      .ws-psum i{font-style:normal;opacity:.6}
-      .ws-psum .ws-psum-mod{color:var(--dsw-alias-state-warn-primary);font-weight:600}
-      .ws-params-actions{flex-wrap:nowrap}
       .ws-cross .ws-x-line{display:flex;align-items:baseline;gap:6px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
       .ws-cross .ws-x-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-size:13px}
       .ws-x-sub{margin-left:auto;font-size:10.5px}
@@ -2014,24 +2006,6 @@ window.__ModuleLoader__.load({
       .ws-dot-bad{background:var(--dsw-alias-state-error-primary,#d0453a)}
       .ws-dot-wait{animation:ws-dot-pulse 1s ease-in-out infinite;cursor:default}
       @keyframes ws-dot-pulse{50%{opacity:.35}}
-      .ws-param{display:flex;align-items:center;justify-content:space-between;gap:8px}
-      .ws-param-label{font-size:12px;color:var(--dsw-alias-label-secondary);display:inline-flex;align-items:center;gap:5px}
-      .ws-mod{width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-state-warn-primary);display:inline-block}
-      .ws-stepper{display:inline-flex;align-items:stretch;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;overflow:hidden;height:24px;background:var(--dsw-alias-bg-base)}
-      .ws-stepper button{width:26px;border:0;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;cursor:pointer}
-      .ws-stepper button:disabled{opacity:.4;cursor:default}
-      .ws-stepper input{width:52px;border:0;border-left:1px solid var(--dsw-alias-border-l1);border-right:1px solid var(--dsw-alias-border-l1);background:transparent;color:inherit;text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;-moz-appearance:textfield}
-      .ws-stepper input::-webkit-inner-spin-button,.ws-stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-      .ws-slider{display:inline-flex;align-items:center;gap:8px}
-      .ws-slider input{width:110px;accent-color:var(--ws-accent)}
-      .ws-toggle{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;position:relative}
-      .ws-toggle input{position:absolute;opacity:0;width:0;height:0}
-      .ws-switch{flex:none;width:30px;height:17px;border-radius:999px;background:var(--dsw-alias-border-l2);position:relative;transition:background .2s}
-      .ws-switch::after{content:'';position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:left .2s}
-      .ws-toggle input:checked+.ws-switch{background:var(--ws-accent)}
-      .ws-toggle input:checked+.ws-switch::after{left:15px}
-      .ws-toggle input:focus-visible+.ws-switch{outline:2px solid var(--ws-accent);outline-offset:2px}
-      .ws-toggle input:disabled+.ws-switch{opacity:.5}
       .ws-page{--ws-accent:#c8432b;--ws-accent-soft:color-mix(in srgb,#c8432b 12%,transparent);--ws-ink:var(--dsw-alias-label-primary);--ws-paper:color-mix(in srgb,var(--dsw-alias-bg-layer-1) 93%,#d6b47c);background:color-mix(in srgb,var(--dsw-alias-bg-base) 95%,#d6b47c)}
       .ws-page .ws-panel,.ws-page .ws-head{background:var(--ws-paper);position:relative}
       .ws-page .ws-panel::before,.ws-page .ws-panel::after{content:'';position:absolute;width:9px;height:9px;pointer-events:none;border-color:var(--ws-accent);border-style:solid;opacity:.75}
@@ -3275,7 +3249,6 @@ window.__ModuleLoader__.load({
       return Array.isArray(file.entities) ? file.entities.reduce((sum, entity) => sum + entity.count, 0) : Number(file.entities ?? 0)
     }
 
-    const PARAM_KEYS = ['maxRounds', 'concurrency', 'maxFiles', 'timeoutSec', 'temperature', 'disableThinking', 'quasiIdentifiers']
 
     function paramsFrom(info) {
       return {
@@ -3317,8 +3290,6 @@ window.__ModuleLoader__.load({
       const [now, setNow] = React.useState(Date.now())
       const [log, setLog] = React.useState([])
       const [draft, setDraft] = React.useState(null)
-      const [savingParams, setSavingParams] = React.useState(false)
-      const [paramNote, setParamNote] = React.useState(null)
       const [ping, setPing] = React.useState(null)
       // Post-run advice, cached per batch: a settings save reloads the host,
       // which may forget where an earlier batch's records are.
@@ -3646,25 +3617,6 @@ window.__ModuleLoader__.load({
       }
 
       // ── Parameters (saved defaults; apply to the next batch) ──
-      const saved = config ? paramsFrom(config) : null
-      const changed = draft && saved ? PARAM_KEYS.filter((key) => draft[key] !== saved[key]) : []
-      const setParam = (key, value) => { setDraft({ ...draft, [key]: value }); setParamNote(null) }
-
-      // Params block in A1: folded to a one-line summary; values apply to the
-      // next batch directly, "设为默认" also saves them as defaults.
-      // The editor opens as a floating panel over the history, so the
-      // left column never grows; outside click or Esc closes it.
-      const [paramsOpen, setParamsOpen] = React.useState(false)
-      const paramsRef = React.useRef(null)
-      const toggleParams = () => setParamsOpen((value) => !value)
-      React.useEffect(() => {
-        if (!paramsOpen) return undefined
-        const onDown = (event) => { if (paramsRef.current && !paramsRef.current.contains(event.target)) setParamsOpen(false) }
-        const onKey = (event) => { if (event.key === 'Escape') setParamsOpen(false) }
-        document.addEventListener('mousedown', onDown)
-        document.addEventListener('keydown', onKey)
-        return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey) }
-      }, [paramsOpen])
       const runParams = running && current?.config ? {
         maxRounds: Number(current.config.maxRounds ?? draft?.maxRounds),
         concurrency: Number(current.config.concurrency ?? draft?.concurrency),
@@ -3674,70 +3626,25 @@ window.__ModuleLoader__.load({
         disableThinking: current.config.disableThinking === true,
         quasiIdentifiers: current.config.policy?.quasiIdentifiers === true || current.config.policy?.quasiEnabled === true,
       } : null
+      // A1 header button: opens the full settings; the values the next batch
+      // uses (or the running batch's) are its tooltip.
       const paramsBlock = () => {
         if (!draft) return null
         const shown = runParams ?? draft
-        const differs = (key) => !runParams && saved && draft[key] !== saved[key]
-        const item = (key, text) => h('span', { key, className: differs(key) ? 'ws-psum-mod' : '' }, text)
-        const summary = [
-          item('maxRounds', t('ws.ps.rounds', { n: shown.maxRounds })),
-          item('concurrency', t('ws.ps.concurrency', { n: shown.concurrency })),
-          item('maxFiles', t('ws.ps.chunk', { n: shown.maxFiles })),
-          item('timeoutSec', `${shown.timeoutSec}s`),
-          item('temperature', t('ws.ps.temp', { n: Number(shown.temperature).toFixed(1) })),
-          item('disableThinking', shown.disableThinking ? t('ws.ps.noThink') : t('ws.ps.think')),
-          shown.quasiIdentifiers || differs('quasiIdentifiers') ? item('quasiIdentifiers', shown.quasiIdentifiers ? t('ws.ps.quasi') : t('ws.ps.noQuasi')) : null,
-        ].filter(Boolean)
-        // Compact trigger in the A1 header corner; the summary is its tooltip.
-        const summaryText = summary.map((node) => node.props.children).join(' · ')
-        return h('div', { className: `ws-params${paramsOpen && !running ? ' ws-params-open' : ''}`, ref: paramsRef },
-          h('button', { type: 'button', className: `ws-params-head${changed.length && !running ? ' ws-params-mod' : ''}`, onClick: toggleParams, disabled: running, 'aria-expanded': paramsOpen && !running ? 'true' : 'false',
-            title: `${running ? `${t('ws.paramsLocked')}\n` : ''}${summaryText}${changed.length && !running ? `\n${t('ws.paramsBatchOnly')}` : ''}` },
-            h('span', { className: 'ws-params-title' }, '⚙ ', t('ws.paramsShort'), changed.length && !running ? h('i', { className: 'ws-mod' }) : null),
-            h('span', { className: 'ws-fold-arrow' }, running ? '🔒' : (paramsOpen ? '▴' : '▾'))),
-          paramsOpen && !running ? h('div', { className: 'ws-params-sum' }, summary.flatMap((node, index) => (index ? [h('i', { key: `d${index}` }, ' · '), node] : [node]))) : null,
-          paramsOpen && !running ? h('div', { className: 'ws-params-body' },
-            paramRow('maxRounds', t('run.rounds'), stepper('maxRounds', 1, 6)),
-            paramRow('concurrency', t('ws.p.concurrency'), stepper('concurrency', 1, 16)),
-            paramRow('maxFiles', t('ws.p.maxFiles'), stepper('maxFiles', 1, 2000, 50)),
-            paramRow('timeoutSec', t('ws.p.timeout'), stepper('timeoutSec', 10, 1800, 10)),
-            paramRow('temperature', t('ws.p.temperature'), h('div', { className: 'ws-slider' },
-              h('input', { type: 'range', min: 0, max: 2, step: 0.1, value: draft.temperature, disabled: anyRunning, onChange: (event) => setParam('temperature', Number(event.target.value)) }),
-              h('b', { className: 'ma-mono' }, Number(draft.temperature).toFixed(1)))),
-            toggle('disableThinking', t('ws.p.noThinking')),
-            toggle('quasiIdentifiers', t('ws.p.quasi')),
-            h('div', { className: 'ma-actions ws-params-actions' },
-              h('button', { className: 'ma-link ws-more', onClick: () => setModal('settings') }, `${t('ws.allSettings')} →`),
-              h('span', { style: { flex: 1 } }),
-              h('button', { className: 'ma-btn ma-small', disabled: changed.length === 0 || savingParams, onClick: () => { setDraft(saved); setParamNote(null) }, title: t('ws.paramsResetHint') }, t('ws.paramsReset')),
-              h('button', { className: 'ma-btn ma-small', disabled: changed.length === 0 || savingParams || anyRunning, onClick: saveParams, title: t('ws.paramsDefaultHint') },
-                savingParams ? t('save.saving') : t('ws.paramsDefault'))),
-            h('p', { className: 'ma-hint' }, changed.length ? t('ws.paramsBatchOnly') : t('ws.paramsHint2')),
-            paramNote ? h('p', { className: paramNote.ok ? 'ma-hint ma-ok' : 'ma-hint ma-error' }, paramNote.text) : null) : null)
-      }
-
-      async function saveParams() {
-        if (changed.length === 0) return
-        setSavingParams(true)
-        setParamNote(null)
-        try {
-          const request = {}
-          for (const key of changed) {
-            if (key === 'timeoutSec') request.timeoutMs = Math.round(Number(draft.timeoutSec) * 1000)
-            else request[key] = draft[key]
-          }
-          await call('saveDefaults', request)
-          let info = null
-          for (let attempt = 0; attempt < 20 && !info; attempt += 1) {
-            await new Promise((resolve) => setTimeout(resolve, 250))
-            try { info = await loadConfig() } catch { /* reloading */ }
-          }
-          setParamNote({ ok: true, text: t('ws.paramsSaved') })
-        } catch (cause) {
-          setParamNote({ ok: false, text: message(cause) })
-        } finally {
-          setSavingParams(false)
-        }
+        const summaryText = [
+          t('ws.ps.rounds', { n: shown.maxRounds }),
+          t('ws.ps.concurrency', { n: shown.concurrency }),
+          t('ws.ps.chunk', { n: shown.maxFiles }),
+          `${shown.timeoutSec}s`,
+          t('ws.ps.temp', { n: Number(shown.temperature).toFixed(1) }),
+          shown.disableThinking ? t('ws.ps.noThink') : t('ws.ps.think'),
+          shown.quasiIdentifiers ? t('ws.ps.quasi') : null,
+        ].filter(Boolean).join(' · ')
+        return h('div', { className: 'ws-params' },
+          h('button', { type: 'button', className: 'ws-params-head', onClick: () => setModal('settings'),
+            title: `${running ? `${t('ws.paramsLocked')}\n` : ''}${summaryText}` },
+            h('span', { className: 'ws-params-title' }, '⚙ ', t('ws.paramsShort')),
+            h('span', { className: 'ws-fold-arrow' }, running ? '🔒' : '›')))
       }
 
       // Review items, comparison and advice come from the batch's records,
@@ -4257,25 +4164,6 @@ window.__ModuleLoader__.load({
       // ── Render helpers ──
       const readout = (label, value, tone = '', title = '') => h('div', { className: `ws-readout${tone ? ` ws-tone-${tone}` : ''}`, title },
         h('span', {}, label), h('b', {}, value))
-
-      const stepper = (key, min, max, step = 1) => h('div', { className: 'ws-stepper' },
-        h('button', { type: 'button', disabled: anyRunning || draft[key] <= min, onClick: () => setParam(key, Math.max(min, +(draft[key] - step).toFixed(2))) }, '−'),
-        h('input', {
-          type: 'number', min, max, step, value: draft[key], disabled: anyRunning,
-          onChange: (event) => setParam(key, Number(event.target.value)),
-        }),
-        h('button', { type: 'button', disabled: anyRunning || draft[key] >= max, onClick: () => setParam(key, Math.min(max, +(draft[key] + step).toFixed(2))) }, '+'))
-
-      const toggle = (key, label) => h('label', { className: 'ws-toggle' },
-        h('input', { type: 'checkbox', checked: draft[key], disabled: anyRunning, onChange: (event) => setParam(key, event.target.checked) }),
-        h('span', { className: 'ws-switch', 'aria-hidden': 'true' }),
-        h('span', {}, label),
-        changed.includes(key) ? h('i', { className: 'ws-mod' }) : null)
-
-      const paramTips = { maxRounds: t('run.roundsHint'), concurrency: t('run.concurrencyTip') }
-      const paramRow = (key, label, control) => h('div', { className: 'ws-param', title: paramTips[key] ?? '' },
-        h('span', { className: 'ws-param-label' }, label, changed.includes(key) ? h('i', { className: 'ws-mod' }) : null),
-        control)
 
       const workpieces = () => {
         const cells = []
