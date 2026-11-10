@@ -578,6 +578,9 @@ window.__ModuleLoader__.load({
       'ws.m.mem': '内存 {now} GB（峰值 {peak} / 上限 {limit} GB，{pct}%）',
       'ws.m.memHint': '插件处理数据所在进程（DSH 宿主的 Node 进程）的堆内存：已用 / 上限，不是整台电脑的内存。超过 70% 时暂停补充新文件，接近上限时可减小「每组文件数」。',
       'ws.report.full': '全屏',
+      'ws.drawer.exit': '退出全屏',
+      'ws.drawer.fullHint': '底部面板（文件、日志、模型调用、交叉核验、提示、改进、报告）铺满窗口',
+      'ws.drawer.exitHint': '恢复原来的布局（Esc）',
       'ws.report.copy': '复制 Markdown',
       'ws.perMin': '件/分',
       'ws.spark.avg': '全程平均 {rate}（{secs} s/文件）',
@@ -1225,6 +1228,9 @@ window.__ModuleLoader__.load({
       'ws.m.mem': 'Memory {now} GB (peak {peak} / limit {limit} GB, {pct}%)',
       'ws.m.memHint': 'Heap of the local plugin process (shared with the Harness). Near the limit the process can run out of memory; lower Files per chunk.',
       'ws.report.full': 'Full screen',
+      'ws.drawer.exit': 'Exit full screen',
+      'ws.drawer.fullHint': 'The bottom panel (files, log, calls, cross-check, notes, advice, report) fills the window',
+      'ws.drawer.exitHint': 'Back to the normal layout (Esc)',
       'ws.report.copy': 'Copy Markdown',
       'ws.perMin': '/min',
       'ws.spark.avg': 'overall {rate} ({secs} s/file)',
@@ -2025,6 +2031,13 @@ window.__ModuleLoader__.load({
       .ws-brand-mark svg{width:20px;height:20px}
       .ws-panel-head h3::before{content:attr(data-code);display:inline-block;margin-right:7px;padding:0 4px;border-radius:3px;background:var(--ws-accent);color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:15px;letter-spacing:.5px;vertical-align:1px}
       .ws-panel-head{padding-bottom:6px;border-bottom:1px solid color-mix(in srgb,var(--ws-ink) 12%,transparent)}
+      .ws-drawer-head{display:flex;align-items:flex-end;gap:8px}
+      .ws-drawer-head>.ma-tabs{flex:1;min-width:0}
+      .ws-drawer-max{flex:none;align-self:center;height:24px;padding:0 9px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+      .ws-drawer-max:hover{color:var(--ws-accent);border-color:var(--ws-accent)}
+      .ws-page .ws-panel.ws-drawer-full{position:fixed;inset:14px;z-index:900;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+      .ws-drawer-full .ws-drawer-body{max-height:none}
+      .ws-drawer-shade{position:fixed;inset:0;z-index:899;background:rgba(15,25,30,.32)}
       .ws-drawer .ma-tabs{box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--ws-ink) 12%,transparent)}
       .ws-drawer .ma-tab[aria-selected="true"]{border-bottom-color:var(--ws-accent)}
       .ws-page .ws-start{background:var(--ws-accent);border-color:var(--ws-accent);letter-spacing:2px}
@@ -3915,6 +3928,14 @@ window.__ModuleLoader__.load({
         return () => { alive = false; if (timer) clearInterval(timer) }
       }, [drawer, current?.id, running, current?.status, reviewData])
       const openCross = (filter = 'all') => { setCrossFilter(filter); setDrawer('cross') }
+      // The bottom tab panel (all tabs) can fill the window; Esc leaves.
+      const [drawerFull, setDrawerFull] = React.useState(false)
+      React.useEffect(() => {
+        if (!drawerFull) return undefined
+        const onKey = (event) => { if (event.key === 'Escape' && !modal) setDrawerFull(false) }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [drawerFull, modal])
 
       // Model-call log: fetched incrementally while its tab is open.
       React.useEffect(() => {
@@ -4283,8 +4304,7 @@ window.__ModuleLoader__.load({
           : (reportText
             ? h('div', { className: 'ws-report' },
               h('div', { className: 'ws-report-tools' },
-                h('button', { className: 'ma-btn ma-small', onClick: () => copyText(reportText) }, t('ws.report.copy')),
-                h('button', { className: 'ma-btn ma-small', onClick: () => setModal('report') }, `⤢ ${t('ws.report.full')}`)),
+                h('button', { className: 'ma-btn ma-small', onClick: () => copyText(reportText) }, t('ws.report.copy'))),
               h(MarkdownView, { text: reportText }))
             : h('p', { className: 'ma-empty' }, t('detail.loading')))
       }
@@ -4863,7 +4883,9 @@ window.__ModuleLoader__.load({
                     h('span', { className: 'ma-mono', title: current.output ?? current.runDir }, current.output ?? current.runDir),
                     h('button', { className: 'ma-btn ma-small', onClick: copyPath }, copied ? t('detail.copied') : t('detail.copy')))
                   : null)),
-            h('section', { className: 'ws-panel ws-drawer' },
+            drawerFull ? h('div', { className: 'ws-drawer-shade', onMouseDown: () => setDrawerFull(false) }) : null,
+            h('section', { className: `ws-panel ws-drawer${drawerFull ? ' ws-drawer-full' : ''}` },
+              h('div', { className: 'ws-drawer-head' },
               h('div', { className: 'ma-tabs', role: 'tablist' }, ['parts', 'log', 'calls', 'cross', 'warn', 'advice', 'report'].map((id) => h('button', {
                 key: id, type: 'button', role: 'tab', className: 'ma-tab',
                 'aria-selected': drawer === id ? 'true' : 'false',
@@ -4876,6 +4898,8 @@ window.__ModuleLoader__.load({
               id === 'warn' && (current?.warnings?.length ?? 0) > 0 ? h('span', { className: 'ws-count' }, String(current.warnings.length)) : null,
               id === 'advice' && adviceCount > 0 ? h('span', { className: 'ws-count' }, String(adviceCount)) : null,
               null))),
+                h('button', { type: 'button', className: 'ws-drawer-max', onClick: () => setDrawerFull(!drawerFull), title: drawerFull ? t('ws.drawer.exitHint') : t('ws.drawer.fullHint'), 'aria-pressed': drawerFull ? 'true' : 'false' },
+                  drawerFull ? `⤡ ${t('ws.drawer.exit')}` : `⤢ ${t('ws.report.full')}`)),
               h('div', { className: 'ws-drawer-wrap' },
                 h('div', { className: 'ws-drawer-body', ref: drawerRef, onScroll: onDrawerScroll }, drawerBody()),
                 (drawer === 'log' || drawer === 'calls') && logPinned
