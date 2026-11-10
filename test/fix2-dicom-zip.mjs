@@ -365,7 +365,7 @@ async function main() {
     assert.ok(run.skipped.zipFailed >= 1, `some nested archive refused (zipFailed=${run.skipped.zipFailed})`)
     assert.equal(run.status, 'review')
     assert.ok((run.archiveErrors ?? []).some((item) => /上限|炸弹/.test(item.error)))
-    const delivered = run.files.filter((file) => /inner\d\.zip\//.test(file.relPath)).length
+    const delivered = run.files.filter((file) => /(^|\/)inner\d\//.test(file.relPath)).length
     assert.ok(delivered < 16, `not every nested file is processed (${delivered})`)
   })
 
@@ -380,7 +380,7 @@ async function main() {
     const input = await nestedInput('nest-ok', 3, 3, 100)
     const run = await runBatch({ inputDir: input, outputRoot: join(tmp, 'nest-ok', 'out'), options: { runId: 'no' } })
     assert.equal(run.skipped.zipFailed, 0)
-    assert.equal(run.files.filter((file) => /inner\d\.zip\//.test(file.relPath)).length, 9)
+    assert.equal(run.files.filter((file) => /(^|\/)inner\d\//.test(file.relPath)).length, 9)
   })
 
   await check('#33 逐条写盘：大条目流式解压，内容与 CRC 正确', async () => {
@@ -446,7 +446,7 @@ async function main() {
     const input = await siblingZips('sib-entries', 3, 7, 20)
     const run = await runBatch({ inputDir: input, outputRoot: join(tmp, 'sib-entries', 'out'), options: { runId: 'se', zipLimits: { maxEntries: 12 } } })
     assert.equal(run.skipped.zipFailed, 0, JSON.stringify(run.archiveErrors))
-    assert.equal(run.files.filter((file) => /^study\d\.zip\//.test(file.relPath)).length, 21)
+    assert.equal(run.files.filter((file) => /^study\d\//.test(file.relPath)).length, 21)
     assert.equal(run.status, 'completed')
   })
 
@@ -454,7 +454,7 @@ async function main() {
     const input = await siblingZips('sib-bytes', 3, 6, 10000)
     const run = await runBatch({ inputDir: input, outputRoot: join(tmp, 'sib-bytes', 'out'), options: { runId: 'sb', zipLimits: { maxTotalBytes: 100000 } } })
     assert.equal(run.skipped.zipFailed, 0, JSON.stringify(run.archiveErrors))
-    assert.equal(run.files.filter((file) => /^study\d\.zip\//.test(file.relPath)).length, 18)
+    assert.equal(run.files.filter((file) => /^study\d\//.test(file.relPath)).length, 18)
   })
 
   await check('#33 复核：外层包里的内层压缩包不被重复计算（内层文件本身不计入累计）', async () => {
@@ -467,7 +467,7 @@ async function main() {
     await writeZip(join(input, 'outer.zip'), [{ name: 'inner.zip', data: await readFile(innerPath) }])
     const run = await runBatch({ inputDir: input, outputRoot: join(dir, 'out'), options: { runId: 'nd', zipLimits: { maxTotalBytes: 80000 } } })
     assert.equal(run.skipped.zipFailed, 0, JSON.stringify(run.archiveErrors))
-    assert.ok(run.files.some((file) => file.relPath === 'outer.zip/inner.zip/a.txt'), run.files.map((f) => f.relPath).join(','))
+    assert.ok(run.files.some((file) => file.relPath === 'outer/inner/a.txt'), run.files.map((f) => f.relPath).join(','))
   })
 
   await check('#33 复核：嵌套累计超限的提示是“超过上限”，不是“疑似 zip 炸弹”', async () => {

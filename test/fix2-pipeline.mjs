@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url'
 import * as XLSX from '../vendor/xlsx.mjs'
 import * as pipeline from '../lib/pipeline.js'
 import { createService } from '../lib/service.js'
-import { packDirectory, extractZip } from '../lib/zip.js'
+import { packDirectory } from '../lib/zip.js'
 import { LlmError } from '../lib/llm.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -164,9 +164,8 @@ async function testOutputNames() {
     const root = join(base, 'zip', 'out')
     const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'zip', llm: scripted({ detect: finding(['阿依古丽']) }) } })
     assert.equal(run.status, 'completed')
-    const unpacked = join(base, 'zip', 'check')
-    await extractZip(join(run.output, 'pack.zip'), unpacked)
-    const names = await walk(unpacked)
+    // Delivered unpacked: the zip's contents sit in a folder named "pack".
+    const names = await walk(join(run.output, 'pack'))
     assertAbsent(names.join('\n'), ['阿依古丽'], 'zip entries')
     assert.ok(names.includes('检验.txt'))
     assert.ok(names.some((name) => /^化名-[0-9A-F]{6,10}_随访\.txt$/.test(name)), names.join(','))

@@ -399,10 +399,11 @@ Output files are not deleted.
 ## Zip archives
 
 - `.zip` files (including ZIP64 and GBK file names produced on Windows) are
-  extracted to a system temporary directory, processed, and repacked into the
-  output directory with the original internal layout (UTF-8 file names). The
-  temporary directory is deleted when the batch ends, including on cancel or
-  failure. The original archive is read-only.
+  extracted to a system temporary directory and processed. The result is not
+  re-packed: it is delivered in a folder named after the zip, with the original
+  internal layout (`records.zip` → `records/`, nested zips unpacked too;
+  `records (zip)/` when a folder of that name already exists). The temporary
+  directory is deleted when the batch ends, including on cancel or failure. The original archive is read-only.
 - Nested archives are expanded up to 3 levels deep. Only stored and Deflate
   entries are supported; encrypted and multi-volume archives are not processed.
 - Safety limits: entries with absolute paths, `..`, or otherwise escaping the

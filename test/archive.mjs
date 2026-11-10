@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runBatch, cleanStaleStaging } from '../lib/pipeline.js'
-import { readZip, writeZip } from '../lib/zip.js'
+import { writeZip } from '../lib/zip.js'
 import { createWriteGuard } from '../lib/guard.js'
 import { createService } from '../lib/service.js'
 import { outDirOf, outJoin } from './outputs.mjs'
@@ -84,29 +84,23 @@ const outFiles = await listTree(outputDir)
 await check('输出路径不含姓名、身份证号、住院号、病人编号', () => {
   const joined = outFiles.join('\n')
   for (const secret of [NAME, ID, '573999', '1008599']) assert.ok(!joined.includes(secret), `${secret} in ${joined}`)
-  assert.ok(outFiles.some((path) => /^64_化名-[0-9A-F]{6}_证件-[0-9A-F]{6}\.zip$/.test(path)), joined)
+  // A zip input is delivered unpacked, as a folder named after the zip.
+  assert.ok(outFiles.some((path) => /^64_化名-[0-9A-F]{6}_证件-[0-9A-F]{6}\/门诊\/note\.txt$/.test(path)), joined)
+  assert.ok(!outFiles.some((path) => /\.zip(\/|$)/i.test(path)), joined)
   assert.ok(outFiles.some((path) => /^patient_病历-[0-9A-F]{6}\/stays\/zyh_住院-[0-9A-F]{6}\/disease\.json$/.test(path)), joined)
 })
 
-await check('输出压缩包可读，包内内容已匿名化，嵌套包也已处理', async () => {
-  const zipName = outFiles.find((path) => path.endsWith('.zip'))
-  const { entries } = await readZip(join(outputDir, zipName))
-  const names = entries.filter((entry) => !entry.isDirectory).map((entry) => entry.name).sort()
-  assert.deepEqual(names, ['住院/GEHR-住院就诊记录/202001/p_doc_gehr_inhos_vst_rcd.json', '其他/嵌套.zip', '门诊/note.txt'])
-  for (const entry of entries.filter((item) => item.name.endsWith('.json') || item.name.endsWith('.txt'))) {
-    const text = entry.data.toString('utf8')
-    assert.ok(!text.includes(NAME) && !text.includes(ID), `${entry.name}: ${text}`)
+await check('压缩包按同名文件夹交付，包内内容已匿名化，嵌套包也解开为文件夹', async () => {
+  const top = outFiles.find((path) => path.endsWith('/门诊/note.txt')).split('/')[0]
+  const inside = outFiles.filter((path) => path.startsWith(`${top}/`)).map((path) => path.slice(top.length + 1)).sort()
+  assert.deepEqual(inside, ['住院/GEHR-住院就诊记录/202001/p_doc_gehr_inhos_vst_rcd.json', '其他/嵌套/检验/202001/p_doc_gehr_test_rcd.json', '门诊/note.txt'])
+  for (const rel of inside) {
+    const text = await readFile(join(outputDir, top, rel), 'utf8')
+    assert.ok(!text.includes(NAME) && !text.includes(ID), `${rel}: ${text}`)
   }
-  const record = JSON.parse(entries.find((entry) => entry.name.endsWith('.json')).data.toString('utf8'))
+  const record = JSON.parse(await readFile(join(outputDir, top, inside[0]), 'utf8'))
   assert.equal(record[0].DIAG_NM, '2型糖尿病')
-  const nestedZip = entries.find((entry) => entry.name.endsWith('嵌套.zip'))
-  const dir = join(tmp, 'nested-check')
-  await mkdir(dir, { recursive: true })
-  await writeFile(join(dir, 'n.zip'), nestedZip.data)
-  const nested = await readZip(join(dir, 'n.zip'))
-  const text = nested.entries.find((entry) => entry.name.endsWith('.json')).data.toString('utf8')
-  assert.ok(!text.includes(NAME), text)
-  assert.ok(text.includes('血红蛋白'))
+  assert.ok((await readFile(join(outputDir, top, inside[1]), 'utf8')).includes('血红蛋白'))
 })
 
 await check('诊断等临床内容未被替换', async () => {
@@ -188,7 +182,7 @@ await check('损坏的压缩包只报告类别，不泄露包内文件名', asyn
   assert.match(report, /无法解压/)
 })
 
-await check('待复核文件单独取出到 _records/runs/<批次>/review，成品 zip 不变', async () => {
+await check('待复核文件单独取出到 _records/runs/<批次>/review；zip 输入暂扣为文件夹', async () => {
   const revIn = join(tmp, 'rev-in')
   await mkdir(revIn, { recursive: true })
   await writeZip(join(revIn, 'pack.zip'), [
@@ -210,18 +204,17 @@ await check('待复核文件单独取出到 _records/runs/<批次>/review，成�
   const rev = await runBatch({ inputDir: join(revIn, 'pack.zip'), outputRoot: revRoot, options: { runId: 'rev', llm: stubborn, maxRounds: 1 } })
   assert.equal(rev.status, 'review', JSON.stringify(rev.files.map((f) => [f.relPath, f.status, f.issues])))
   const reviewDir = join(revRoot, '_records', 'runs', 'rev', 'review')
-  assert.deepEqual(await readdir(join(reviewDir, 'pack (zip)', 'a')), ['bad.json'])
+  assert.deepEqual(await readdir(join(reviewDir, 'pack', 'a')), ['bad.json'])
   // Unresolved review items: nothing reaches the output root yet.
   assert.equal(rev.output, null)
   assert.equal(rev.withheld, true)
   assert.deepEqual(await readdir(revRoot), ['_records'])
-  const { entries } = await readZip(join(revRoot, '_records', 'runs', 'rev', 'output', 'pack.zip'))
-  assert.deepEqual(entries.map((entry) => entry.name).sort(), ['a/bad.json', 'a/ok.json'])
+  assert.deepEqual((await readdir(join(revRoot, '_records', 'runs', 'rev', 'output', 'pack', 'a'))).sort(), ['bad.json', 'ok.json'])
   const report = await readFile(join(revRoot, '_records', 'runs', 'rev', 'report.md'), 'utf8')
   assert.ok(report.includes(reviewDir), report)
 })
 
-await check('页面复核：列出残留及上下文；替换写回 zip 内的交付数据，全部决定后批次转为完成', async () => {
+await check('页面复核：列出残留及上下文；替换写回交付数据，全部决定后批次转为完成', async () => {
   const revRoot = join(tmp, 'rev-out')
   const service = createService({ config: { outputRoot: revRoot }, defaultDirectory: tmp })
   const listed = await service.reviewItems('rev')
@@ -235,13 +228,12 @@ await check('页面复核：列出残留及上下文；替换写回 zip 内的�
   assert.equal(result.status, 'completed')
   assert.match(result.decision.replacement, /^化名-/)
   // All items decided: the held result is released into the output root.
-  assert.deepEqual((await readdir(revRoot)).sort(), ['_records', 'pack.zip'])
-  const { entries } = await readZip(join(revRoot, 'pack.zip'))
-  const bad = entries.find((entry) => entry.name === 'a/bad.json').data.toString('utf8')
+  assert.deepEqual((await readdir(revRoot)).sort(), ['_records', 'pack'])
+  const bad = await readFile(join(revRoot, 'pack', 'a', 'bad.json'), 'utf8')
   assert.ok(!bad.includes('甲乙丙') && bad.includes(result.decision.replacement), bad)
   JSON.parse(bad)
   const cmp = await service.compareList('rev')
-  const badEntry = cmp.files.find((f) => f.relPath === 'pack.zip/a/bad.json')
+  const badEntry = cmp.files.find((f) => f.relPath === 'pack/a/bad.json')
   assert.ok(badEntry, JSON.stringify(cmp.files))
   const cmpFile = await service.compareFile('rev', badEntry.n)
   assert.ok(cmpFile.changes.some((c) => c.before.includes('甲乙丙') && c.after.includes(result.decision.replacement)), JSON.stringify(cmpFile))
@@ -249,6 +241,18 @@ await check('页面复核：列出残留及上下文；替换写回 zip 内的�
   assert.match(report, /人工复核记录/)
   const reportJson = await readFile(join(revRoot, '_records', 'runs', 'rev', 'report.json'), 'utf8')
   assert.ok(!reportJson.includes('甲乙丙'))
+})
+
+await check('zip 与同名文件夹并存时，zip 解开为「名称 (zip)」，互不覆盖', async () => {
+  const dupIn = join(tmp, 'dup-in')
+  await mkdir(join(dupIn, 'pack'), { recursive: true })
+  await writeFile(join(dupIn, 'pack', 'a.txt'), '目录里的文件\n')
+  await writeZip(join(dupIn, 'pack.zip'), [{ name: 'a.txt', data: Buffer.from('压缩包里的文件\n') }])
+  const dup = await runBatch({ inputDir: dupIn, outputRoot: join(tmp, 'dup-out'), options: { runId: 'dup' } })
+  const out = outJoin(await outDirOf(join(tmp, 'dup-out'), 'dup'))
+  assert.equal(await readFile(join(out, 'pack', 'a.txt'), 'utf8'), '目录里的文件\n')
+  assert.equal(await readFile(join(out, 'pack (zip)', 'a.txt'), 'utf8'), '压缩包里的文件\n')
+  assert.equal(dup.status, 'completed')
 })
 
 await rm(tmp, { recursive: true, force: true })
