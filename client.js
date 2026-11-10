@@ -1498,7 +1498,7 @@ window.__ModuleLoader__.load({
       .ws-page .ws-col-right::-webkit-scrollbar{display:none}
       .ws-panel{flex:none;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--dsw-alias-bg-layer-1);min-width:0}
       .ws-panel-head{display:flex;align-items:center;gap:8px}
-      .ws-panel-head h3{margin:0;flex:1;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+      .ws-panel-head h3{margin:0;flex:1 0 auto;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
       .ws-tag{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;padding:1px 6px;border-radius:4px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);letter-spacing:1px}
       .ws-tag.ws-live{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary);animation:ws-blink 1.6s infinite}
       .ws-pick{display:grid;grid-template-columns:1fr 1fr;gap:6px}
