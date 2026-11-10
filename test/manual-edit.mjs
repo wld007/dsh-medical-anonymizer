@@ -98,6 +98,27 @@ try {
     const text = (node) => (typeof node === 'string' ? node : Array.isArray(node) ? node.map(text).join('') : (node?.children ?? []).map(text).join(''))
     assert.equal(out.map(text).join(''), after)
   })
+
+  await check('规则：空着的「病案号:」后紧跟日期时，年份不当作病案号', async () => {
+    const types = (text) => scan(text).filter((e) => ['病历号', '住院号', '就诊号'].includes(e.type)).map((e) => e.text)
+    assert.deepEqual(types('床号:     病案号:      2026年06月05日 18时48分'), [])
+    assert.deepEqual(types('门诊号：2023-11-28 08:00'), [])
+    assert.deepEqual(types('病案号：00830661'), ['00830661'])
+    assert.deepEqual(types('住院号：20260012'), ['20260012'])
+  })
+
+  await check('比对标黄：短编号只标独立出现处，不标日期里的年份', async () => {
+    let definition = null
+    globalThis.window = { __ModuleLoader__: { load(def) { definition = def } } }
+    await import(new URL('../client.js', import.meta.url) + '?flag')
+    const React = { createElement: (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() }), Fragment: 'Fragment' }
+    const { flagAt } = definition.factory((name) => (name === 'react' ? React : {})).helpers
+    assert.equal(flagAt('2026-05-22 11:53:26 由医生-EBDBCD 创建', '2026'), -1)
+    assert.equal(flagAt('2026年06月05日', '2026'), -1)
+    assert.equal(flagAt('20261', '2026'), -1)
+    assert.equal(flagAt('编号 2026 已登记', '2026'), 3)
+    assert.equal(flagAt('联系林主任', '林主任'), 2)
+  })
 } finally {
   await rm(tmp, { recursive: true, force: true })
 }

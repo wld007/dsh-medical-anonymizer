@@ -3145,6 +3145,26 @@ window.__ModuleLoader__.load({
       return ops
     }
     // Wrap occurrences of flagged texts inside plain runs of a rendered side.
+    /**
+     * Where a review item's text occurs in `text` from `from`, -1 if nowhere.
+     * Codes (letters/digits) count only standalone, and a short number never
+     * inside a date or time ("2026" in "2026-05-22" or "2026年"), so a flagged
+     * record number does not light up every year of the file.
+     */
+    function flagAt(text, flag, from = 0) {
+      if (!/^[0-9A-Za-z][0-9A-Za-z._/-]*$/.test(flag)) return text.indexOf(flag, from)
+      let at = text.indexOf(flag, from)
+      while (at >= 0) {
+        const before = text.slice(Math.max(0, at - 2), at)
+        const after = text.slice(at + flag.length, at + flag.length + 2)
+        const glued = /[0-9A-Za-z]$/.test(before) || /^[0-9A-Za-z]/.test(after)
+        const dated = /^\d{1,6}$/.test(flag) && (/^(?:[年月日时分秒]|[-/.:]\d)/.test(after) || /\d[-/.:]$/.test(before))
+        if (!glued && !dated) return at
+        at = text.indexOf(flag, at + 1)
+      }
+      return -1
+    }
+
     function markFlags(text, flags, keyBase) {
       if (!flags.length || !text) return text
       const out = []
@@ -3153,7 +3173,7 @@ window.__ModuleLoader__.load({
       while (rest) {
         let hit = null
         for (const flag of flags) {
-          const at = rest.indexOf(flag)
+          const at = flagAt(rest, flag)
           if (at >= 0 && (!hit || at < hit.at)) hit = { at, flag }
         }
         if (!hit) { out.push(rest); break }
@@ -4650,7 +4670,7 @@ window.__ModuleLoader__.load({
                 h('thead', {}, h('tr', {}, h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
                 h('tbody', {}, visible.slice(0, compareShow).map((change, row) => {
                   const after = change.same ? change.before : change.after
-                  const flaggedRow = change.flagged && flags.some((flag) => after.includes(flag))
+                  const flaggedRow = change.flagged && flags.some((flag) => flagAt(after, flag) >= 0)
                   const onPseudo = (event, token) => openManual(event, { kind: 'revert', text: token, relPath: selected.relPath, n: selected.n })
                   if (change.same) {
                     return h('tr', { key: change.id ?? row, className: `ws-cmp-same${flaggedRow ? ' ws-cmp-flagged' : ''}` },
@@ -5599,7 +5619,7 @@ window.__ModuleLoader__.load({
     // Pure helpers for the Node test suite; non-enumerable, so the plugin
     // object the host sees still has only `inject` and `apply`.
     Object.defineProperty(plugin, 'helpers', {
-      value: { callResultLabel, callStatusChip, crossFlow, crossFlowChart, renderAfterCell, diffTexts, pullCallPages, pingKeyFields, recordsRunId, recordsRetryDelay, createReportCache, locales: { zh: ZH, en: EN } },
+      value: { callResultLabel, callStatusChip, crossFlow, crossFlowChart, renderAfterCell, diffTexts, flagAt, pullCallPages, pingKeyFields, recordsRunId, recordsRetryDelay, createReportCache, locales: { zh: ZH, en: EN } },
     })
     return plugin
   },
