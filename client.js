@@ -175,6 +175,8 @@ window.__ModuleLoader__.load({
       'file.cancelled': '已取消',
       'error.title': '操作失败',
       'notice.cancelled': '已请求取消。',
+      'ws.queue.group': '第 {from}–{to} 个文件',
+      'ws.queue.waiting': '等待',
       'ws.title': '医疗数据匿名化处理流水线',
       'ws.subtitle': 'Medical Data De-identification Pipeline',
       'ws.idle': '空闲',
@@ -825,6 +827,8 @@ window.__ModuleLoader__.load({
       'file.cancelled': 'Cancelled',
       'error.title': 'Operation failed',
       'notice.cancelled': 'Cancellation requested.',
+      'ws.queue.group': 'Files {from}–{to}',
+      'ws.queue.waiting': 'waiting',
       'ws.title': 'Medical Data De-identification Pipeline',
       'ws.subtitle': 'Pseudonymization · verification · audit',
       'ws.idle': 'Idle',
@@ -4136,18 +4140,39 @@ window.__ModuleLoader__.load({
       const readout = (label, value, tone = '', title = '') => h('div', { className: `ws-readout${tone ? ` ws-tone-${tone}` : ''}`, title },
         h('span', {}, label), h('b', {}, value))
 
+      // File queue: one cell per file; past CELL_CAP files each cell stands
+      // for a group of consecutive files (finished, running, waiting), so the
+      // whole batch fits without scrolling. A group's colour is its worst file.
+      const CELL_CAP = 240
       const workpieces = () => {
+        const seq = [
+          ...files.map((file) => ({ key: file.relPath, status: file.status, title: `${file.relPath} · ${t(`file.${file.status}`)}` })),
+          ...inflight.filter((state) => state.file).map((state) => ({ key: `r-${state.file}`, status: 'running', title: `${state.file} · ${state.step}` })),
+        ]
+        const total = Math.max(planned, seq.length)
+        if (total <= CELL_CAP) {
+          const cells = seq.map((item) => h('span', { key: item.key, className: `ws-piece ws-p-${item.status}`, title: item.title }))
+          for (let index = seq.length; index < total; index += 1) cells.push(h('span', { key: `p-${index}`, className: 'ws-piece' }))
+          return cells
+        }
+        const size = Math.ceil(total / CELL_CAP)
+        const rank = ['failed', 'cancelled', 'review', 'running', 'clean']
         const cells = []
-        const limit = 600
-        for (const file of files.slice(0, limit)) {
-          cells.push(h('span', { key: `d-${file.relPath}`, className: `ws-piece ws-p-${file.status}`, title: `${file.relPath} · ${t(`file.${file.status}`)}` }))
+        for (let start = 0; start < total; start += size) {
+          const end = Math.min(total, start + size)
+          const counts = {}
+          for (let index = start; index < Math.min(end, seq.length); index += 1) counts[seq[index].status] = (counts[seq[index].status] ?? 0) + 1
+          const waiting = end - start - Object.values(counts).reduce((sum, n) => sum + n, 0)
+          const worst = rank.find((status) => counts[status]) ?? null
+          // A partly done group shows as running until all its files are in.
+          const status = waiting > 0 && worst && worst !== 'failed' && worst !== 'review' ? 'running' : worst
+          const parts = Object.entries(counts).map(([key, n]) => `${t(`file.${key}`)} ${n}`)
+          if (waiting > 0) parts.push(`${t('ws.queue.waiting')} ${waiting}`)
+          cells.push(h('span', {
+            key: `g-${start}`, className: `ws-piece${status ? ` ws-p-${status}` : ''}`,
+            title: `${t('ws.queue.group', { from: start + 1, to: end })}\n${parts.join(' · ')}`,
+          }))
         }
-        for (const state of inflight) {
-          if (!state.file || cells.length >= limit) continue
-          cells.push(h('span', { key: `r-${state.file}`, className: 'ws-piece ws-p-running', title: `${state.file} · ${state.step}` }))
-        }
-        const pending = Math.max(0, Math.min(limit - cells.length, planned - files.length - inflightSet.size))
-        for (let index = 0; index < pending; index += 1) cells.push(h('span', { key: `p-${index}`, className: 'ws-piece' }))
         return cells
       }
 
