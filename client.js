@@ -1479,7 +1479,6 @@ window.__ModuleLoader__.load({
       .ws-clock{display:flex;flex-direction:column;align-items:flex-end;line-height:16px;padding:0 4px}
       .ws-clock span{font-size:10px;color:var(--dsw-alias-label-secondary);letter-spacing:1px}
       .ws-clock b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:18px;font-weight:600;letter-spacing:1px;line-height:22px}
-      .ws-head-actions{display:flex;gap:8px}
       .ws-stop{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}
       .ws-lamp{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--dsw-alias-border-l2);flex:none}
       .ws-s-running .ws-lamp{background:var(--dsw-alias-state-warn-primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-state-warn-primary) 25%,transparent);animation:ws-blink 1.2s infinite}
@@ -1596,10 +1595,15 @@ window.__ModuleLoader__.load({
       .ws-src{font-size:11px;color:var(--dsw-alias-label-secondary);background:none;border:0;padding:0;font:inherit;font-size:11px;text-align:left}
       .ws-src-link{color:var(--ws-accent);cursor:pointer}
       .ws-src-link:hover{text-decoration:underline}
-      .ws-head .ws-brand{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:8px}
-      .ws-head .ws-brand:focus-visible{outline:2px solid var(--ws-accent);outline-offset:4px}
+      .ws-brand-title{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;letter-spacing:inherit;text-align:left;cursor:pointer;border-radius:4px}
+      .ws-brand-title:hover{color:var(--ws-accent)}
+      .ws-brand-title:focus-visible{outline:2px solid var(--ws-accent);outline-offset:3px}
+      .ws-head .ws-clock{margin-left:auto;align-items:flex-end}
+      .ws-page .ws-start.ws-stop{background:var(--dsw-alias-bg-base);border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}
+      .ws-page .ws-start.ws-stop:hover{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 8%,transparent);filter:none}
+      .ws-feed .ws-resume{height:28px;background:var(--dsw-alias-bg-base)}
       .ws-brand-info{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin-left:6px;border-radius:50%;border:1px solid currentColor;font-size:9.5px;font-style:italic;font-weight:700;letter-spacing:0;vertical-align:2px;opacity:0;transition:opacity .15s;color:var(--ws-accent)}
-      .ws-head .ws-brand:hover .ws-brand-info,.ws-head .ws-brand:focus-visible .ws-brand-info{opacity:1}
+      .ws-brand-title:hover .ws-brand-info,.ws-brand-title:focus-visible .ws-brand-info{opacity:1}
       .ws-help h4{margin:18px 0 8px;font-size:13px;letter-spacing:.5px;color:var(--ws-accent);border-bottom:1px solid color-mix(in srgb,var(--ws-accent) 25%,transparent);padding-bottom:4px}
       .ws-help-table{width:100%;border-collapse:collapse;font-size:12.5px}
       .ws-help-table th{text-align:left;font-weight:600;font-size:11.5px;color:var(--dsw-alias-label-secondary);background:color-mix(in srgb,var(--ws-accent) 7%,transparent);padding:5px 8px}
@@ -4717,11 +4721,14 @@ window.__ModuleLoader__.load({
         h('style', { key: 'ma-style' }, CSS + WS_CSS),
         // ── Header bar ──
         h('header', { className: 'ws-head' },
-          h('button', { type: 'button', className: 'ws-brand', onClick: () => setModal('help'), title: t('ws.helpHint') },
+          // Only the title opens the help.
+          h('div', { className: 'ws-brand' },
             h('span', { className: 'ws-brand-mark' }, h(AnonymizerIcon, { size: 18 })),
             h('div', {},
-              h('h2', {}, t('ws.title'), h('span', { className: 'ws-brand-info', 'aria-hidden': 'true' }, 'i')),
+              h('h2', {}, h('button', { type: 'button', className: 'ws-brand-title', onClick: () => setModal('help'), title: t('ws.helpHint') },
+                t('ws.title'), h('span', { className: 'ws-brand-info', 'aria-hidden': 'true' }, 'i'))),
               h('span', {}, t('ws.subtitle'), config?.version ? h('em', { className: 'ws-version' }, `v${config.version}`) : null))),
+          h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           h('div', { className: `ws-status ws-s-${lineStatus}` },
             h('span', { className: 'ws-lamp' }),
             h('div', {},
@@ -4730,13 +4737,7 @@ window.__ModuleLoader__.load({
               current?.resumedFrom
                 ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
                 : (current?.source ? sourceLabel(current.source) : null))),
-          h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
-          h('div', { className: 'ws-head-actions' },
-            running
-              ? h('button', { className: 'ma-btn ws-stop', onClick: cancelRun, disabled: cancelling }, cancelling ? t('run.cancelling') : t('ws.stop'))
-              : (current?.resumable && !anyRunning
-                ? h('button', { className: 'ma-btn ws-resume', onClick: resumeRun, disabled: busy, title: t('ws.resumeHint') }, busy ? t('form.starting') : `▶ ${t('ws.resume')}`)
-                : null))),
+        ),
         error ? h('div', { className: 'ma-banner' }, `${t('error.title')}: ${error}`, h('button', { className: 'ma-link', style: { marginLeft: 8 }, onClick: () => setError('') }, '×')) : null,
 
         h('div', { className: 'ws-grid' },
@@ -4761,8 +4762,14 @@ window.__ModuleLoader__.load({
                   h('button', { className: 'ma-btn ma-small', onClick: browseFile }, t('ws.pickFile')))),
               h('label', { className: 'ma-field' }, t('form.output'),
                 h('input', { className: 'ma-input', value: outputRoot, onChange: (event) => setOutputRoot(event.target.value), placeholder: t('run.outputDefault') })),
-              h('button', { className: 'ma-btn ma-primary ws-start', onClick: start, disabled: busy || anyRunning },
-                busy ? t('form.starting') : (anyRunning ? t('ws.lineBusy') : `▶ ${t('form.start')}`)),
+              // One action button: start, or stop the batch on screen while it runs.
+              running
+                ? h('button', { className: 'ma-btn ws-start ws-stop', onClick: cancelRun, disabled: cancelling }, cancelling ? t('run.cancelling') : t('ws.stop'))
+                : h('button', { className: 'ma-btn ma-primary ws-start', onClick: start, disabled: busy || anyRunning },
+                  busy ? t('form.starting') : (anyRunning ? t('ws.lineBusy') : `▶ ${t('form.start')}`)),
+              !running && current?.resumable && !anyRunning
+                ? h('button', { className: 'ma-btn ws-resume', onClick: resumeRun, disabled: busy, title: t('ws.resumeHint') }, `↻ ${t('ws.resume')}`)
+                : null,
               notice ? h('span', { className: 'ma-hint ma-ok' }, notice) : null),
             h('section', { className: 'ws-panel ws-grow' },
               h('div', { className: 'ws-panel-head' },
