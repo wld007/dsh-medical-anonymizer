@@ -1549,10 +1549,12 @@ window.__ModuleLoader__.load({
       .ws-p-failed,.ws-p-cancelled{background:var(--dsw-alias-state-error-primary);border-color:transparent}
       .ws-p-running{background:var(--ws-accent);border-color:transparent;animation:ws-blink .9s infinite}
       .ws-twin{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px}
-      .ws-bars{display:flex;flex-direction:column;gap:4px;height:68px;overflow:auto}
-      .ws-bar-row{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:center;gap:8px;font-size:12px}
-      .ws-bar-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      /* One grid for all rows: the label, bar and number columns line up. */
+      .ws-bars{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content max-content;align-content:start;align-items:center;gap:4px 8px;height:68px;overflow:auto;font-size:12px}
+      .ws-bar-row{display:contents}
+      .ws-bar-row span{white-space:nowrap}
       .ws-bar-row b{text-align:right;font-weight:600;color:var(--dsw-alias-label-primary)}
+      .ws-bar-row i{font-style:normal;text-align:right;font-size:10.5px;color:var(--dsw-alias-label-secondary);min-width:3em}
       .ws-qbar{display:flex;height:14px;border-radius:4px;overflow:hidden;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
       .ws-q-clean{background:var(--dsw-alias-state-success-primary)}
       .ws-q-review{background:var(--dsw-alias-state-warn-primary)}
@@ -4087,6 +4089,7 @@ window.__ModuleLoader__.load({
       }
       const byType = Object.entries(totals.byType ?? {}).sort((a, b) => b[1] - a[1])
       const maxType = Math.max(1, ...byType.map(([, value]) => value))
+      const sumType = Math.max(1, byType.reduce((sum, [, value]) => sum + value, 0))
       const lineStatus = !current ? 'idle' : current.status
       const inflightSet = new Set(inflight.map((state) => state.file))
 
@@ -4881,7 +4884,8 @@ window.__ModuleLoader__.load({
                   : h('div', { className: 'ws-bars' }, byType.map(([type, value]) => h('div', { key: type, className: 'ws-bar-row' },
                     h('span', {}, type),
                     h('div', { className: 'ws-bar ws-thin' }, h('div', { className: 'ws-bar-fill', style: { width: `${(value / maxType) * 100}%` } })),
-                    h('b', { className: 'ma-mono' }, String(value)))))),
+                    h('b', { className: 'ma-mono' }, compact(value)),
+                    h('i', { className: 'ma-mono' }, `${Math.round((value / sumType) * 100)}%`))))),
               h('section', { className: 'ws-panel' },
                 h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'B3' }, t('ws.quality')),
                   adviceRunId && (reviewOpen > 0 || Array.isArray(compareByRun[adviceRunId]))
