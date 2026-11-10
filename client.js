@@ -311,6 +311,13 @@ window.__ModuleLoader__.load({
       'ws.x.unlocated': '无法定位',
       'ws.x.unlocatedHint': '报出的文字在原文中找不到确切位置，无法自动处理，直接转人工复核。',
       'ws.x.toHuman': '→ 人工',
+      'ws.x.head': '盲审 {calls} 次 · {flagged} 次有报出 · {items} 条',
+      'ws.x.short.filtered': '过滤',
+      'ws.x.short.unlocated': '无法定位',
+      'ws.x.short.reported': '复判',
+      'ws.x.rates': '一致 {agree}% · 分歧 {dispute}%',
+      'ws.x.fewRates': '复判 {n} 条，样本少不计比例',
+      'ws.x.noRates': '一致率 —',
       'ws.x.inflight': '复判中',
       'ws.x.fewSamples': '样本少',
       'ws.x.fewHint': '已复判不足 5 条，比例没有参考意义。',
@@ -951,6 +958,13 @@ window.__ModuleLoader__.load({
       'ws.x.unlocated': 'Unlocated',
       'ws.x.unlocatedHint': 'The reported text has no exact place in the document; sent straight to manual review.',
       'ws.x.toHuman': '→ manual',
+      'ws.x.head': '{calls} blind calls · {flagged} with findings · {items} items',
+      'ws.x.short.filtered': 'Filtered',
+      'ws.x.short.unlocated': 'Unlocated',
+      'ws.x.short.reported': 'Re-judged',
+      'ws.x.rates': 'agree {agree}% · dispute {dispute}%',
+      'ws.x.fewRates': '{n} re-judged, too few for ratios',
+      'ws.x.noRates': 'agreement —',
       'ws.x.inflight': 'in re-judge',
       'ws.x.fewSamples': 'too few',
       'ws.x.fewHint': 'Fewer than 5 items re-judged; the ratio means little.',
@@ -1748,7 +1762,10 @@ window.__ModuleLoader__.load({
       .ws-x-f-allowed{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent) 0 2px,transparent 2px 4px)}
       .ws-x-inflight{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--ws-accent,#c8452c) 45%,transparent) 0 3px,transparent 3px 6px)}
       .ws-x-nowrap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-      .ws-x-tiers{display:flex;flex-direction:column;gap:2px;margin:2px 0 6px}
+      .ws-x-tiers{display:flex;flex-direction:column;gap:2px;margin:4px 0 6px}
+      .ws-cross .ws-x-foot{margin-top:2px;gap:10px}
+      .ws-cross .ws-x-line .ws-x-detail.ws-x-sub{margin-left:auto}
+      .ws-cross .ws-x-foot>span:first-child{color:var(--dsw-alias-label-primary)}
       .ws-x-tier{display:flex;gap:1px;border-radius:3px;overflow:hidden;background:var(--dsw-alias-bg-layer-2)}
       .ws-x-tier i{display:block;flex:none}
       .ws-x-tier-branch{height:5px}
@@ -4591,10 +4608,6 @@ window.__ModuleLoader__.load({
         // Itemized accounting exists for batches from 0.8.1-dev.77 on.
         const itemized = blind?.items !== undefined
         const items = Number(blind?.items ?? 0)
-        const FILTERS = ['format', 'pseudonym', 'invalid', 'allowed']
-        const filtered = blind?.filtered ?? {}
-        const filteredTotal = FILTERS.reduce((sum, key) => sum + Number(filtered[key] ?? 0), 0)
-        const unlocated = Number(blind?.unlocated ?? 0)
         const flow = crossFlow(blind, t)
         // Human verdicts on verifier findings (disputed / not re-judged), live.
         const judgedItems = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => item.code === 'disputed' || item.code === 'model-residual')
@@ -4609,12 +4622,13 @@ window.__ModuleLoader__.load({
             crossCollapsed && judged >= 5 ? h('span', { className: 'ma-mono ws-res-mini' }, t('ws.x.agreeShort', { pct: Math.round((parts[0][1] / judged) * 100) })) : null),
           // Always the full layout: values are "—" / 0 until a batch has data.
           crossCollapsed ? null : h(React.Fragment, {},
-            // Calls, then every reported item in exactly one branch.
+            // One header line, the two-tier bar, one line per non-empty branch
+            // (zero leaves left out), and rates + pending verdicts in one line.
             h('div', { className: 'ws-x-line', title: t('ws.x.itemsHint') },
-              h('span', { className: 'ws-x-nowrap' }, blind ? t('ws.x.callsLine', { calls: blind.calls ?? 0, flagged: blind.flaggedCalls ?? 0 }) : (running ? t('ws.x.waiting') : t('ws.x.callsLine', { calls: '—', flagged: '—' }))),
+              h('span', { className: 'ws-x-nowrap' }, blind
+                ? t('ws.x.head', { calls: blind.calls ?? 0, flagged: blind.flaggedCalls ?? 0, items: itemized ? items : reported })
+                : (running ? t('ws.x.waiting') : t('ws.x.head', { calls: '—', flagged: '—', items: '—' }))),
               items > 0 || reported > 0 ? h('button', { type: 'button', className: 'ma-link ws-x-detail ws-x-sub', onClick: () => openCross('all') }, `${t('ws.xt.detail')} →`) : null),
-            h('div', { className: 'ws-x-line' },
-              h('span', {}, t('ws.x.items')), h('b', {}, itemized ? String(items) : '—')),
             // Two aligned tiers: branches on top, their leaves below (same
             // widths), so a 1-in-47 outcome stays visible and clickable.
             h('div', { className: 'ws-x-tiers', title: t('ws.x.itemsHint') },
@@ -4625,22 +4639,21 @@ window.__ModuleLoader__.load({
                     title: `${node.label} ${node.value}`, onClick: () => openCross(node.filter),
                   }))
                   : null))),
-            h('div', { className: 'ws-x-groups' }, flow.branches.map((branch) => h('div', { key: branch.key, className: 'ws-x-group' },
-              h('span', { className: `ws-x-glabel${branch.value > 0 ? ' ws-x-click' : ''}`, title: t(branch.hint), onClick: branch.value > 0 ? () => openCross(branch.filter) : undefined },
-                h('i', { className: `ws-x-${branch.key}` }), branch.label, h('b', {}, itemized || branch.key === 'reported' ? String(branch.value) : '—')),
+            flow.total > 0 ? h('div', { className: 'ws-x-groups' }, flow.branches.filter((branch) => branch.value > 0).map((branch) => h('div', { key: branch.key, className: 'ws-x-group' },
+              h('span', { className: 'ws-x-glabel ws-x-click', title: t(branch.hint), onClick: () => openCross(branch.filter) },
+                h('i', { className: `ws-x-${branch.key}` }), t(`ws.x.short.${branch.key}`), h('b', {}, String(branch.value))),
               h('span', { className: 'ws-split-legend ws-x-gleaves' }, branch.key === 'unlocated'
                 ? h('span', {}, t('ws.x.toHuman'))
-                : flow.leaves.filter((leaf) => leaf.branch === branch.key).map((leaf) => h('span', {
-                  key: leaf.key, className: leaf.value > 0 ? 'ws-x-click' : 'ws-x-zero', onClick: leaf.value > 0 ? () => openCross(leaf.filter) : undefined,
-                }, h('i', { className: `ws-x-${leaf.key}` }), `${leaf.label} ${blind && (itemized || branch.key === 'reported') ? leaf.value : '—'}`)))))),
-            h('div', { className: 'ws-x-line', title: judged > 0 && judged < 5 ? t('ws.x.fewHint') : t('ws.x.agreeHint') },
-              h('span', {}, t('ws.x.agree')), h('b', {}, judged >= 5 ? `${Math.round((parts[0][1] / judged) * 100)}%` : '—'),
-              judged > 0 && judged < 5 ? h('span', { className: 'ma-hint' }, t('ws.x.fewSamples')) : null,
-              h('span', { className: 'ws-x-sub' }, t('ws.x.disputeRate', { pct: reported >= 5 ? Math.round((parts[2][1] / reported) * 100) : '—' }))),
-            h('div', { className: 'ws-x-line', title: t('ws.x.humanHint') },
-              h('span', {}, t('ws.x.human')),
-              h('b', {}, judgedItems.length ? t('ws.x.humanVal', { v: verifierRight, d: detectorRight }) : '—'),
-              waiting ? h('button', { type: 'button', className: 'ma-link ws-x-sub', onClick: () => openCompare({ filter: 'review' }) }, t('ws.x.pending', { n: waiting })) : null),
+                : flow.leaves.filter((leaf) => leaf.branch === branch.key && leaf.value > 0).map((leaf) => h('span', {
+                  key: leaf.key, className: 'ws-x-click', onClick: () => openCross(leaf.filter),
+                }, h('i', { className: `ws-x-${leaf.key}` }), `${leaf.label} ${leaf.value}`)))))) : null,
+            h('div', { className: 'ws-x-line ws-x-foot' },
+              h('span', { title: judged > 0 && judged < 5 ? t('ws.x.fewHint') : `${t('ws.x.agreeHint')}\n${t('ws.x.splitHint')}` },
+                judged >= 5
+                  ? t('ws.x.rates', { agree: Math.round((parts[0][1] / judged) * 100), dispute: Math.round((parts[2][1] / reported) * 100) })
+                  : judged > 0 ? t('ws.x.fewRates', { n: judged }) : t('ws.x.noRates')),
+              judgedItems.some((item) => item.decision) ? h('span', { title: t('ws.x.humanHint') }, t('ws.x.humanVal', { v: verifierRight, d: detectorRight })) : null,
+              waiting ? h('button', { type: 'button', className: 'ma-link ws-x-sub', title: t('ws.x.humanHint'), onClick: () => openCompare({ filter: 'review' }) }, t('ws.x.pending', { n: waiting })) : null),
             !verifierName ? h('p', { className: 'ma-hint ws-warn-line' }, t('ws.x.shared')) : null))
       }
 
