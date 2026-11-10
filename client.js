@@ -2033,8 +2033,9 @@ window.__ModuleLoader__.load({
       .ws-panel-head{padding-bottom:6px;border-bottom:1px solid color-mix(in srgb,var(--ws-ink) 12%,transparent)}
       .ws-drawer-head{display:flex;align-items:flex-end;gap:8px}
       .ws-drawer-head>.ma-tabs{flex:1;min-width:0}
-      .ws-drawer-max{flex:none;align-self:center;height:24px;padding:0 9px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
-      .ws-drawer-max:hover{color:var(--ws-accent);border-color:var(--ws-accent)}
+      .ws-drawer-max{flex:none;align-self:center;width:26px;height:26px;padding:0;border:0;background:none;color:var(--dsw-alias-label-secondary);font-size:17px;line-height:1;cursor:pointer}
+      .ws-drawer-max:hover{color:var(--ws-accent)}
+      .ws-drawer-max:focus-visible{outline:2px solid var(--ws-accent);outline-offset:1px;border-radius:4px}
       .ws-page .ws-panel.ws-drawer-full{position:fixed;inset:14px;z-index:900;box-shadow:0 10px 40px rgba(0,0,0,.25)}
       .ws-drawer-full .ws-drawer-body{max-height:none}
       .ws-drawer-shade{position:fixed;inset:0;z-index:899;background:rgba(15,25,30,.32)}
@@ -4898,8 +4899,8 @@ window.__ModuleLoader__.load({
               id === 'warn' && (current?.warnings?.length ?? 0) > 0 ? h('span', { className: 'ws-count' }, String(current.warnings.length)) : null,
               id === 'advice' && adviceCount > 0 ? h('span', { className: 'ws-count' }, String(adviceCount)) : null,
               null))),
-                h('button', { type: 'button', className: 'ws-drawer-max', onClick: () => setDrawerFull(!drawerFull), title: drawerFull ? t('ws.drawer.exitHint') : t('ws.drawer.fullHint'), 'aria-pressed': drawerFull ? 'true' : 'false' },
-                  drawerFull ? `⤡ ${t('ws.drawer.exit')}` : `⤢ ${t('ws.report.full')}`)),
+                h('button', { type: 'button', className: 'ws-drawer-max', onClick: () => setDrawerFull(!drawerFull), title: drawerFull ? t('ws.drawer.exitHint') : t('ws.drawer.fullHint'), 'aria-label': drawerFull ? t('ws.drawer.exit') : t('ws.report.full'), 'aria-pressed': drawerFull ? 'true' : 'false' },
+                  drawerFull ? '⤡' : '⤢')),
               h('div', { className: 'ws-drawer-wrap' },
                 h('div', { className: 'ws-drawer-body', ref: drawerRef, onScroll: onDrawerScroll }, drawerBody()),
                 (drawer === 'log' || drawer === 'calls') && logPinned
