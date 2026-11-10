@@ -312,7 +312,6 @@ window.__ModuleLoader__.load({
       'ws.x.unlocatedHint': '报出的文字在原文中找不到确切位置，无法自动处理，直接转人工复核。',
       'ws.x.toHuman': '→ 人工',
       'ws.x.inflight': '复判中',
-      'ws.x.flowTitle': '盲审条目流向',
       'ws.x.fewSamples': '样本少',
       'ws.x.fewHint': '已复判不足 5 条，比例没有参考意义。',
       'ws.x.confirmed': '确认',
@@ -952,7 +951,6 @@ window.__ModuleLoader__.load({
       'ws.x.unlocatedHint': 'The reported text has no exact place in the document; sent straight to manual review.',
       'ws.x.toHuman': '→ manual',
       'ws.x.inflight': 'in re-judge',
-      'ws.x.flowTitle': 'Blind-review item flow',
       'ws.x.fewSamples': 'too few',
       'ws.x.fewHint': 'Fewer than 5 items re-judged; the ratio means little.',
       'ws.x.confirmed': 'confirmed',
@@ -1760,23 +1758,6 @@ window.__ModuleLoader__.load({
       .ws-x-glabel b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-size:12px;margin-left:2px}
       .ws-x-gleaves{flex-wrap:wrap;gap:2px 8px}
       .ws-x-gleaves .ws-x-zero{opacity:.45}
-      .ws-flow{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
-      .ws-flow-svg{display:block;overflow:visible}
-      .ws-flow-label{font-size:11px;fill:var(--dsw-alias-label-primary)}
-      .ws-flow-root{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 55%,transparent)}
-      .ws-flow-band{opacity:.28}
-      .ws-flow-svg .ws-x-filtered{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
-      .ws-flow-svg .ws-x-unlocated{fill:var(--dsw-alias-state-danger-primary,#d4380d)}
-      .ws-flow-svg .ws-x-reported{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 72%,transparent)}
-      .ws-flow-svg .ws-x-f-format{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 45%,transparent)}
-      .ws-flow-svg .ws-x-f-pseudonym{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 32%,transparent)}
-      .ws-flow-svg .ws-x-f-invalid{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 27%,transparent)}
-      .ws-flow-svg .ws-x-f-allowed{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 20%,transparent)}
-      .ws-flow-svg .ws-x-confirmed{fill:var(--dsw-alias-state-success-primary)}
-      .ws-flow-svg .ws-x-dismissed{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
-      .ws-flow-svg .ws-x-disputed{fill:var(--dsw-alias-state-warn-primary)}
-      .ws-flow-svg .ws-x-unjudged{fill:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 40%,transparent)}
-      .ws-flow-svg .ws-x-inflight{fill:color-mix(in srgb,var(--ws-accent,#c8452c) 45%,transparent)}
       .ws-xt-chip.ws-xt-filtered{background:color-mix(in srgb,var(--dsw-alias-label-primary) 35%,transparent)}
       .ws-xt-chip.ws-xt-unlocated{background:color-mix(in srgb,var(--dsw-alias-state-danger-primary,#d4380d) 80%,transparent)}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
@@ -2199,67 +2180,6 @@ window.__ModuleLoader__.load({
           branch('reported', t('ws.x.reported'), 'ws.x.reportedHint', 'all'),
         ],
       }
-    }
-
-    /**
-     * Sankey-style flow of the blind-review items for the cross-check tab:
-     * all items → branch → leaf. Only non-zero nodes are drawn.
-     */
-    function crossFlowChart(h, flow, blind, t) {
-      if (!flow || flow.total === 0) return null
-      // Leaf heights follow the counts (at least LABEL tall so labels never
-      // collide); a branch spans its leaves, the root spans everything.
-      const W = 720
-      const UNIT = 140 // px for the whole batch before minimums
-      const LABEL = 16
-      const GAP = 4
-      const GROUP = 12
-      const BAR = 10
-      const cols = [8, 300, 560]
-      const leaves = []
-      const branches = []
-      let y = 0
-      for (const branch of flow.branches) {
-        const own = flow.leaves.filter((leaf) => leaf.branch === branch.key && leaf.value > 0)
-        if (own.length === 0) continue
-        const top = y
-        for (const leaf of own) {
-          const height = Math.max(LABEL, (leaf.value / flow.total) * UNIT)
-          leaves.push({ ...leaf, y, height })
-          y += height + GAP
-        }
-        y -= GAP
-        branches.push({ ...branch, y: top, height: y - top })
-        y += GROUP
-      }
-      const H = y - GROUP
-      const band = (x0, y0, h0, x1, y1, h1, key, cls) => {
-        const mid = (x0 + x1) / 2
-        return h('path', {
-          key, className: `ws-flow-band ${cls}`,
-          d: `M${x0},${y0} C${mid},${y0} ${mid},${y1} ${x1},${y1} L${x1},${y1 + h1} C${mid},${y1 + h1} ${mid},${y0 + h0} ${x0},${y0 + h0} Z`,
-        })
-      }
-      const parts = []
-      for (const node of branches) parts.push(band(cols[0] + BAR, node.y, node.height, cols[1], node.y, node.height, `r-${node.key}`, `ws-x-${node.key}`))
-      for (const leaf of leaves) {
-        const parent = branches.find((node) => node.key === leaf.branch)
-        const own = leaves.filter((item) => item.branch === leaf.branch)
-        const sum = own.reduce((total, item) => total + item.height, 0)
-        const before = own.slice(0, own.indexOf(leaf)).reduce((total, item) => total + item.height, 0)
-        const from = parent.y + (before / sum) * parent.height
-        parts.push(band(cols[1] + BAR, from, (leaf.height / sum) * parent.height, cols[2], leaf.y, leaf.height, `b-${leaf.key}`, `ws-x-${leaf.key}`))
-      }
-      const label = (x, node) => h('text', { key: `t-${node.key}`, x, y: node.y + node.height / 2, dy: '0.35em', className: 'ws-flow-label' }, `${node.label} ${node.value}`)
-      return h('div', { className: 'ws-flow' },
-        h('div', { className: 'ma-hint' }, `${t('ws.x.callsLine', { calls: blind?.calls ?? 0, flagged: blind?.flaggedCalls ?? 0 })} · ${t('ws.x.items')} ${flow.total}`),
-        h('svg', { viewBox: `-2 -2 ${W + 4} ${H + 4}`, width: '100%', style: { maxWidth: `${W}px`, maxHeight: `${H + 4}px` }, className: 'ws-flow-svg', role: 'img', 'aria-label': t('ws.x.flowTitle') },
-          ...parts,
-          h('rect', { key: 'root', x: cols[0], y: 0, width: BAR, height: H, className: 'ws-flow-root' }),
-          ...branches.map((node) => h('rect', { key: `n-${node.key}`, x: cols[1], y: node.y, width: BAR, height: node.height, className: `ws-x-${node.key}` })),
-          ...branches.map((node) => label(cols[1] + BAR + 6, node)),
-          ...leaves.map((node) => h('rect', { key: `n-${node.key}`, x: cols[2], y: node.y, width: BAR, height: node.height, className: `ws-x-${node.key}` })),
-          ...leaves.map((node) => label(cols[2] + BAR + 6, node))))
     }
 
     /** Status chip of one call row: result label plus retry / dropped markers. */
@@ -4294,7 +4214,9 @@ window.__ModuleLoader__.load({
           const verdictLabel = (entry) => (entry.verdict === 'verifier' ? t('ws.xt.vVerifier') : entry.verdict === 'detector' ? t('ws.xt.vDetector') : entry.verdict === 'pending' ? t('ws.xt.vPending') : '—')
           const outcomeLabel = (key) => t(key === 'pending' ? 'ws.x.inflight' : `ws.x.${key}`)
           return h('div', { className: 'ws-xt' },
-            crossFlowChart(h, crossFlow(current?.totals?.blind ?? null, t), current?.totals?.blind ?? null, t),
+            current?.totals?.blind?.items !== undefined
+              ? h('div', { className: 'ma-hint' }, `${t('ws.x.callsLine', { calls: current.totals.blind.calls ?? 0, flagged: current.totals.blind.flaggedCalls ?? 0 })} · ${t('ws.x.items')} ${current.totals.blind.items}`)
+              : null,
             h('div', { className: 'ws-xt-bar' },
               ['all', ...OUTCOMES].filter((key) => key === 'all' || counts[key] > 0 || !['pending', 'unlocated', 'filtered'].includes(key)).map((key) => h('button', {
                 key, type: 'button', className: `ws-cmp-filter${crossFilter === key ? ' ws-on' : ''}`, onClick: () => setCrossFilter(key),
@@ -5507,7 +5429,7 @@ window.__ModuleLoader__.load({
     // Pure helpers for the Node test suite; non-enumerable, so the plugin
     // object the host sees still has only `inject` and `apply`.
     Object.defineProperty(plugin, 'helpers', {
-      value: { callResultLabel, callStatusChip, crossFlow, crossFlowChart, renderAfterCell, diffTexts, flagAt, pullCallPages, pingKeyFields, recordsRunId, recordsRetryDelay, createReportCache, locales: { zh: ZH, en: EN } },
+      value: { callResultLabel, callStatusChip, crossFlow, renderAfterCell, diffTexts, flagAt, pullCallPages, pingKeyFields, recordsRunId, recordsRetryDelay, createReportCache, locales: { zh: ZH, en: EN } },
     })
     return plugin
   },

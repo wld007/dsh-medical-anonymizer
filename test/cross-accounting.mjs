@@ -105,13 +105,5 @@ try {
   assert.equal(old.total, 2)
   console.log('  ok  C3 bar: running batches and pre-itemized batches')
 
-  const chart = helpers.crossFlowChart(React.createElement, flow, blind, t)
-  const svg = chart.children.find((node) => node?.type === 'svg')
-  const texts = svg.children.filter((node) => node.type === 'text')
-  const ys = texts.filter((node) => node.props.x > 500).map((node) => node.props.y).sort((a, b) => a - b)
-  for (let i = 1; i < ys.length; i++) assert.ok(ys[i] - ys[i - 1] >= 16, 'leaf labels do not overlap')
-  assert.ok(texts.some((node) => node.children.join('') === '格式不符 44'))
-  assert.equal(helpers.crossFlowChart(React.createElement, helpers.crossFlow(null, t), null, t), null)
-  console.log('  ok  flow chart: labels never overlap, empty batches draw nothing')
 }
 console.log('\nCROSS-ACCOUNTING PASS')
