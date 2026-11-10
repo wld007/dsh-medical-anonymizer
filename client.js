@@ -310,6 +310,8 @@ window.__ModuleLoader__.load({
       'ws.x.unlocated': '无法定位',
       'ws.x.unlocatedHint': '报出的文字在原文中找不到确切位置，无法自动处理，直接转人工复核。',
       'ws.x.toHuman': '→ 人工',
+      'ws.x.inflight': '复判中',
+      'ws.x.flowTitle': '盲审条目流向',
       'ws.x.fewSamples': '样本少',
       'ws.x.fewHint': '已复判不足 5 条，比例没有参考意义。',
       'ws.x.confirmed': '确认',
@@ -922,6 +924,8 @@ window.__ModuleLoader__.load({
       'ws.x.unlocated': 'Unlocated',
       'ws.x.unlocatedHint': 'The reported text has no exact place in the document; sent straight to manual review.',
       'ws.x.toHuman': '→ manual',
+      'ws.x.inflight': 'in re-judge',
+      'ws.x.flowTitle': 'Blind-review item flow',
       'ws.x.fewSamples': 'too few',
       'ws.x.fewHint': 'Fewer than 5 items re-judged; the ratio means little.',
       'ws.x.confirmed': 'confirmed',
@@ -1471,7 +1475,7 @@ window.__ModuleLoader__.load({
       .ws-p-running{background:var(--ws-accent);border-color:transparent;animation:ws-blink .9s infinite}
       .ws-twin{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px}
       .ws-bars{display:flex;flex-direction:column;gap:4px;height:68px;overflow:auto}
-      .ws-bar-row{display:grid;grid-template-columns:76px minmax(0,1fr) 44px;align-items:center;gap:8px;font-size:12px}
+      .ws-bar-row{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:center;gap:8px;font-size:12px}
       .ws-bar-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .ws-bar-row b{text-align:right;font-weight:600;color:var(--dsw-alias-label-primary)}
       .ws-qbar{display:flex;height:14px;border-radius:4px;overflow:hidden;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
@@ -1691,13 +1695,46 @@ window.__ModuleLoader__.load({
       .ws-xt-chip.ws-xt-unjudged{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 60%,transparent)}
       .ws-xt-chip.ws-xt-pending{background:var(--dsw-alias-label-secondary)}
       .ws-x-pending{background:var(--dsw-alias-label-secondary)}
-      .ws-x-filtered{background:color-mix(in srgb,var(--dsw-alias-label-primary) 18%,transparent)}
-      .ws-x-unlocated{background:color-mix(in srgb,var(--dsw-alias-state-danger-primary,#d4380d) 70%,transparent)}
+      .ws-x-filtered{background:color-mix(in srgb,var(--dsw-alias-label-primary) 22%,transparent)}
+      .ws-x-unlocated{background:var(--dsw-alias-state-danger-primary,#d4380d)}
+      .ws-x-reported{background:color-mix(in srgb,var(--dsw-alias-label-primary) 72%,transparent)}
+      .ws-x-f-format{background:color-mix(in srgb,var(--dsw-alias-label-primary) 45%,transparent)}
+      .ws-x-f-pseudonym{background:color-mix(in srgb,var(--dsw-alias-label-primary) 34%,transparent)}
+      .ws-x-f-invalid{background:color-mix(in srgb,var(--dsw-alias-label-primary) 25%,transparent)}
+      .ws-x-f-allowed{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent) 0 2px,transparent 2px 4px)}
+      .ws-x-inflight{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--ws-accent,#c8452c) 45%,transparent) 0 3px,transparent 3px 6px)}
+      .ws-x-nowrap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+      .ws-x-tiers{display:flex;flex-direction:column;gap:2px;margin:2px 0 6px}
+      .ws-x-tier{display:flex;gap:1px;border-radius:3px;overflow:hidden;background:var(--dsw-alias-bg-layer-2)}
+      .ws-x-tier i{display:block;flex:none}
+      .ws-x-tier-branch{height:5px}
+      .ws-x-tier-leaf{height:9px}
+      .ws-x-groups{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline;gap:3px 10px;margin-bottom:4px;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-x-group{display:contents}
+      .ws-x-glabel{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+      .ws-x-glabel i{display:inline-block;width:8px;height:8px;border-radius:2px}
+      .ws-x-glabel b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-size:12px;margin-left:2px}
+      .ws-x-gleaves{flex-wrap:wrap;gap:2px 8px}
+      .ws-x-gleaves .ws-x-zero{opacity:.45}
+      .ws-flow{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+      .ws-flow-svg{display:block;overflow:visible}
+      .ws-flow-label{font-size:11px;fill:var(--dsw-alias-label-primary)}
+      .ws-flow-root{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 55%,transparent)}
+      .ws-flow-band{opacity:.28}
+      .ws-flow-svg .ws-x-filtered{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
+      .ws-flow-svg .ws-x-unlocated{fill:var(--dsw-alias-state-danger-primary,#d4380d)}
+      .ws-flow-svg .ws-x-reported{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 72%,transparent)}
+      .ws-flow-svg .ws-x-f-format{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 45%,transparent)}
+      .ws-flow-svg .ws-x-f-pseudonym{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 32%,transparent)}
+      .ws-flow-svg .ws-x-f-invalid{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 27%,transparent)}
+      .ws-flow-svg .ws-x-f-allowed{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 20%,transparent)}
+      .ws-flow-svg .ws-x-confirmed{fill:var(--dsw-alias-state-success-primary)}
+      .ws-flow-svg .ws-x-dismissed{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
+      .ws-flow-svg .ws-x-disputed{fill:var(--dsw-alias-state-warn-primary)}
+      .ws-flow-svg .ws-x-unjudged{fill:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 40%,transparent)}
+      .ws-flow-svg .ws-x-inflight{fill:color-mix(in srgb,var(--ws-accent,#c8452c) 45%,transparent)}
       .ws-xt-chip.ws-xt-filtered{background:color-mix(in srgb,var(--dsw-alias-label-primary) 35%,transparent)}
       .ws-xt-chip.ws-xt-unlocated{background:color-mix(in srgb,var(--dsw-alias-state-danger-primary,#d4380d) 80%,transparent)}
-      .ws-cross .ws-x-branch{padding-left:10px;border-left:2px solid var(--dsw-alias-border-l2)}
-      .ws-cross .ws-x-branch .ws-x-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-      .ws-cross .ws-x-branch-split{display:flex;flex-direction:column;gap:4px}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
       .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
@@ -2068,6 +2105,110 @@ window.__ModuleLoader__.load({
       const http = /^http-(\d{3})$/.exec(String(code))
       if (http) return t('ws.calls.r.http', { status: http[1] })
       return String(code)
+    }
+
+    /**
+     * Blind-review accounting as a tree for the C3 bars and the flow chart:
+     * branches (filtered / unlocated / re-judged) and their leaves. `width`
+     * is a percentage of the bar; a non-zero node gets at least MIN_PCT so a
+     * single item stays visible, and a branch is exactly as wide as its
+     * leaves, so the two tiers line up. Batches from before the itemized
+     * accounting only have the re-judged branch.
+     */
+    function crossFlow(blind, t) {
+      const MIN_PCT = 3
+      const n = (value) => Math.max(0, Number(value ?? 0) || 0)
+      const itemized = blind?.items !== undefined
+      const f = blind?.filtered ?? {}
+      const outcomes = ['confirmed', 'dismissed', 'disputed', 'unjudged']
+      const reported = n(blind?.reported)
+      const settled = outcomes.reduce((sum, key) => sum + n(blind?.[key]), 0)
+      const leaves = [
+        ...['format', 'pseudonym', 'invalid', 'allowed'].map((key) => ({ key: `f-${key}`, branch: 'filtered', filter: 'filtered', label: t(`ws.x.f.${key}`), value: itemized ? n(f[key]) : 0 })),
+        { key: 'unlocated', branch: 'unlocated', filter: 'unlocated', label: t('ws.x.unlocated'), value: itemized ? n(blind?.unlocated) : 0 },
+        ...outcomes.map((key) => ({ key, branch: 'reported', filter: key, label: t(`ws.x.${key}`), value: n(blind?.[key]) })),
+        // Reported but not settled yet (a running batch): re-judged next round.
+        ...(reported > settled ? [{ key: 'inflight', branch: 'reported', filter: 'pending', label: t('ws.x.inflight'), value: reported - settled }] : []),
+      ]
+      const total = leaves.reduce((sum, leaf) => sum + leaf.value, 0)
+      const raw = leaves.map((leaf) => (leaf.value > 0 ? Math.max(MIN_PCT, (leaf.value / total) * 100) : 0))
+      const scale = raw.reduce((a, b) => a + b, 0) || 1
+      leaves.forEach((leaf, i) => { leaf.width = (raw[i] / scale) * 100 })
+      const branch = (key, label, hint, filter) => {
+        const own = leaves.filter((leaf) => leaf.branch === key)
+        return { key, label, hint, filter, value: own.reduce((sum, leaf) => sum + leaf.value, 0), width: own.reduce((sum, leaf) => sum + leaf.width, 0) }
+      }
+      return {
+        total,
+        itemized,
+        leaves,
+        branches: [
+          branch('filtered', t('ws.x.filtered'), 'ws.x.filteredHint', 'filtered'),
+          branch('unlocated', t('ws.x.unlocated'), 'ws.x.unlocatedHint', 'unlocated'),
+          branch('reported', t('ws.x.reported'), 'ws.x.reportedHint', 'all'),
+        ],
+      }
+    }
+
+    /**
+     * Sankey-style flow of the blind-review items for the cross-check tab:
+     * all items → branch → leaf. Only non-zero nodes are drawn.
+     */
+    function crossFlowChart(h, flow, blind, t) {
+      if (!flow || flow.total === 0) return null
+      // Leaf heights follow the counts (at least LABEL tall so labels never
+      // collide); a branch spans its leaves, the root spans everything.
+      const W = 720
+      const UNIT = 140 // px for the whole batch before minimums
+      const LABEL = 16
+      const GAP = 4
+      const GROUP = 12
+      const BAR = 10
+      const cols = [8, 300, 560]
+      const leaves = []
+      const branches = []
+      let y = 0
+      for (const branch of flow.branches) {
+        const own = flow.leaves.filter((leaf) => leaf.branch === branch.key && leaf.value > 0)
+        if (own.length === 0) continue
+        const top = y
+        for (const leaf of own) {
+          const height = Math.max(LABEL, (leaf.value / flow.total) * UNIT)
+          leaves.push({ ...leaf, y, height })
+          y += height + GAP
+        }
+        y -= GAP
+        branches.push({ ...branch, y: top, height: y - top })
+        y += GROUP
+      }
+      const H = y - GROUP
+      const band = (x0, y0, h0, x1, y1, h1, key, cls) => {
+        const mid = (x0 + x1) / 2
+        return h('path', {
+          key, className: `ws-flow-band ${cls}`,
+          d: `M${x0},${y0} C${mid},${y0} ${mid},${y1} ${x1},${y1} L${x1},${y1 + h1} C${mid},${y1 + h1} ${mid},${y0 + h0} ${x0},${y0 + h0} Z`,
+        })
+      }
+      const parts = []
+      for (const node of branches) parts.push(band(cols[0] + BAR, node.y, node.height, cols[1], node.y, node.height, `r-${node.key}`, `ws-x-${node.key}`))
+      for (const leaf of leaves) {
+        const parent = branches.find((node) => node.key === leaf.branch)
+        const own = leaves.filter((item) => item.branch === leaf.branch)
+        const sum = own.reduce((total, item) => total + item.height, 0)
+        const before = own.slice(0, own.indexOf(leaf)).reduce((total, item) => total + item.height, 0)
+        const from = parent.y + (before / sum) * parent.height
+        parts.push(band(cols[1] + BAR, from, (leaf.height / sum) * parent.height, cols[2], leaf.y, leaf.height, `b-${leaf.key}`, `ws-x-${leaf.key}`))
+      }
+      const label = (x, node) => h('text', { key: `t-${node.key}`, x, y: node.y + node.height / 2, dy: '0.35em', className: 'ws-flow-label' }, `${node.label} ${node.value}`)
+      return h('div', { className: 'ws-flow' },
+        h('div', { className: 'ma-hint' }, `${t('ws.x.callsLine', { calls: blind?.calls ?? 0, flagged: blind?.flaggedCalls ?? 0 })} · ${t('ws.x.items')} ${flow.total}`),
+        h('svg', { viewBox: `-2 -2 ${W + 4} ${H + 4}`, width: '100%', style: { maxWidth: `${W}px`, maxHeight: `${H + 4}px` }, className: 'ws-flow-svg', role: 'img', 'aria-label': t('ws.x.flowTitle') },
+          ...parts,
+          h('rect', { key: 'root', x: cols[0], y: 0, width: BAR, height: H, className: 'ws-flow-root' }),
+          ...branches.map((node) => h('rect', { key: `n-${node.key}`, x: cols[1], y: node.y, width: BAR, height: node.height, className: `ws-x-${node.key}` })),
+          ...branches.map((node) => label(cols[1] + BAR + 6, node)),
+          ...leaves.map((node) => h('rect', { key: `n-${node.key}`, x: cols[2], y: node.y, width: BAR, height: node.height, className: `ws-x-${node.key}` })),
+          ...leaves.map((node) => label(cols[2] + BAR + 6, node))))
     }
 
     /** Status chip of one call row: result label plus retry / dropped markers. */
@@ -4087,11 +4228,13 @@ window.__ModuleLoader__.load({
           for (const entry of shown) byType.set(entry.type, (byType.get(entry.type) ?? 0) + 1)
           const types = [...byType].sort((a, b) => b[1] - a[1]).slice(0, 6)
           const verdictLabel = (entry) => (entry.verdict === 'verifier' ? t('ws.xt.vVerifier') : entry.verdict === 'detector' ? t('ws.xt.vDetector') : entry.verdict === 'pending' ? t('ws.xt.vPending') : '—')
+          const outcomeLabel = (key) => t(key === 'pending' ? 'ws.x.inflight' : `ws.x.${key}`)
           return h('div', { className: 'ws-xt' },
+            crossFlowChart(h, crossFlow(current?.totals?.blind ?? null, t), current?.totals?.blind ?? null, t),
             h('div', { className: 'ws-xt-bar' },
               ['all', ...OUTCOMES].filter((key) => key === 'all' || counts[key] > 0 || !['pending', 'unlocated', 'filtered'].includes(key)).map((key) => h('button', {
                 key, type: 'button', className: `ws-cmp-filter${crossFilter === key ? ' ws-on' : ''}`, onClick: () => setCrossFilter(key),
-              }, key === 'all' ? null : h('i', { className: `ws-xt-dot ws-x-${key}` }), key === 'all' ? t('ws.xt.all') : t(`ws.x.${key}`), h('i', {}, String(key === 'all' ? list.length : counts[key])))),
+              }, key === 'all' ? null : h('i', { className: `ws-xt-dot ws-x-${key}` }), key === 'all' ? t('ws.xt.all') : outcomeLabel(key), h('i', {}, String(key === 'all' ? list.length : counts[key])))),
               types.length ? h('span', { className: 'ma-hint ws-xt-types' }, `${t('ws.xt.byType')}：${types.map(([type, count]) => `${type} ${count}`).join(' · ')}`) : null),
             shown.length === 0
               ? h('p', { className: 'ma-empty' }, t('ws.xt.empty'))
@@ -4110,7 +4253,7 @@ window.__ModuleLoader__.load({
                   h('td', { className: 'ws-xt-ctx' }, entry.before, h('mark', {}, entry.text), entry.after),
                   h('td', { className: 'ws-xt-reason' }, entry.reason || '—'),
                   h('td', { className: 'ws-xt-reason' }, entry.judge || '—'),
-                  h('td', {}, h('span', { className: `ws-xt-chip ws-xt-${entry.outcome}` }, t(`ws.x.${entry.outcome}`))),
+                  h('td', {}, h('span', { className: `ws-xt-chip ws-xt-${entry.outcome}` }, outcomeLabel(entry.outcome))),
                   h('td', {}, entry.outcome === 'filtered' ? '—' : entry.reviewId && entry.verdict === 'pending' && adviceRunId
                     ? h('button', { type: 'button', className: 'ma-link', onClick: () => openCompare({ relPath: entry.file }) }, `${verdictLabel(entry)} →`)
                     : verdictLabel(entry)))))),
@@ -4341,6 +4484,7 @@ window.__ModuleLoader__.load({
         const filtered = blind?.filtered ?? {}
         const filteredTotal = FILTERS.reduce((sum, key) => sum + Number(filtered[key] ?? 0), 0)
         const unlocated = Number(blind?.unlocated ?? 0)
+        const flow = crossFlow(blind, t)
         // Human verdicts on verifier findings (disputed / not re-judged), live.
         const judgedItems = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => item.code === 'disputed' || item.code === 'model-residual')
         const verifierRight = judgedItems.filter((item) => item.decision?.action === 'replace').length
@@ -4356,21 +4500,28 @@ window.__ModuleLoader__.load({
           crossCollapsed ? null : h(React.Fragment, {},
             // Calls, then every reported item in exactly one branch.
             h('div', { className: 'ws-x-line', title: t('ws.x.itemsHint') },
-              h('span', {}, blind ? t('ws.x.callsLine', { calls: blind.calls ?? 0, flagged: blind.flaggedCalls ?? 0 }) : (running ? t('ws.x.waiting') : t('ws.x.callsLine', { calls: '—', flagged: '—' }))),
-              h('span', { className: 'ws-x-sub' }, t('ws.x.items')), h('b', {}, itemized ? String(items) : '—'),
-              items > 0 || reported > 0 ? h('button', { type: 'button', className: 'ma-link ws-x-detail', onClick: () => openCross('all') }, `${t('ws.xt.detail')} →`) : null),
-            h('div', { className: `ws-x-line ws-x-branch${filteredTotal > 0 ? ' ws-x-click' : ''}`, title: t('ws.x.filteredHint'), onClick: filteredTotal > 0 ? () => openCross('filtered') : undefined },
-              h('span', {}, t('ws.x.filtered')), h('b', {}, itemized ? String(filteredTotal) : '—'),
-              h('span', { className: 'ws-x-sub' }, itemized ? FILTERS.map((key) => `${t(`ws.x.f.${key}`)} ${filtered[key] ?? 0}`).join(' · ') : '')),
-            h('div', { className: `ws-x-line ws-x-branch${unlocated > 0 ? ' ws-x-click' : ''}`, title: t('ws.x.unlocatedHint'), onClick: unlocated > 0 ? () => openCross('unlocated') : undefined },
-              h('span', {}, t('ws.x.unlocated')), h('b', {}, itemized ? String(unlocated) : '—'),
-              h('span', { className: 'ws-x-sub' }, t('ws.x.toHuman'))),
-            h('div', { className: 'ws-x-branch ws-x-branch-split' },
-              h('div', { className: 'ws-x-line', title: t('ws.x.reportedHint') },
-                h('span', {}, t('ws.x.reported')), h('b', {}, blind ? String(reported) : '—')),
-              h('div', { className: 'ws-splitbox', title: t('ws.x.splitHint') },
-                h('div', { className: 'ws-split' }, reported > 0 ? parts.filter(([, value]) => value > 0).map(([kind, value]) => h('i', { key: kind, className: `ws-x-${kind} ws-x-click`, style: { flexGrow: value }, onClick: () => openCross(kind) })) : null),
-                h('div', { className: 'ws-split-legend' }, parts.map(([kind, value]) => h('span', { key: kind, className: value > 0 ? 'ws-x-click' : '', onClick: value > 0 ? () => openCross(kind) : undefined }, h('i', { className: `ws-x-${kind}` }), `${t(`ws.x.${kind}`)} ${blind ? value : '—'}`))))),
+              h('span', { className: 'ws-x-nowrap' }, blind ? t('ws.x.callsLine', { calls: blind.calls ?? 0, flagged: blind.flaggedCalls ?? 0 }) : (running ? t('ws.x.waiting') : t('ws.x.callsLine', { calls: '—', flagged: '—' }))),
+              items > 0 || reported > 0 ? h('button', { type: 'button', className: 'ma-link ws-x-detail ws-x-sub', onClick: () => openCross('all') }, `${t('ws.xt.detail')} →`) : null),
+            h('div', { className: 'ws-x-line' },
+              h('span', {}, t('ws.x.items')), h('b', {}, itemized ? String(items) : '—')),
+            // Two aligned tiers: branches on top, their leaves below (same
+            // widths), so a 1-in-47 outcome stays visible and clickable.
+            h('div', { className: 'ws-x-tiers', title: t('ws.x.itemsHint') },
+              ['branch', 'leaf'].map((tier) => h('div', { key: tier, className: `ws-x-tier ws-x-tier-${tier}` },
+                flow.total > 0
+                  ? (tier === 'branch' ? flow.branches : flow.leaves).filter((node) => node.value > 0).map((node) => h('i', {
+                    key: node.key, className: `ws-x-${node.key} ws-x-click`, style: { width: `${node.width}%` },
+                    title: `${node.label} ${node.value}`, onClick: () => openCross(node.filter),
+                  }))
+                  : null))),
+            h('div', { className: 'ws-x-groups' }, flow.branches.map((branch) => h('div', { key: branch.key, className: 'ws-x-group' },
+              h('span', { className: `ws-x-glabel${branch.value > 0 ? ' ws-x-click' : ''}`, title: t(branch.hint), onClick: branch.value > 0 ? () => openCross(branch.filter) : undefined },
+                h('i', { className: `ws-x-${branch.key}` }), branch.label, h('b', {}, itemized || branch.key === 'reported' ? String(branch.value) : '—')),
+              h('span', { className: 'ws-split-legend ws-x-gleaves' }, branch.key === 'unlocated'
+                ? h('span', {}, t('ws.x.toHuman'))
+                : flow.leaves.filter((leaf) => leaf.branch === branch.key).map((leaf) => h('span', {
+                  key: leaf.key, className: leaf.value > 0 ? 'ws-x-click' : 'ws-x-zero', onClick: leaf.value > 0 ? () => openCross(leaf.filter) : undefined,
+                }, h('i', { className: `ws-x-${leaf.key}` }), `${leaf.label} ${blind && (itemized || branch.key === 'reported') ? leaf.value : '—'}`)))))),
             h('div', { className: 'ws-x-line', title: judged > 0 && judged < 5 ? t('ws.x.fewHint') : t('ws.x.agreeHint') },
               h('span', {}, t('ws.x.agree')), h('b', {}, judged >= 5 ? `${Math.round((parts[0][1] / judged) * 100)}%` : '—'),
               judged > 0 && judged < 5 ? h('span', { className: 'ma-hint' }, t('ws.x.fewSamples')) : null,
@@ -5172,7 +5323,7 @@ window.__ModuleLoader__.load({
     // Pure helpers for the Node test suite; non-enumerable, so the plugin
     // object the host sees still has only `inject` and `apply`.
     Object.defineProperty(plugin, 'helpers', {
-      value: { callResultLabel, callStatusChip, pullCallPages, pingKeyFields, recordsRunId, recordsRetryDelay, createReportCache, locales: { zh: ZH, en: EN } },
+      value: { callResultLabel, callStatusChip, crossFlow, crossFlowChart, pullCallPages, pingKeyFields, recordsRunId, recordsRetryDelay, createReportCache, locales: { zh: ZH, en: EN } },
     })
     return plugin
   },

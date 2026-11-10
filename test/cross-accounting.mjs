@@ -72,4 +72,46 @@ try {
 } finally {
   await rm(root, { recursive: true, force: true })
 }
+
+// ── Client: C3 two-tier bar and the flow chart ─────────────────────────────
+{
+  const { readFile: read } = await import('node:fs/promises')
+  const { fileURLToPath } = await import('node:url')
+  let definition = null
+  globalThis.window = { __ModuleLoader__: { load(def) { definition = def } } }
+  await import(new URL('../client.js', import.meta.url))
+  const React = { createElement: (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() }), Fragment: 'Fragment' }
+  const helpers = definition.factory((name) => (name === 'react' ? React : {})).helpers
+  const zh = helpers.locales.zh
+  const t = (key, vars) => (zh[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => String(vars?.[name] ?? ''))
+  const blind = { calls: 250, flaggedCalls: 42, items: 47, unlocated: 0, reported: 1, confirmed: 1, dismissed: 0, disputed: 0, unjudged: 0, filtered: { format: 44, pseudonym: 0, invalid: 0, allowed: 2 } }
+  const flow = helpers.crossFlow(blind, t)
+  assert.equal(flow.total, 47)
+  const sum = flow.leaves.reduce((a, leaf) => a + leaf.width, 0)
+  assert.ok(Math.abs(sum - 100) < 1e-6, 'leaves fill the bar')
+  for (const branch of flow.branches) {
+    const own = flow.leaves.filter((leaf) => leaf.branch === branch.key).reduce((a, leaf) => a + leaf.width, 0)
+    assert.ok(Math.abs(own - branch.width) < 1e-6, `${branch.key} tier aligned with its leaves`)
+  }
+  const confirmed = flow.leaves.find((leaf) => leaf.key === 'confirmed')
+  assert.ok(confirmed.width >= 2.5, `1 of 47 stays visible (${confirmed.width.toFixed(1)}%)`)
+  assert.ok(flow.leaves.filter((leaf) => leaf.value === 0).every((leaf) => leaf.width === 0))
+  console.log('  ok  C3 bar: tiers line up, small outcomes keep a visible width, zeros take none')
+
+  const running = helpers.crossFlow({ ...blind, reported: 3 }, t)
+  assert.equal(running.leaves.find((leaf) => leaf.key === 'inflight')?.value, 2, 'reported but not settled shows as in re-judge')
+  const old = helpers.crossFlow({ calls: 10, flaggedCalls: 2, reported: 2, confirmed: 1, dismissed: 1, disputed: 0, unjudged: 0 }, t)
+  assert.equal(old.itemized, false)
+  assert.equal(old.total, 2)
+  console.log('  ok  C3 bar: running batches and pre-itemized batches')
+
+  const chart = helpers.crossFlowChart(React.createElement, flow, blind, t)
+  const svg = chart.children.find((node) => node?.type === 'svg')
+  const texts = svg.children.filter((node) => node.type === 'text')
+  const ys = texts.filter((node) => node.props.x > 500).map((node) => node.props.y).sort((a, b) => a - b)
+  for (let i = 1; i < ys.length; i++) assert.ok(ys[i] - ys[i - 1] >= 16, 'leaf labels do not overlap')
+  assert.ok(texts.some((node) => node.children.join('') === '格式不符 44'))
+  assert.equal(helpers.crossFlowChart(React.createElement, helpers.crossFlow(null, t), null, t), null)
+  console.log('  ok  flow chart: labels never overlap, empty batches draw nothing')
+}
 console.log('\nCROSS-ACCOUNTING PASS')
