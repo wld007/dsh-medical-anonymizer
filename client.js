@@ -278,7 +278,8 @@ window.__ModuleLoader__.load({
       'ws.xt.more': '共 {n} 条，只显示前 2000 条',
       'ws.xt.detail': '明细',
       'ws.x.pending': '进行中',
-      'ws.feedParams': '数据输入与参数',
+      'ws.feedParams': '数据输入',
+      'ws.paramsShort': '处理参数',
       'ws.ps.rounds': '轮次 {n}',
       'ws.ps.concurrency': '并发 {n}',
       'ws.ps.chunk': '每组 {n}',
@@ -875,7 +876,8 @@ window.__ModuleLoader__.load({
       'ws.xt.more': '{n} rows, first 2000 shown',
       'ws.xt.detail': 'Detail',
       'ws.x.pending': 'in progress',
-      'ws.feedParams': 'Input & settings',
+      'ws.feedParams': 'Input',
+      'ws.paramsShort': 'Settings',
       'ws.ps.rounds': 'rounds {n}',
       'ws.ps.concurrency': 'conc {n}',
       'ws.ps.chunk': 'chunk {n}',
@@ -1609,14 +1611,19 @@ window.__ModuleLoader__.load({
       .ws-heap-warn .ws-membar-fill{background:var(--dsw-alias-state-warn-primary)}
       .ws-heap-bad b{color:var(--dsw-alias-state-error-primary)}
       .ws-heap-bad .ws-membar-fill{background:var(--dsw-alias-state-error-primary)}
-      .ws-params{position:relative;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-base)}
-      .ws-params-head{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 8px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+      .ws-feed{position:relative}
+      .ws-params{position:static;flex:none}
+      .ws-params-head{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-secondary);font:inherit;font-size:11.5px;cursor:pointer;white-space:nowrap}
+      .ws-params-head:hover:not(:disabled){color:var(--dsw-alias-label-primary);border-color:var(--ws-accent)}
+      .ws-params-open .ws-params-head{color:var(--dsw-alias-label-primary);border-color:var(--ws-accent)}
+      .ws-params-mod{border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 60%,transparent)}
+      .ws-params-body{position:absolute;z-index:30;left:8px;top:40px;width:max(calc(100% - 16px),300px);display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 10px 28px rgba(0,0,0,.22)}
+      .ws-params-sum{display:none}
       .ws-params-head:disabled{cursor:default}
-      .ws-params-title{font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+      .ws-params-title{font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
       .ws-psum{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;min-width:0}
       .ws-psum i{font-style:normal;opacity:.6}
       .ws-psum .ws-psum-mod{color:var(--dsw-alias-state-warn-primary);font-weight:600}
-      .ws-params-body{position:absolute;z-index:30;left:-1px;top:calc(100% + 4px);width:max(100%,300px);display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 10px 28px rgba(0,0,0,.22)}
       .ws-params-actions{flex-wrap:nowrap}
       .ws-cross .ws-x-line{display:flex;align-items:baseline;gap:6px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
       .ws-cross .ws-x-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-size:13px}
@@ -3343,11 +3350,14 @@ window.__ModuleLoader__.load({
           item('disableThinking', shown.disableThinking ? t('ws.ps.noThink') : t('ws.ps.think')),
           shown.quasiIdentifiers || differs('quasiIdentifiers') ? item('quasiIdentifiers', shown.quasiIdentifiers ? t('ws.ps.quasi') : t('ws.ps.noQuasi')) : null,
         ].filter(Boolean)
-        return h('div', { className: `ws-params${paramsOpen && !running ? ' ws-params-open' : ''}`, ref: paramsRef, title: running ? '' : summary.map((node) => node.props.children).join(' · ') },
-          h('button', { type: 'button', className: 'ws-params-head', onClick: toggleParams, disabled: running, 'aria-expanded': paramsOpen && !running ? 'true' : 'false', title: running ? t('ws.paramsLocked') : '' },
-            h('span', { className: 'ws-params-title' }, t('ws.params'), changed.length && !running ? h('i', { className: 'ws-mod' }) : null),
-            h('span', { className: 'ws-psum' }, summary.flatMap((node, index) => (index ? [h('i', { key: `d${index}` }, ' · '), node] : [node]))),
-            running ? h('span', { className: 'ws-tag' }, t('ws.locked')) : h('span', { className: 'ws-fold-arrow' }, paramsOpen ? '▾' : '▸')),
+        // Compact trigger in the A1 header corner; the summary is its tooltip.
+        const summaryText = summary.map((node) => node.props.children).join(' · ')
+        return h('div', { className: `ws-params${paramsOpen && !running ? ' ws-params-open' : ''}`, ref: paramsRef },
+          h('button', { type: 'button', className: `ws-params-head${changed.length && !running ? ' ws-params-mod' : ''}`, onClick: toggleParams, disabled: running, 'aria-expanded': paramsOpen && !running ? 'true' : 'false',
+            title: `${running ? `${t('ws.paramsLocked')}\n` : ''}${summaryText}${changed.length && !running ? `\n${t('ws.paramsBatchOnly')}` : ''}` },
+            h('span', { className: 'ws-params-title' }, '⚙ ', t('ws.paramsShort'), changed.length && !running ? h('i', { className: 'ws-mod' }) : null),
+            h('span', { className: 'ws-fold-arrow' }, running ? '🔒' : (paramsOpen ? '▴' : '▾'))),
+          paramsOpen && !running ? h('div', { className: 'ws-params-sum' }, summary.flatMap((node, index) => (index ? [h('i', { key: `d${index}` }, ' · '), node] : [node]))) : null,
           paramsOpen && !running ? h('div', { className: 'ws-params-body' },
             paramRow('maxRounds', t('run.rounds'), stepper('maxRounds', 1, 6)),
             paramRow('concurrency', t('ws.p.concurrency'), stepper('concurrency', 1, 16)),
@@ -4410,8 +4420,8 @@ window.__ModuleLoader__.load({
         h('div', { className: 'ws-grid' },
           // ── Left: feed + history ──
           h('aside', { className: 'ws-col' },
-            h('section', { className: 'ws-panel' },
-              h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'A1' }, t('ws.feedParams')), h('span', { className: 'ws-tag' }, 'INPUT')),
+            h('section', { className: 'ws-panel ws-feed' },
+              h('div', { className: 'ws-panel-head' }, h('h3', { 'data-code': 'A1' }, t('ws.feedParams')), h('span', { style: { flex: 1 } }), paramsBlock()),
               h('label', { className: 'ma-field' }, t('form.input'),
                 h('div', { className: 'ma-inline' },
                   pickedInputs.length > 0
@@ -4429,7 +4439,6 @@ window.__ModuleLoader__.load({
                   h('button', { className: 'ma-btn ma-small', onClick: browseFile }, t('ws.pickFile')))),
               h('label', { className: 'ma-field' }, t('form.output'),
                 h('input', { className: 'ma-input', value: outputRoot, onChange: (event) => setOutputRoot(event.target.value), placeholder: t('run.outputDefault') })),
-              paramsBlock(),
               h('button', { className: 'ma-btn ma-primary ws-start', onClick: start, disabled: busy || anyRunning },
                 busy ? t('form.starting') : (anyRunning ? t('ws.lineBusy') : `▶ ${t('form.start')}`)),
               notice ? h('span', { className: 'ma-hint ma-ok' }, notice) : null),
