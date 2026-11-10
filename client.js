@@ -5043,10 +5043,10 @@ window.__ModuleLoader__.load({
                       h('em', {}, role),
                       h('span', { className: 'ws-mt-name' }, name ? modelDot(ping?.[key], name) : null, h('i', {}, name || '—')))
                   }),
-                  // Zebra rows: every other row gets a light band across all cells.
+                  // Zebra rows: the 2nd, 4th … row gets a light band across all cells.
                   ...lines.flatMap(([label, value, hint, tone], rowIndex) => [
-                    h('span', { key: `l${label}`, className: `ws-mt-label${rowIndex % 2 ? '' : ' ws-mt-z'}`, title: typeof hint === 'function' ? hint(cols[0]) : hint }, label),
-                    ...cols.map((key) => h('b', { key: `${label}${key}`, className: `${tone?.(key) ? `ws-mt-${tone(key)}` : ''}${rowIndex % 2 ? '' : ' ws-mt-z'}`, title: typeof hint === 'function' ? hint(key) : hint }, value(key))),
+                    h('span', { key: `l${label}`, className: `ws-mt-label${rowIndex % 2 ? ' ws-mt-z' : ''}`, title: typeof hint === 'function' ? hint(cols[0]) : hint }, label),
+                    ...cols.map((key) => h('b', { key: `${label}${key}`, className: `${tone?.(key) ? `ws-mt-${tone(key)}` : ''}${rowIndex % 2 ? ' ws-mt-z' : ''}`, title: typeof hint === 'function' ? hint(key) : hint }, value(key))),
                   ]))
                 // Busy chart: requests in flight per model over time; the
                 // queued part is shaded above each line, the dashed line is the limit.
