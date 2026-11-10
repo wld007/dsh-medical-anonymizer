@@ -174,7 +174,6 @@ window.__ModuleLoader__.load({
       'file.running': '处理中',
       'file.cancelled': '已取消',
       'error.title': '操作失败',
-      'notice.started': '批次已启动。',
       'notice.cancelled': '已请求取消。',
       'ws.title': '医疗数据匿名化处理流水线',
       'ws.subtitle': 'Medical Data De-identification Pipeline',
@@ -825,7 +824,6 @@ window.__ModuleLoader__.load({
       'file.running': 'Running',
       'file.cancelled': 'Cancelled',
       'error.title': 'Operation failed',
-      'notice.started': 'Batch started.',
       'notice.cancelled': 'Cancellation requested.',
       'ws.title': 'Medical Data De-identification Pipeline',
       'ws.subtitle': 'Pseudonymization · verification · audit',
@@ -3510,7 +3508,8 @@ window.__ModuleLoader__.load({
           const result = await call('start', pickedInputs.length > 0
             ? { ...batchParams, inputs: pickedInputs, outputRoot: outputRoot.trim() }
             : { ...batchParams, inputDir: inputDir.trim(), outputRoot: outputRoot.trim() })
-          setNotice(t('notice.started'))
+          // The button turning into "stop" and the pipeline lighting up say it started.
+          setNotice('')
           forgetReport(result.runId)
           setActiveRunId(result.runId)
           setSelectedId(result.runId)
