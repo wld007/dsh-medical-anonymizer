@@ -4395,9 +4395,6 @@ window.__ModuleLoader__.load({
                 ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
                 : (current?.source ? sourceLabel(current.source) : null))),
           h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
-          running
-            ? null
-            : h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.progress')), h('b', {}, `${done}/${planned || '—'}`)),
           h('div', { className: 'ws-head-actions' },
             running
               ? h('button', { className: 'ma-btn ws-stop', onClick: cancelRun, disabled: cancelling }, cancelling ? t('run.cancelling') : t('ws.stop'))
