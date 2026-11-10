@@ -369,8 +369,9 @@ window.__ModuleLoader__.load({
       'ws.m.queuePeak': '排队峰值 {max}',
       'ws.m.queueMax': '峰值 {max} · 当前 {now}',
       'ws.m.splitHint': '段落去向（按段落计）：发给模型 {sent} · 复用缓存 {replayed} · 免送 {skipped}。免送是本批其他文件或上一轮已经问过的相同内容。',
-      'ws.m.segSent': '发给模型','ws.m.segReplayed': '复用','ws.m.segSkipped': '免送',
-      'ws.m.segCount': '{label} {n} 段 {pct}',
+      'ws.m.segSent': '发送','ws.m.segReplayed': '复用','ws.m.segSkipped': '免送',
+      'ws.m.segCount': '{label} {n} · {pct}',
+      'ws.m.cellCalls': '调用','ws.m.cellReplayed': '复用','ws.m.cellTokens': 'Token',
       'ws.m.ctxDist': '上下文分布',
       'ws.m.ctxDistHint': '单次调用上下文长度的分布：<0.5k、0.5–1k、1–2k、2–4k、4–8k、8–16k、≥16k（红色为 8k 以上）。悬停可看各档次数。',
       'ws.m.busy': '请求占用',
@@ -1020,7 +1021,8 @@ window.__ModuleLoader__.load({
       'ws.m.queueMax': 'peak {max} · now {now}',
       'ws.m.splitHint': 'Where segments went: sent to a model {sent} · replayed from cache {replayed} · skipped {skipped} (identical content already asked about in this batch).',
       'ws.m.segSent': 'sent','ws.m.segReplayed': 'replayed','ws.m.segSkipped': 'skipped',
-      'ws.m.segCount': '{label} {n} seg. {pct}',
+      'ws.m.segCount': '{label} {n} · {pct}',
+      'ws.m.cellCalls': 'Calls','ws.m.cellReplayed': 'Reused','ws.m.cellTokens': 'Tokens',
       'ws.m.ctxDist': 'Context spread',
       'ws.m.ctxDistHint': 'Context length per call: <0.5k, 0.5–1k, 1–2k, 2–4k, 4–8k, 8–16k, ≥16k (red above 8k). Hover for counts.',
       'ws.m.busy': 'Request slots',
@@ -1794,8 +1796,9 @@ window.__ModuleLoader__.load({
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
       .ws-busy .ws-busy-qsvg{flex:none;height:16px;min-height:16px}
       .ws-split-sent{background:var(--ws-accent)}
-      .ws-m-sum{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:16px;font-size:12px;color:var(--dsw-alias-label-secondary);margin:2px 0 6px}
-      .ws-m-sum>span{display:flex;align-items:baseline;justify-content:space-between;gap:6px;padding:2px 10px;border-radius:5px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,transparent)}
+      .ws-m-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-size:11.5px;color:var(--dsw-alias-label-secondary);margin:2px 0 6px}
+      .ws-m-sum>span{display:flex;align-items:baseline;justify-content:space-between;gap:4px;padding:2px 8px;border-radius:5px;white-space:nowrap;min-width:0;background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,transparent)}
+      .ws-res .ws-split-legend{flex-wrap:nowrap;gap:8px;white-space:nowrap;overflow:hidden}
       .ws-m-sum b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-size:12.5px}
       .ws-split-replayed{background:var(--dsw-alias-state-success-primary)}
       .ws-split-skipped{background:color-mix(in srgb,var(--dsw-alias-label-primary) 30%,transparent)}
@@ -4980,9 +4983,9 @@ window.__ModuleLoader__.load({
                 const callsTotal = running ? (current?.current?.modelCalls ?? totals.modelCalls ?? 0) : (totals.modelCalls ?? 0)
                 const tokensText = totals.tokens ? compact(totals.tokens) : ((totals.modelCalls ?? 0) > 0 && !totals.tokensReported ? t('ws.m.noUsage') : '0')
                 const sumLine = h('div', { className: 'ws-m-sum' },
-                  h('span', { title: t('ws.m.callsHint') }, t('ws.m.calls'), h('b', {}, compact(callsTotal))),
-                  totals.replayedCalls ? h('span', { title: t('ws.m.replayedHint') }, t('ws.m.replayed'), h('b', {}, compact(totals.replayedCalls))) : null,
-                  h('span', { title: t('ws.m.tokensHint') }, t('ws.m.tokens'), h('b', {}, tokensText)))
+                  h('span', { title: t('ws.m.callsHint') }, t('ws.m.cellCalls'), h('b', {}, compact(callsTotal))),
+                  h('span', { title: t('ws.m.replayedHint') }, t('ws.m.cellReplayed'), h('b', {}, compact(totals.replayedCalls ?? 0))),
+                  h('span', { title: t('ws.m.tokensHint') }, t('ws.m.cellTokens'), h('b', {}, tokensText)))
                 // Per model: detector on the left, verifier on the right.
                 const models = totals.models ?? {}
                 const separate = Boolean(models.verify || current?.requests?.verify || (current?.config ? current.config.verifyModel : config?.verifyModel))
