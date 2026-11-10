@@ -1516,7 +1516,7 @@ window.__ModuleLoader__.load({
       .ws-run-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
       .ws-run-meta{display:flex;flex-direction:column;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .ws-floor{background-color:var(--dsw-alias-bg-layer-1);background-image:linear-gradient(var(--dsw-alias-border-l1) 1px,transparent 1px),linear-gradient(90deg,var(--dsw-alias-border-l1) 1px,transparent 1px);background-size:22px 22px;background-position:-1px -1px}
-      .ws-legend{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-legend{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--dsw-alias-label-secondary);flex:none;white-space:nowrap}
       .ws-legend i{width:8px;height:8px;border-radius:2px;margin-left:6px}
       .ws-k-active{background:var(--ws-accent)}
       .ws-k-done{background:var(--dsw-alias-state-success-primary)}
@@ -2052,6 +2052,11 @@ window.__ModuleLoader__.load({
       .ws-page .ws-start{background:var(--ws-accent);border-color:var(--ws-accent);letter-spacing:2px}
       .ws-page .ws-start:hover{filter:brightness(1.08)}
       .ws-drawno{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);letter-spacing:.5px;padding:1px 6px;border:1px solid color-mix(in srgb,var(--ws-ink) 18%,transparent);border-radius:3px}
+      /* The run id gives way first when B1 is narrow (it is also in the header). */
+      .ws-floor .ws-panel-head{min-width:0}
+      .ws-floor .ws-drawno{flex:0 1 auto;margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ws-floor .ws-panel-head h3{flex:0 0 auto}
+      .ws-schematic{max-width:100%}
       .ws-floor{background-color:var(--ws-paper);background-image:linear-gradient(color-mix(in srgb,var(--ws-accent) 9%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--ws-accent) 9%,transparent) 1px,transparent 1px),linear-gradient(color-mix(in srgb,var(--ws-ink) 4%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--ws-ink) 4%,transparent) 1px,transparent 1px);background-size:100px 100px,100px 100px,20px 20px,20px 20px}
       .ws-schematic{display:block;width:100%;height:auto;max-height:290px;overflow:visible;font-family:inherit}
       .ws-schematic text{fill:var(--ws-ink)}
