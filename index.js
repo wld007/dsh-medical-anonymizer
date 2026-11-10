@@ -365,6 +365,10 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.reviewItems(request.runId) }
         case 'reviewBulk':
           return { ok: true, value: await service.reviewBulk(request.runId, request.itemIds, request.action) }
+        case 'manualEdit':
+          return { ok: true, value: await service.manualEdit(request.runId, { relPath: request.relPath, action: request.action, text: request.text, type: request.type, scope: request.scope }) }
+        case 'manualEdits':
+          return { ok: true, value: await service.manualEdits(request.runId) }
         case 'reviewDecide':
           return { ok: true, value: await service.reviewDecide(request.runId, request.itemId, request.action) }
         case 'calls':

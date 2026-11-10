@@ -51,3 +51,5 @@
         # run); skipFields are column/JSON key names copied as-is.
         allowValues: []
         skipFields: []
+        # Values always replaced, "类型:值" per item (e.g. 姓名:张三).
+        forceValues: []

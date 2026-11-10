@@ -35,6 +35,7 @@ window.__ModuleLoader__.load({
       'rules.allowTitle': '排除误判',
       'rules.allowHint': '报告里出现误判时在这里排除，然后重新运行。每行一项；之前误存进映射库的对应关系会在下次运行时移除。',
       'rules.allowValues': '不匹配的值（这些值永远不当作标识符，如 01、居民身份证、科室名称）',
+      'rules.forceValues': '总是替换的值（每行「类型:值」，如 姓名:张三、医院:某某医院；这些值不论出现在哪里都替换为假名，不做格式检查）',
       'rules.skipFields': '不处理的字段（列名或 JSON 键名，不区分大小写，如 ADMN_BED_NO；这些字段原样输出）',
       'strategy.pseudonym': '稳定假名',
       'strategy.mask': '部分遮盖',
@@ -440,7 +441,32 @@ window.__ModuleLoader__.load({
       'ws.rv.keepOpaque': '确认保留',
       'ws.rv.keepHint': '已人工确认其中不含个人信息，原样交付',
       'ws.rv.removed': '已移除',
-      'ws.rv.bulkTitle': '{count} 项无法检查的内容',
+      'ws.rv.bulkTitle': '{count} 项无法检查的内容（图片等）',
+      'ws.rv.bulkHint': '程序读不了的内容（内嵌图片、二进制、无法解码的编码），通常是签名、印章、扫描件。移除 = 换成空占位；确认保留 = 原样交付，相当于担保其中没有身份信息。',
+      'ws.mx.pseudoHint': '点击：认为是误报，还原为原文',
+      'ws.mx.tip': '点结果列的假名可还原误报；在原文或结果列选中一段文字可补替换漏报。',
+      'ws.mx.revertTitle': '误报还原：把这个假名还原为原文',
+      'ws.mx.addTitle': '漏报补替换：把选中的文字替换为假名',
+      'ws.mx.type': '类型',
+      'ws.mx.scope.file': '本文件',
+      'ws.mx.scope.batch': '全批次',
+      'ws.mx.rememberAllow': '以后也不替换（加入「不匹配的值」）',
+      'ws.mx.rememberAllowHint': '保存到设置，以后的批次不再把这个值当作标识符。',
+      'ws.mx.rememberForce': '以后也替换（加入「总是替换的值」）',
+      'ws.mx.rememberForceHint': '保存到设置，以后的批次不论出现在哪里都替换这个值。',
+      'ws.mx.revertWarn': '还原后交付数据里会出现原文，请确认它确实不是身份信息。',
+      'ws.mx.revertDo': '还原',
+      'ws.mx.addDo': '替换为假名',
+      'ws.mx.cancel': '取消',
+      'ws.mx.reverted': '已把 {token} 还原为原文：{count} 处，{files} 个文件。',
+      'ws.mx.added': '已替换为 {token}：{count} 处，{files} 个文件。',
+      'ws.rv.judgeTitle': '需要你判断 {count} 项',
+      'ws.rv.judgeHead': '需要你判断 · 待处理 {n} / {total}',
+      'ws.rv.opaqueHead': '无法检查的内容（图片等） · 待处理 {n} / {total}',
+      'ws.rv.fileRemove': '移除本文件全部',
+      'ws.rv.fileKeep': '本文件全部保留',
+      'ws.rv.judgeBadge': '需要你判断的项',
+      'ws.rv.opaqueBadge': '无法检查的内容（图片等）',
       'ws.rv.bulkRemove': '全部移除（{count}）',
       'ws.rv.bulkKeep': '全部确认保留',
       'ws.rv.bulkDone': '已处理 {count} 项。',
@@ -469,7 +495,7 @@ window.__ModuleLoader__.load({
       'ws.cmp.keys': '↑ ↓ 切换文件',
       'ws.cmp.f.all': '全部',
       'ws.cmp.f.changed': '有改动',
-      'ws.cmp.f.review': '待复核',
+      'ws.cmp.f.review': '待复核文件',
       'ws.cmp.skipped.too-large': '文件超过 50 MB，未生成比对记录。',
       'ws.cmp.skipped.error': '生成比对记录时出错。',
       'ws.cmp.rowHint': '点击查看原文与结果比对',
@@ -649,6 +675,7 @@ window.__ModuleLoader__.load({
       'rules.allowTitle': 'Exclude false positives',
       'rules.allowHint': 'When the report shows a false positive, exclude it here and run again. One item per line; mappings an earlier run stored for these values are removed on the next run.',
       'rules.allowValues': 'Values that are never identifiers (e.g. 01, 居民身份证, department names)',
+      'rules.forceValues': 'Values always replaced (one "type:value" per line, e.g. 姓名:张三; replaced wherever they occur, no format check)',
       'rules.skipFields': 'Fields left untouched (column or JSON key names, case-insensitive, e.g. ADMN_BED_NO; values are copied as-is)',
       'strategy.pseudonym': 'Stable pseudonym',
       'strategy.mask': 'Partial mask',
@@ -1054,7 +1081,32 @@ window.__ModuleLoader__.load({
       'ws.rv.keepOpaque': 'Keep',
       'ws.rv.keepHint': 'Checked by a person: contains no personal data, deliver as is',
       'ws.rv.removed': 'Removed',
-      'ws.rv.bulkTitle': '{count} items cannot be checked',
+      'ws.rv.bulkTitle': '{count} items cannot be checked (images …)',
+      'ws.rv.bulkHint': 'Content the plugin cannot read (embedded images, binary, undecodable text), often signatures, stamps or scans. Remove = empty placeholder; keep = delivered as is, i.e. you vouch it holds no identity.',
+      'ws.mx.pseudoHint': 'Click: a false positive, restore the original',
+      'ws.mx.tip': 'Click a pseudonym in the result to revert a false positive; select text in either column to replace a miss.',
+      'ws.mx.revertTitle': 'Revert: restore this pseudonym to its original',
+      'ws.mx.addTitle': 'Missed identifier: replace the selected text',
+      'ws.mx.type': 'Type',
+      'ws.mx.scope.file': 'This file',
+      'ws.mx.scope.batch': 'Whole batch',
+      'ws.mx.rememberAllow': 'Never replace it again (add to allowed values)',
+      'ws.mx.rememberAllowHint': 'Saved to settings: later batches no longer treat this value as an identifier.',
+      'ws.mx.rememberForce': 'Always replace it (add to forced values)',
+      'ws.mx.rememberForceHint': 'Saved to settings: later batches replace this value wherever it occurs.',
+      'ws.mx.revertWarn': 'The original text will be in the deliverable; make sure it does not identify anyone.',
+      'ws.mx.revertDo': 'Revert',
+      'ws.mx.addDo': 'Replace',
+      'ws.mx.cancel': 'Cancel',
+      'ws.mx.reverted': '{token} restored: {count} places in {files} files.',
+      'ws.mx.added': 'Replaced with {token}: {count} places in {files} files.',
+      'ws.rv.judgeTitle': '{count} need your judgement',
+      'ws.rv.judgeHead': 'Needs your judgement · {n} / {total} open',
+      'ws.rv.opaqueHead': 'Cannot be checked (images …) · {n} / {total} open',
+      'ws.rv.fileRemove': 'Remove all in file',
+      'ws.rv.fileKeep': 'Keep all in file',
+      'ws.rv.judgeBadge': 'Items that need your judgement',
+      'ws.rv.opaqueBadge': 'Cannot be checked (images …)',
       'ws.rv.bulkRemove': 'Remove all ({count})',
       'ws.rv.bulkKeep': 'Keep all',
       'ws.rv.bulkDone': '{count} items decided.',
@@ -1083,7 +1135,7 @@ window.__ModuleLoader__.load({
       'ws.cmp.keys': '↑ ↓ to switch files',
       'ws.cmp.f.all': 'All',
       'ws.cmp.f.changed': 'Changed',
-      'ws.cmp.f.review': 'To review',
+      'ws.cmp.f.review': 'Files to review',
       'ws.cmp.skipped.too-large': 'File over 50 MB; no comparison recorded.',
       'ws.cmp.skipped.error': 'The comparison could not be built.',
       'ws.cmp.rowHint': 'Click to compare original and result',
@@ -1886,7 +1938,32 @@ window.__ModuleLoader__.load({
       .ws-cmp-flag{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px;outline:1px solid var(--dsw-alias-state-warn-primary)}
       .ws-cmp-flagged td{box-shadow:inset 0 1px 0 var(--dsw-alias-state-warn-primary),inset 0 -1px 0 var(--dsw-alias-state-warn-primary)}
       .ws-cmp-more{align-self:center}
-      .ws-cmp-bulk{display:flex;flex-direction:column;gap:6px;margin:8px 8px 0;padding:8px;border-radius:7px;border:1px solid var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 8%,transparent);font-size:12px}
+      .ws-pseudo{cursor:pointer;border-radius:3px}
+      .ws-pseudo:hover{outline:1.5px solid var(--dsw-alias-state-error-primary);outline-offset:1px}
+      .ws-cmp-table td.ws-cmp-src,.ws-cmp-table td.ws-cmp-dst{user-select:text}
+      .ws-mx-tip{margin-left:auto}
+      .ws-mx-backdrop{position:fixed;inset:0;z-index:60}
+      .ws-mx{position:fixed;z-index:61;width:280px;display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:12px}
+      .ws-mx-title{font-weight:600}
+      .ws-mx-text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 6px;border-radius:4px;background:var(--dsw-alias-bg-layer-2);word-break:break-all}
+      .ws-mx-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+      .ws-mx .ma-hint{margin:0;color:var(--dsw-alias-state-warn-primary)}
+      .ws-cmp-judge{display:flex;flex-direction:column;gap:4px;margin:8px 8px 0;padding:8px;border-radius:7px;border:1.5px solid var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 7%,transparent);font-size:12px}
+      .ws-cmp-judge>b{color:var(--dsw-alias-state-error-primary)}
+      .ws-cmp-judge ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:180px;overflow:auto}
+      .ws-cmp-judge button{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 4px;width:100%;text-align:left;padding:3px 4px;border-radius:4px}
+      .ws-cmp-judge button.ws-on,.ws-cmp-judge button:hover{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}
+      .ws-cmp-judge small{flex-basis:100%;font-size:10.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ws-cmp-judge-code{font-weight:600}
+      .ws-cmp-counts{display:inline-flex;gap:3px}
+      .ws-count.ws-count-muted{background:color-mix(in srgb,var(--dsw-alias-label-primary) 35%,transparent)}
+      .ws-rv-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;font-size:12px;font-weight:600;background:color-mix(in srgb,currentColor 4%,transparent)}
+      .ws-rv-judge{border-color:var(--dsw-alias-state-error-primary)}
+      .ws-rv-judge .ws-rv-head{color:var(--dsw-alias-state-error-primary)}
+      .ws-rv-opaque{border-color:var(--dsw-alias-border-l1)}
+      .ws-rv-opaque .ws-rv-head{color:var(--dsw-alias-label-secondary);font-weight:400}
+      .ws-rv-focus{box-shadow:inset 3px 0 0 var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 6%,transparent)}
+      .ws-cmp-bulk{display:flex;flex-direction:column;gap:6px;margin:8px 8px 0;padding:8px;border-radius:7px;border:1px solid var(--dsw-alias-border-l1);background:color-mix(in srgb,var(--dsw-alias-label-primary) 3%,transparent);font-size:12px;color:var(--dsw-alias-label-secondary)}
       .ws-mp{position:relative;width:100%}
       .ws-mp-row{display:flex;gap:6px}
       .ws-mp-row .ma-input{flex:1;min-width:0}
@@ -2322,6 +2399,7 @@ window.__ModuleLoader__.load({
       const [quasiPolicy, setQuasiPolicy] = React.useState({})
       const [allowText, setAllowText] = React.useState('')
       const [skipText, setSkipText] = React.useState('')
+      const [forceText, setForceText] = React.useState('')
       const [opaquePolicy, setOpaquePolicy] = React.useState('review')
       const [testing, setTesting] = React.useState(false)
       const [ping, setPing] = React.useState(null)
@@ -2356,6 +2434,7 @@ window.__ModuleLoader__.load({
         setQuasiOn(info.quasiIdentifiers === true)
         setQuasiPolicy({ ...(info.quasiPolicy ?? {}) })
         setAllowText((info.allowValues ?? []).join('\n'))
+        setForceText((info.forceValues ?? []).join('\n'))
         setSkipText((info.skipFields ?? []).join('\n'))
         setOpaquePolicy(info.opaquePolicy === 'remove' ? 'remove' : 'review')
       }
@@ -2370,6 +2449,7 @@ window.__ModuleLoader__.load({
         setQuasiPolicy(Object.fromEntries(schema.quasi.map((item) => [item.id, item.default])))
         setAllowText('')
         setSkipText('')
+        setForceText('')
         setOpaquePolicy('review')
       }
 
@@ -2396,7 +2476,7 @@ window.__ModuleLoader__.load({
         ['showSidebarEntry', showSidebar !== (config.showSidebarEntry !== false)],
         ['rules', !sameMap(identifierPolicy, config.identifierPolicy) || quasiOn !== (config.quasiIdentifiers === true)
           || !sameMap(quasiPolicy, config.quasiPolicy)
-          || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields)
+          || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields) || !sameList(forceText, config.forceValues)
           || opaquePolicy !== (config.opaquePolicy === 'remove' ? 'remove' : 'review')],
       ].filter(([, changed]) => changed).map(([key]) => key) : []
 
@@ -2451,6 +2531,7 @@ window.__ModuleLoader__.load({
             quasiPolicy,
             allowValues: lines(allowText),
             skipFields: lines(skipText),
+            forceValues: lines(forceText),
             opaquePolicy,
           }
           if (apiKey.length > 0) request.apiKey = apiKey
@@ -2675,6 +2756,11 @@ window.__ModuleLoader__.load({
             h('textarea', {
               className: 'ma-input ma-textarea', value: skipText, spellCheck: false,
               onChange: (event) => setSkipText(event.target.value),
+            })),
+          h('label', { className: 'ma-field' }, t('rules.forceValues'),
+            h('textarea', {
+              className: 'ma-input ma-textarea', value: forceText, spellCheck: false, placeholder: '姓名:张三',
+              onChange: (event) => setForceText(event.target.value),
             })),
         ),
         h('div', { className: 'ma-card' },
@@ -3099,6 +3185,52 @@ window.__ModuleLoader__.load({
         }
         if (last < part.length) out.push(part.slice(last))
       })
+      return out
+    }
+
+    // Vault pseudonyms in a result cell: clickable for "revert" (false positive).
+    const PSEUDO_CLICK = /(?:化名|患者|医生|证件|电话|邮箱|地址|病历|住院|就诊|社保|银行卡|医院)-(?=[0-9]*[A-F])[0-9A-F]{6}(?![0-9A-Za-z])/g
+
+    /**
+     * The result cell of one comparison row: inserted text as <ins>, every
+     * pseudonym as one clickable chip (whatever the diff split), the rest
+     * with suspect marks. `ops` are diffTexts ops (null for unchanged rows).
+     */
+    function renderAfterCell(after, ops, flags, keyBase, onPseudo) {
+      const inserted = new Uint8Array(after.length)
+      if (ops) {
+        let at = 0
+        for (const op of ops) {
+          if (op.t === 'del') continue
+          if (op.t === 'ins') inserted.fill(1, at, at + op.s.length)
+          at += op.s.length
+        }
+      }
+      const out = []
+      const plain = (from, to) => {
+        let i = from
+        while (i < to) {
+          let j = i
+          while (j < to && inserted[j] === inserted[i]) j += 1
+          const text = after.slice(i, j)
+          if (inserted[i]) out.push(h('ins', { key: `${keyBase}i${i}` }, text))
+          else out.push(...[].concat(markSuspects(text, flags, `${keyBase}p${i}`)))
+          i = j
+        }
+      }
+      let last = 0
+      PSEUDO_CLICK.lastIndex = 0
+      let match
+      while ((match = PSEUDO_CLICK.exec(after))) {
+        plain(last, match.index)
+        const token = match[0]
+        out.push(h('ins', {
+          key: `${keyBase}t${match.index}`, className: 'ws-pseudo', title: services.t('ws.mx.pseudoHint'),
+          onClick: (event) => { event.stopPropagation(); onPseudo(event, token) },
+        }, token))
+        last = match.index + token.length
+      }
+      plain(last, after.length)
       return out
     }
 
@@ -3636,6 +3768,30 @@ window.__ModuleLoader__.load({
       const [compareFiles, setCompareFiles] = React.useState({})
       const [compareShow, setCompareShow] = React.useState(300)
       const [compareRows, setCompareRows] = React.useState('all') // 'all' | 'changed'
+      // Review item to bring into view after its file opens (from the
+      // "needs your judgement" list), and per-file unfolded image groups.
+      const [focusReview, setFocusReview] = React.useState(null)
+      const [opaqueOpen, setOpaqueOpen] = React.useState({})
+      // Reviewer edit popover: { kind: 'revert' | 'add', text, x, y, relPath, n, type, scope, remember }.
+      const [manualMenu, setManualMenu] = React.useState(null)
+      const [manualBusy, setManualBusy] = React.useState(false)
+      React.useEffect(() => {
+        if (!manualMenu) return undefined
+        const close = (event) => { if (event.key === 'Escape') setManualMenu(null) }
+        window.addEventListener('keydown', close)
+        return () => window.removeEventListener('keydown', close)
+      }, [manualMenu])
+      React.useEffect(() => {
+        if (!focusReview) return undefined
+        let tries = 0
+        const timer = setInterval(() => {
+          const node = document.getElementById(`ws-rv-${focusReview}`)
+          tries += 1
+          if (node) { node.scrollIntoView({ block: 'center', behavior: 'smooth' }); clearInterval(timer) }
+          else if (tries > 60) clearInterval(timer)
+        }, 100)
+        return () => clearInterval(timer)
+      }, [focusReview, compareSel])
       async function loadCompareList(id) {
         try {
           const value = await call('compareList', { runId: id })
@@ -4290,8 +4446,8 @@ window.__ModuleLoader__.load({
         }, `${label} ↗`)
       }
 
-      async function bulkReview(action) {
-        const ids = (reviewData?.files ?? []).flatMap((file) => file.items)
+      async function bulkReview(action, files = reviewData?.files ?? []) {
+        const ids = files.flatMap((file) => file.items)
           .filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code) && (action === 'accept' || item.code === 'opaque'))
           .map((item) => item.id)
         if (ids.length === 0) return
@@ -4318,7 +4474,7 @@ window.__ModuleLoader__.load({
         }
       }
 
-      const reviewCard = (file, item) => h('div', { key: item.id, className: `ws-rv-item${item.decision ? ' ws-rv-done' : ''}` },
+      const reviewCard = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-item${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
         h('div', { className: 'ws-rv-meta' },
           h('span', { className: 'ws-rv-code' }, t(`ws.rv.code.${item.code}`) === `ws.rv.code.${item.code}` ? item.code : t(`ws.rv.code.${item.code}`)),
           item.type ? h('b', {}, item.type) : null,
@@ -4346,6 +4502,100 @@ window.__ModuleLoader__.load({
             item.text ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || anyRunning, title: t('ws.rv.allowHint'), onClick: () => decideReview(file, item, 'allow') }, t('ws.rv.allow')) : null,
             h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept'))))
 
+      // One file's review items: what needs a human judgement first, then the
+      // content that cannot be checked (images …) folded into one bar.
+      const isOpaque = (item) => OPAQUE_REVIEW.has(item.code)
+      const reviewBlocks = (file) => {
+        const judge = file.items.filter((item) => !isOpaque(item))
+        const opaque = file.items.filter(isOpaque)
+        const opaqueLeft = opaque.filter((item) => !item.decision)
+        const unfolded = opaqueOpen[file.relPath] === true
+        return h(React.Fragment, {},
+          judge.length ? h('div', { className: 'ws-cmp-review ws-rv-judge' },
+            h('div', { className: 'ws-rv-head' }, t('ws.rv.judgeHead', { n: judge.filter((item) => !item.decision).length, total: judge.length })),
+            judge.map((item) => reviewCard(file, item))) : null,
+          opaque.length ? h('div', { className: 'ws-cmp-review ws-rv-opaque' },
+            h('div', { className: 'ws-rv-head' },
+              h('button', { type: 'button', className: 'ma-link', onClick: () => setOpaqueOpen({ ...opaqueOpen, [file.relPath]: !unfolded }) }, `${unfolded ? '▾' : '▸'} ${t('ws.rv.opaqueHead', { n: opaqueLeft.length, total: opaque.length })}`),
+              opaqueLeft.length ? h('span', { className: 'ma-actions' },
+                opaqueLeft.some((item) => item.code === 'opaque') ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || !file.editable, title: file.editable ? t('ws.rv.removeHint') : file.reason, onClick: () => bulkReview('remove', [file]) }, t('ws.rv.fileRemove')) : null,
+                h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => bulkReview('accept', [file]) }, t('ws.rv.fileKeep'))) : null),
+            unfolded ? opaque.map((item) => reviewCard(file, item)) : null) : null)
+      }
+
+      // Reviewer edits in the comparison: revert a pseudonym (false positive)
+      // or replace selected text (a miss).
+      const guessType = (text) => (/^1[3-9]\d{9}$/.test(text) || /^0\d{2,3}-?\d{7,8}$/.test(text) ? '电话'
+        : /^\d{15}$|^\d{17}[\dXx]$/.test(text) ? '身份证号'
+          : /(?:医院|卫生院|诊所|保健院)$/.test(text) ? '医院'
+            : /^[\u4e00-\u9fa5·]{2,4}$/.test(text) ? '姓名'
+              : /[省市区县镇乡路街道号弄村]/.test(text) ? '地址' : '病历号')
+      function openManual(event, menu) {
+        if (!adviceRunId || anyRunning) return
+        const x = Math.min(event.clientX, window.innerWidth - 300)
+        const y = Math.min(event.clientY + 12, window.innerHeight - 220)
+        setManualMenu({ scope: 'file', remember: false, type: menu.kind === 'add' ? guessType(menu.text) : null, ...menu, x, y })
+      }
+      function onCompareSelect(event, selected) {
+        if (!selected || event.target.closest?.('.ws-pseudo')) return
+        const selection = window.getSelection?.()
+        const text = selection ? String(selection).trim() : ''
+        if (!text || text.length < 2 || text.length > 200 || /\n/.test(text)) return
+        const cell = event.target.closest?.('td')
+        if (!cell || cell.classList.contains('ws-cmp-field')) return
+        openManual(event, { kind: 'add', text, relPath: selected.relPath, n: selected.n })
+      }
+      async function doManual() {
+        const menu = manualMenu
+        if (!menu) return
+        setManualBusy(true)
+        setReviewNote(null)
+        try {
+          const result = await call('manualEdit', { runId: adviceRunId, relPath: menu.relPath, action: menu.kind === 'revert' ? 'revert' : 'replace', text: menu.text, type: menu.type, scope: menu.scope })
+          if (menu.remember && config && !anyRunning) {
+            if (menu.kind === 'revert' && result.original) await saveAndReload({ allowValues: [...new Set([...(config.allowValues ?? []), result.original])] })
+            if (menu.kind === 'add') await saveAndReload({ forceValues: [...new Set([...(config.forceValues ?? []), `${result.type}:${menu.text}`])] })
+          }
+          setManualMenu(null)
+          setCompareFiles({})
+          if (typeof menu.n === 'number') await loadCompareFile(adviceRunId, menu.n, true)
+          await loadReview(adviceRunId)
+          forgetReport(adviceRunId)
+          setReviewNote({ ok: true, text: menu.kind === 'revert'
+            ? t('ws.mx.reverted', { token: menu.text, count: result.count, files: result.files })
+            : t('ws.mx.added', { token: result.pseudonym, count: result.count, files: result.files }) })
+        } catch (cause) {
+          setReviewNote({ ok: false, text: message(cause) })
+        } finally {
+          setManualBusy(false)
+        }
+      }
+      const manualPopover = () => {
+        const menu = manualMenu
+        if (!menu) return null
+        const types = (config?.policySchema?.identifiers ?? []).map((item) => item.type)
+        const set = (patch) => setManualMenu({ ...menu, ...patch })
+        return h(React.Fragment, {},
+          h('div', { className: 'ws-mx-backdrop', onMouseDown: () => setManualMenu(null) }),
+          h('div', { className: 'ws-mx', style: { left: `${menu.x}px`, top: `${menu.y}px` }, role: 'dialog' },
+            h('div', { className: 'ws-mx-title' }, menu.kind === 'revert' ? t('ws.mx.revertTitle') : t('ws.mx.addTitle')),
+            h('div', { className: 'ws-mx-text' }, menu.text),
+            menu.kind === 'add' ? h('label', { className: 'ws-mx-row' }, t('ws.mx.type'),
+              h('select', { className: 'ma-input ma-small', value: menu.type ?? '', onChange: (event) => set({ type: event.target.value }) },
+                types.map((type) => h('option', { key: type, value: type }, type)))) : null,
+            h('div', { className: 'ws-mx-row' },
+              ['file', 'batch'].map((scope) => h('label', { key: scope, className: 'ma-check' },
+                h('input', { type: 'radio', checked: menu.scope === scope, onChange: () => set({ scope }) }), t(`ws.mx.scope.${scope}`)))),
+            h('label', { className: 'ma-check ws-mx-row', title: menu.kind === 'revert' ? t('ws.mx.rememberAllowHint') : t('ws.mx.rememberForceHint') },
+              h('input', { type: 'checkbox', checked: menu.remember, onChange: (event) => set({ remember: event.target.checked }) }),
+              menu.kind === 'revert' ? t('ws.mx.rememberAllow') : t('ws.mx.rememberForce')),
+            menu.kind === 'revert' ? h('p', { className: 'ma-hint' }, t('ws.mx.revertWarn')) : null,
+            h('div', { className: 'ma-actions' },
+              h('button', { className: 'ma-btn ma-small ma-primary', disabled: manualBusy || (menu.kind === 'add' && !menu.type), onClick: doManual },
+                manualBusy ? t('save.saving') : menu.kind === 'revert' ? t('ws.mx.revertDo') : t('ws.mx.addDo')),
+              h('button', { className: 'ma-btn ma-small', disabled: manualBusy, onClick: () => setManualMenu(null) }, t('ws.mx.cancel')))))
+      }
+
       const compareBody = () => {
         let list = adviceRunId ? compareByRun[adviceRunId] : undefined
         if (list === undefined) return h('p', { className: 'ma-empty' }, t('detail.loading'))
@@ -4353,6 +4603,7 @@ window.__ModuleLoader__.load({
         if (list.length === 0 && !(reviewData?.files?.length)) return h('p', { className: 'ma-empty' }, t('ws.cmp.none'))
         const reviewByPath = new Map((reviewData?.files ?? []).map((file) => [file.relPath, file]))
         const openOf = (relPath) => (reviewByPath.get(relPath)?.items ?? []).filter((item) => !item.decision).length
+        const judgeOf = (relPath) => (reviewByPath.get(relPath)?.items ?? []).filter((item) => !item.decision && !isOpaque(item)).length
         const listed = new Set(list.map((entry) => entry.relPath))
         const extra = (reviewData?.files ?? []).filter((file) => !listed.has(file.relPath))
           .map((file) => ({ n: `rv:${file.relPath}`, relPath: file.relPath, status: 'review', changed: 0, total: 0, reviewOnly: true }))
@@ -4379,7 +4630,7 @@ window.__ModuleLoader__.load({
           if (!selected) return h('p', { className: 'ma-empty' }, t('ws.cmp.pick'))
           if (selected.reviewOnly) {
             return reviewFile
-              ? h('div', { className: 'ws-cmp-review' }, reviewFile.items.map((item) => reviewCard(reviewFile, item)))
+              ? reviewBlocks(reviewFile)
               : h('p', { className: 'ma-empty' }, t('ws.cmp.pick'))
           }
           if (selected.skipped) return h('p', { className: 'ma-empty' }, t(`ws.cmp.skipped.${selected.skipped}`))
@@ -4389,42 +4640,63 @@ window.__ModuleLoader__.load({
           const full = data.all === true
           const visible = compareRows === 'changed' ? rows.filter((row) => !row.same || row.flagged) : rows
           return h(React.Fragment, {},
-            reviewFile ? h('div', { className: 'ws-cmp-review' }, reviewFile.items.map((item) => reviewCard(reviewFile, item))) : null,
+            reviewFile ? reviewBlocks(reviewFile) : null,
             h('div', { className: 'ws-cmp-rowbar' },
-              h('span', { className: 'ma-hint' }, full ? t('ws.cmp.legend') : t('ws.cmp.legacy'))),
+              h('span', { className: 'ma-hint' }, full ? t('ws.cmp.legend') : t('ws.cmp.legacy')),
+              full && adviceRunId ? h('span', { className: 'ma-hint ws-mx-tip' }, t('ws.mx.tip')) : null),
             visible.length === 0
               ? h('p', { className: 'ma-empty' }, rows.length === 0 ? t('ws.cmp.empty') : t('ws.cmp.nochange'))
-              : h('table', { className: 'ws-cmp-table' },
+              : h('table', { className: 'ws-cmp-table', onMouseUp: (event) => onCompareSelect(event, selected) },
                 h('thead', {}, h('tr', {}, h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
                 h('tbody', {}, visible.slice(0, compareShow).map((change, row) => {
                   const after = change.same ? change.before : change.after
                   const flaggedRow = change.flagged && flags.some((flag) => after.includes(flag))
+                  const onPseudo = (event, token) => openManual(event, { kind: 'revert', text: token, relPath: selected.relPath, n: selected.n })
                   if (change.same) {
                     return h('tr', { key: change.id ?? row, className: `ws-cmp-same${flaggedRow ? ' ws-cmp-flagged' : ''}` },
                       h('td', { className: 'ws-cmp-field' }, change.field ?? '—'),
-                      h('td', {}, change.before),
-                      h('td', {}, markSuspects(after, flags, `s${row}`)))
+                      h('td', { className: 'ws-cmp-src' }, change.before),
+                      h('td', { className: 'ws-cmp-dst' }, renderAfterCell(after, null, flags, `s${row}`, onPseudo)))
                   }
                   const ops = diffTexts(change.before, after)
                   return h('tr', { key: change.id ?? row, className: flaggedRow ? 'ws-cmp-flagged' : '' },
                     h('td', { className: 'ws-cmp-field' }, change.field ?? '—'),
-                    h('td', {}, ops.filter((op) => op.t !== 'ins').map((op, i) => op.t === 'del' ? h('del', { key: i }, op.s) : h(React.Fragment, { key: i }, op.s))),
-                    h('td', {}, ops.filter((op) => op.t !== 'del').map((op, i) => op.t === 'ins' ? h('ins', { key: i }, op.s) : h(React.Fragment, { key: i }, markSuspects(op.s, flags, `${row}-${i}`)))))
+                    h('td', { className: 'ws-cmp-src' }, ops.filter((op) => op.t !== 'ins').map((op, i) => op.t === 'del' ? h('del', { key: i }, op.s) : h(React.Fragment, { key: i }, op.s))),
+                    h('td', { className: 'ws-cmp-dst' }, renderAfterCell(after, ops, flags, `${row}-`, onPseudo)))
                 }))),
             visible.length > compareShow ? h('button', { className: 'ma-btn ma-small ws-cmp-more', onClick: () => setCompareShow(compareShow + 300) }, t('ws.cmp.more', { shown: compareShow, total: visible.length })) : null,
             selected.truncated ? h('p', { className: 'ma-hint' }, t('ws.cmp.truncated', { shown: selected.truncated, total: selected.total })) : null)
         }
         return h('div', { className: 'ws-cmp', tabIndex: 0, onKeyDown: (event) => {
+          if (manualMenu) return
           if (event.target.tagName === 'INPUT') return
           if (event.key === 'ArrowDown' || event.key === 'j') { event.preventDefault(); go(1) }
           if (event.key === 'ArrowUp' || event.key === 'k') { event.preventDefault(); go(-1) }
         } },
+          manualPopover(),
           h('aside', { className: 'ws-cmp-side' },
+            (() => {
+              const judge = (reviewData?.files ?? []).flatMap((file) => file.items.filter((item) => !item.decision && !isOpaque(item)).map((item) => ({ file, item })))
+              if (judge.length === 0) return null
+              const open = ({ file, item }) => {
+                const entry = list.find((candidate) => candidate.relPath === file.relPath)
+                if (compareFilter !== 'all' && !(compareFilter === 'review')) setCompareFilter('review')
+                if (entry) setCompareSel(entry.n)
+                setFocusReview(item.id)
+              }
+              return h('div', { className: 'ws-cmp-judge' },
+                h('b', {}, t('ws.rv.judgeTitle', { count: judge.length })),
+                h('ul', {}, judge.map((pair) => h('li', { key: pair.item.id },
+                  h('button', { type: 'button', className: `ma-link${focusReview === pair.item.id ? ' ws-on' : ''}`, title: pair.file.relPath, onClick: () => open(pair) },
+                    h('span', { className: 'ws-cmp-judge-code' }, t(`ws.rv.code.${pair.item.code}`) === `ws.rv.code.${pair.item.code}` ? pair.item.code : t(`ws.rv.code.${pair.item.code}`)),
+                    pair.item.type ? h('span', {}, ` · ${pair.item.type}`) : null,
+                    h('small', {}, name(pair.file.relPath)))))))
+            })(),
             (() => {
               const pending = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code))
               if (pending.length === 0) return null
               const removable = pending.filter((item) => item.code === 'opaque').length
-              return h('div', { className: 'ws-cmp-bulk' },
+              return h('div', { className: 'ws-cmp-bulk', title: t('ws.rv.bulkHint') },
                 h('span', {}, t('ws.rv.bulkTitle', { count: pending.length })),
                 h('div', { className: 'ma-actions' },
                   removable ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null, onClick: () => bulkReview('remove') }, reviewBusy === 'bulk' ? t('save.saving') : t('ws.rv.bulkRemove', { count: removable })) : null,
@@ -4441,7 +4713,11 @@ window.__ModuleLoader__.load({
               },
                 h('span', { className: `ws-cmp-dot ws-p-${open > 0 ? 'review' : entry.status}` }),
                 h('span', { className: 'ws-cmp-name' }, h('b', {}, name(entry.relPath)), dir(entry.relPath) ? h('small', {}, dir(entry.relPath)) : null),
-                open > 0 ? h('span', { className: 'ws-count ws-count-bad' }, String(open)) : h('span', { className: 'ma-mono ws-cmp-n' }, String(entry.changed)))
+                open > 0
+                  ? h('span', { className: 'ws-cmp-counts' },
+                    judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-bad', title: t('ws.rv.judgeBadge') }, String(judgeOf(entry.relPath))) : null,
+                    open - judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-muted', title: t('ws.rv.opaqueBadge') }, String(open - judgeOf(entry.relPath))) : null)
+                  : h('span', { className: 'ma-mono ws-cmp-n' }, String(entry.changed)))
             }))),
           h('section', { className: 'ws-cmp-main' },
             h('div', { className: 'ws-cmp-bar' },
@@ -5323,7 +5599,7 @@ window.__ModuleLoader__.load({
     // Pure helpers for the Node test suite; non-enumerable, so the plugin
     // object the host sees still has only `inject` and `apply`.
     Object.defineProperty(plugin, 'helpers', {
-      value: { callResultLabel, callStatusChip, crossFlow, crossFlowChart, pullCallPages, pingKeyFields, recordsRunId, recordsRetryDelay, createReportCache, locales: { zh: ZH, en: EN } },
+      value: { callResultLabel, callStatusChip, crossFlow, crossFlowChart, renderAfterCell, diffTexts, pullCallPages, pingKeyFields, recordsRunId, recordsRetryDelay, createReportCache, locales: { zh: ZH, en: EN } },
     })
     return plugin
   },
