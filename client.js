@@ -3305,7 +3305,7 @@ window.__ModuleLoader__.load({
     function IsoLine({ states, labels, load, belt, dicom, loopLabel, onStation, selected, dark = true, t }) {
       const C = dark ? ISO_DARK : ISO_LIGHT
       const STEP = 108
-      const P = (x, y, z = 0) => [120 + x * 0.96 - y * 0.62, 236 + x * 0.12 + y * 0.40 - z]
+      const P = (x, y, z = 0) => [120 + x * 0.94 - y * 0.66, 236 + x * 0.26 + y * 0.58 - z]
       const pts = (list) => list.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
       const shade = (hex, f) => {
         const n = parseInt(hex.slice(1), 16)
@@ -3394,7 +3394,7 @@ window.__ModuleLoader__.load({
       const da = P(10, 205)
       const db = P(STEP * 7 + 30, 205)
       const dm = P(STEP * 3.4, 226)
-      return h('svg', { className: 'wd-iso', viewBox: '-90 96 1290 440', preserveAspectRatio: 'xMaxYMin meet', role: 'img', 'aria-label': t('ws.line') },
+      return h('svg', { className: 'wd-iso', viewBox: '-95 140 1285 530', preserveAspectRatio: 'xMidYMid meet', role: 'img', 'aria-label': t('ws.line') },
         h('defs', {},
           h('filter', { id: 'wd-glow', x: '-50%', y: '-50%', width: '200%', height: '200%' }, h('feGaussianBlur', { stdDeviation: 3.5, result: 'b' }), h('feMerge', {}, h('feMergeNode', { in: 'b' }), h('feMergeNode', { in: 'SourceGraphic' }))),
           h('filter', { id: 'wd-soft', x: '-50%', y: '-50%', width: '200%', height: '200%' }, h('feGaussianBlur', { stdDeviation: 10 })),
