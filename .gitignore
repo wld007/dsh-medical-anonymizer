@@ -9,3 +9,4 @@ scripts/check-public.local.json
 .medical-anonymizer/
 _medical-anonymizer/
 .claude/
+.agents/
