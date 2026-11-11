@@ -653,6 +653,13 @@ window.__ModuleLoader__.load({
       'ws.cmp.scope.batch': '全批次',
       'ws.cmp.scopeHint': '右侧按钮作用于本文件还是整个批次',
       'ws.cmp.noImagesHere': '这份文件没有待处理的图片等内容；右侧可选「全批次」处理其他文件的。',
+      'ws.op.verifier': '核验',
+      'ws.op.detector': '识别复判',
+      'ws.op.round': '第 {n} 轮',
+      'ws.op.dismissed': '采纳识别，保留',
+      'ws.op.disputed': '仍不一致，转人工',
+      'ws.op.confirmed': '确认，已替换',
+      'ws.op.unjudged': '未复判',
       'ws.cmp.mode.all': '全部',
       'ws.cmp.mode.changed': '只看改动',
       'ws.cmp.mode.judge': '待判断',
@@ -776,9 +783,10 @@ window.__ModuleLoader__.load({
       'ws.rv.copyPath': '复制副本路径',
       'ws.rv.replace': '替换为假名',
       'ws.rv.replaceWith': '替换为 {to}',
-      'ws.rv.allow': '不是标识符',
+      'ws.rv.allow': '不是标识符（以后不再报）',
       'ws.rv.allowHint': '保留原文，并加入「不匹配的值」，以后不再识别',
-      'ws.rv.accept': '确认保留',
+      'ws.rv.accept': '仅本次保留',
+      'ws.rv.acceptHint': '这一处保留原文；以后的批次遇到同样的值仍会照常识别和报出',
       'ws.rv.noText': '该项没有可定位的文字',
       'ws.rv.runningHint': '有批次正在运行，替换会写入映射库，请等它结束后再替换',
       'ws.rv.replaced': '已替换为 {to}（{count} 处）',
@@ -1554,6 +1562,13 @@ window.__ModuleLoader__.load({
       'ws.cmp.scope.batch': 'Whole batch',
       'ws.cmp.scopeHint': 'Whether the buttons act on this file or the whole batch',
       'ws.cmp.noImagesHere': 'Nothing of this kind left in this file; pick "Whole batch" on the right to handle the other files.',
+      'ws.op.verifier': 'Verifier',
+      'ws.op.detector': 'Detector re-judge',
+      'ws.op.round': 'Round {n}',
+      'ws.op.dismissed': 'detector upheld, kept',
+      'ws.op.disputed': 'still disputed, to a person',
+      'ws.op.confirmed': 'confirmed, replaced',
+      'ws.op.unjudged': 'not re-judged',
       'ws.cmp.mode.all': 'All',
       'ws.cmp.mode.changed': 'Changes',
       'ws.cmp.mode.judge': 'To judge',
@@ -1677,9 +1692,10 @@ window.__ModuleLoader__.load({
       'ws.rv.copyPath': 'Copy copy path',
       'ws.rv.replace': 'Replace with pseudonym',
       'ws.rv.replaceWith': 'Replace with {to}',
-      'ws.rv.allow': 'Not an identifier',
+      'ws.rv.allow': 'Not an identifier (never flag again)',
       'ws.rv.allowHint': 'Keep the text and add it to allowed values so it is no longer detected',
-      'ws.rv.accept': 'Keep',
+      'ws.rv.accept': 'Keep this once',
+      'ws.rv.acceptHint': 'Keeps the original here; later batches still detect and report the same value',
       'ws.rv.noText': 'No locatable text for this item',
       'ws.rv.runningHint': 'A batch is running; replacing writes to the mapping vault, so wait until it finishes',
       'ws.rv.replaced': 'Replaced with {to} ({count}×)',
@@ -2615,6 +2631,20 @@ window.__ModuleLoader__.load({
       .ws-vis-sum{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .ma-warn-text{color:var(--dsw-alias-state-warn-primary)!important}
       .wd-imgline .ws-img-glyph{color:var(--wd-ink3);margin-right:3px}
+      .ws-rv-inline-wrap{display:flex;flex-direction:column;gap:0;margin-top:4px}
+      .ws-rv-inline-wrap>.ws-rv-inline{margin-top:0}
+      .ws-op{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr) auto;gap:3px 12px;margin:0 0 0 3px;padding:6px 10px 7px 13px;border-left:3px solid color-mix(in srgb,var(--dsw-alias-state-error-primary) 35%,transparent);background:color-mix(in srgb,var(--dsw-alias-label-primary) 3%,transparent);border-radius:0 0 6px 0;font-size:11.5px;line-height:17px;color:var(--dsw-alias-label-secondary)}
+      .ws-op-h{display:contents}
+      .ws-op-h>span{font-size:10.5px;color:var(--wd-ink3);letter-spacing:.5px}
+      .ws-op-h>span:first-child{grid-column:2}
+      .ws-op-h>span:nth-child(2){grid-column:3}
+      .ws-op-h em{font-style:normal;margin-left:6px;font-size:10px}
+      .ws-op-row{display:contents}
+      .ws-op-round{grid-column:1;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap}
+      .ws-op-v{grid-column:2;color:var(--dsw-alias-state-error-primary)}
+      .ws-op-d{grid-column:3;color:var(--dsw-alias-label-primary)}
+      .ws-op-out{grid-column:4;white-space:nowrap;font-size:10.5px;color:var(--wd-ink3)}
+      .ws-op-out-disputed{color:var(--dsw-alias-state-warn-primary);font-weight:600}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -5581,7 +5611,7 @@ window.__ModuleLoader__.load({
               title: !item.text ? t('ws.rv.noText') : !file.editable ? file.reason : anyRunning ? t('ws.rv.runningHint') : '', onClick: () => decideReview(file, item, 'replace'),
             }, reviewBusy === item.id ? t('save.saving') : (item.replacement ? t('ws.rv.replaceWith', { to: item.replacement }) : t('ws.rv.replace'))),
             item.text ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || anyRunning, title: t('ws.rv.allowHint'), onClick: () => decideReview(file, item, 'allow') }, t('ws.rv.allow')) : null,
-            h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept'))))
+            h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.acceptHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept'))))
       // Stand-alone card: items the comparison table cannot show (no text,
       // no comparison for the file) and content that cannot be checked.
       const reviewCard = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-item${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
@@ -5594,6 +5624,7 @@ window.__ModuleLoader__.load({
           ? h('div', { className: 'ws-rv-ctx' }, item.before, h('mark', {}, item.text), item.after)
           : h('div', { className: 'ws-rv-ctx ws-rv-plain' }, item.detail),
         item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove' }) : null,
+        item.decision ? null : opinions(item),
         reviewActions(file, item))
       // The model's reading of an image under review: category and suggestion.
       const visionChip = (item) => (item.vision
@@ -5610,13 +5641,28 @@ window.__ModuleLoader__.load({
           visionChip(item)),
         item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove' }) : h('div', { className: 'ws-pv-note' }, item.detail),
         reviewActions(file, item))
+      // Both models' opinions, round by round (cross-checked items).
+      const OUTCOME = { dismissed: 'ws.op.dismissed', disputed: 'ws.op.disputed', confirmed: 'ws.op.confirmed', unjudged: 'ws.op.unjudged' }
+      const opinions = (item) => (item.history?.length
+        ? h('div', { className: 'ws-op' },
+          h('div', { className: 'ws-op-h' },
+            h('span', {}, t('ws.op.verifier'), h('em', { className: 'ma-mono' }, item.models?.verify || '—')),
+            h('span', {}, t('ws.op.detector'), h('em', { className: 'ma-mono' }, item.models?.detect || '—'))),
+          item.history.map((row, index) => h('div', { key: index, className: 'ws-op-row' },
+            h('b', { className: 'ws-op-round' }, row.round ? t('ws.op.round', { n: row.round }) : '—'),
+            h('span', { className: 'ws-op-v' }, row.verifier || '—'),
+            h('span', { className: 'ws-op-d' }, row.detector || '—'),
+            h('span', { className: `ws-op-out ws-op-out-${row.outcome}` }, OUTCOME[row.outcome] ? t(OUTCOME[row.outcome]) : row.outcome))))
+        : null)
       // In the comparison: one line per item right under the row holding it.
-      const reviewInline = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-inline${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
-        h('span', { className: 'ws-rv-code' }, codeLabel(item)),
-        item.type ? h('b', {}, item.type) : null,
-        h('mark', { className: 'ws-rv-text' }, item.text),
-        h('span', { className: 'wd-sp' }),
-        reviewActions(file, item))
+      const reviewInline = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-inline-wrap${focusReview === item.id ? ' ws-rv-focus-wrap' : ''}` },
+        h('div', { className: `ws-rv-inline${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
+          h('span', { className: 'ws-rv-code' }, codeLabel(item)),
+          item.type ? h('b', {}, item.type) : null,
+          h('mark', { className: 'ws-rv-text' }, item.text),
+          h('span', { className: 'wd-sp' }),
+          reviewActions(file, item)),
+        item.decision ? null : opinions(item))
 
       // One file's review items: what needs a human judgement first, then the
       // content that cannot be checked (images …) folded into one bar.
