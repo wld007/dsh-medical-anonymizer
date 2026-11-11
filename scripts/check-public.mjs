@@ -9,7 +9,7 @@ import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const skipDirs = new Set(['.claude', 'node_modules', 'dist', '.git', '.tmp', 'vendor'])
+const skipDirs = new Set(['.claude', '.agents', 'node_modules', 'dist', '.git', '.tmp', 'vendor'])
 const skipFiles = new Set([
   'scripts/check-public.mjs',
   'scripts/check-public.local.json',
