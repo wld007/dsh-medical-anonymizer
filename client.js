@@ -277,6 +277,7 @@ window.__ModuleLoader__.load({
       'wd.strip': '文件带 · 每格 1 个文件',
       'wd.stripGroup': '文件带 · 每格约 {n} 个文件',
       'wd.overview': '批次概览',
+      'wd.runsShort': '记录',
       'wd.pctEta': '完成 · 约 {eta}{unit}',
       'wd.peakAt': '峰值 {pct}%',
       'wd.rss': '进程常驻',
@@ -1105,6 +1106,7 @@ window.__ModuleLoader__.load({
       'wd.strip': 'Files · one cell per file',
       'wd.stripGroup': 'Files · about {n} per cell',
       'wd.overview': 'Batch overview',
+      'wd.runsShort': 'Batches',
       'wd.pctEta': 'done · ~{eta}{unit} left',
       'wd.peakAt': 'peak {pct}%',
       'wd.rss': 'process RSS',
@@ -2592,11 +2594,12 @@ window.__ModuleLoader__.load({
       .wd-new:disabled{background:transparent!important;color:var(--dsw-alias-label-secondary)!important;border-color:var(--dsw-alias-border-l2)!important;font-weight:400}
       .wd-act .ma-btn,.wd-hicon{height:34px;border-radius:7px;border-width:1px}
       .wd-act .ma-btn{display:inline-flex;align-items:center;gap:6px;padding:0 14px}
+      .wd-act .ma-btn.wd-hbtn{padding:0 9px 0 11px;gap:4px}
       .wd-hbtn{background:var(--dsw-alias-bg-layer-1)!important;border-color:var(--dsw-alias-border-l2)!important;color:var(--dsw-alias-label-primary)!important}
       .wd-hbtn:hover,.wd-hbtn[aria-expanded="true"]{border-color:var(--ws-accent)!important;color:var(--ws-accent)!important}
       .wd-hicon{width:34px;background:var(--dsw-alias-bg-layer-1);border-color:var(--dsw-alias-border-l2);font-size:15px;color:var(--dsw-alias-label-secondary)}
       .wd-caret{font-size:9px;opacity:.7;margin-left:-1px}
-      .wd-hcount{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;padding:0 6px;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 8%,transparent);color:var(--dsw-alias-label-secondary)}
+      .wd-hcount{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;line-height:15px;padding:0 5px;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 8%,transparent);color:var(--dsw-alias-label-secondary)}
       .wd-pop{position:absolute;right:0;top:38px;z-index:950;width:440px;padding:14px 16px;border:1px solid rgba(34,199,192,.5);border-radius:8px;background:var(--wd-pop-bg);box-shadow:0 20px 60px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:10px}
       .wd-pop .ma-field{gap:4px}
       .wd-shade{position:fixed;inset:0;z-index:940;background:rgba(0,0,0,.35)}
@@ -6260,7 +6263,7 @@ window.__ModuleLoader__.load({
                 current?.resumable && !anyRunning ? h('button', { className: 'ma-btn ws-resume', onClick: async () => { await resumeRun(); setNewOpen(false) }, disabled: busy, title: t('ws.resumeHint') }, `↻ ${t('ws.resume')}`) : null))
               : null),
           h('div', { className: 'wd-act wd-runs-act' },
-            h('button', { type: 'button', className: 'ma-btn wd-hbtn', onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false' }, t('runs.title'), runs.length ? h('i', { className: 'wd-hcount' }, String(runs.length)) : null, h('span', { className: 'wd-caret' }, '▾')),
+            h('button', { type: 'button', className: 'ma-btn wd-hbtn', onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false', 'aria-label': t('runs.title') }, t('wd.runsShort'), runs.length ? h('i', { className: 'wd-hcount' }, String(runs.length)) : null, h('span', { className: 'wd-caret' }, '▾')),
             runsOpen ? h('div', { className: 'wd-shade', onMouseDown: () => setRunsOpen(false) }) : null,
             runsOpen ? runsPopover() : null),
           h('button', { type: 'button', className: 'wd-icon wd-hicon', title: t('settings.title'), 'aria-label': t('settings.title'), onClick: () => setModal('settings') }, '⚙')),
