@@ -50,6 +50,16 @@
   .legend { display: flex; gap: 12px; font-size: 11px; color: var(--ink2); }
   .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: 0; }
   .strip { position: absolute; left: 14px; right: 14px; bottom: 10px; }
+  .ov { position: absolute; border: 1px solid var(--line2); background: rgba(10,22,27,.82); backdrop-filter: blur(4px); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+  .ov-tl { left: 14px; bottom: 44px; width: 390px; }
+  .ov-br { left: 14px; top: 38px; width: 340px; border-color: rgba(245,165,36,.45); }
+  .ovh { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; white-space: nowrap; }
+  .ovh .btn { white-space: nowrap; }
+  .ovr { display: grid; grid-template-columns: minmax(0,1fr) 54px 32px; gap: 8px; font-size: 11px; color: var(--ink2); align-items: center; }
+  .ovr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ovr i { font-style: normal; font-family: var(--mono); font-size: 10px; color: var(--amber2); }
+  .ovr b { font-family: var(--mono); font-weight: 500; text-align: right; color: var(--ink); }
+  .ovr.dim span { color: var(--ink3); }
   .strip .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
   .cells { display: flex; gap: 2px; height: 12px; }
   .cells i { flex: 1; border-radius: 1px; background: #1a2a31; }
@@ -131,6 +141,19 @@
         <span class="cap" style="color:var(--ink3)">① 准备 → ② 逐文件并行 → ③ 收尾 → ④ 交付</span>
         <div class="legend"><span><i style="background:var(--amber)"></i>处理中</span><span><i style="background:var(--ok)"></i>已完成</span><span><i style="background:var(--warn)"></i>待复核</span><span><i style="background:#3a3632"></i>未开始</span></div>
       </div>
+      <div class="ov ov-tl">
+        <div class="ovh"><span class="cap" style="color:var(--amber2)">● 正在处理 · 7</span><span class="cap">工位 · 轮次 · 用时</span></div>
+        <div class="ovr"><span class="num">证件-7FEB77/…/C0102_0513_01护理记录.json</span><i>S05 · R2</i><b>12s</b></div>
+        <div class="ovr"><span class="num">证件-ADFE94/…/C0102_0513_01护理记录.json</span><i>S04 · R1</i><b>4s</b></div>
+        <div class="ovr"><span class="num">证件-9D783A/…/C0102_0801_02费用明细.json</span><i>S03 · R1</i><b>41s</b></div>
+        <div class="ovr"><span class="num">证件-75315E/…/C0102_0515_02首次病程.json</span><i>S03 · R1</i><b>9s</b></div>
+        <div class="ovr dim"><span>另 3 个文件在 S03 识别·替换</span><i></i><b></b></div>
+      </div>
+      <div class="ov ov-br">
+        <div class="ovh"><span class="cap" style="color:var(--warn)">▲ 瓶颈 · 10 分钟</span><span style="display:flex;gap:6px"><span class="btn" style="height:20px;font-size:10.5px;padding:0 8px;border-color:rgba(34,199,192,.6);color:var(--amber2)">核验并发 4 → 8</span><span class="btn" style="height:20px;font-size:10.5px;padding:0 8px">调用 →</span></span></div>
+        <div style="font-size:12.5px;font-weight:600">S05 独立盲审 · 排队 146</div>
+        <div class="sub" style="font-size:10.5px;line-height:15px;white-space:nowrap">核验 3/4 占满 · 格式错误 3.1% 触发重试 · 识别侧空闲</div>
+      </div>
       <div class="strip">
         <div class="row"><span class="cap">文件带 · 每格 36 个文件</span><span class="num" style="font-size:11px;color:var(--ink2)">6107 / 8531</span></div>
         <div class="cells" id="cells"></div>
@@ -201,7 +224,7 @@
 // ---------- 2.5D production line (dimetric projection) ----------
 const svg = document.getElementById('iso')
 const NS = 'http://www.w3.org/2000/svg'
-const O = { x: 120, y: 200 }
+const O = { x: 120, y: 236 }
 const P = (x, y, z = 0) => [O.x + x * 0.96 - y * 0.62, O.y + x * 0.17 + y * 0.40 - z]
 const el = (tag, attrs, parent = svg) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.appendChild(n); return n }
 const poly = (pts, attrs) => el('polygon', { points: pts.map((p) => p.join(',')).join(' '), ...attrs })
@@ -247,9 +270,9 @@ for (let x = -30; x < 1070; x += 22) { const a = P(x, 104, 7.2), b = P(x, 126, 7
 
 // DICOM bypass on the floor in front
 ;(() => {
-  const a = P(10, 186, 0), b = P(STEP * 7 + 30, 186, 0)
+  const a = P(10, 205, 0), b = P(STEP * 7 + 30, 205, 0)
   el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#a58bff', 'stroke-width': 1.2, 'stroke-dasharray': '5 5', opacity: .75 })
-  const m = P(STEP * 2.6, 206, 0)
+  const m = P(STEP * 3.4, 226, 0)
   el('text', { x: m[0], y: m[1], fill: '#a58bff', 'font-size': 11, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle', opacity: .85 }).textContent = '旁路 · DICOM 只处理元数据，不经模型 · 1 240'
 })()
 
@@ -295,6 +318,18 @@ ST.forEach(([code, name, state, stat], i) => {
   el('text', { x: lx, y: top + 32, fill: state === 'warn' ? '#f5a524' : state === 'active' ? '#7fe9e2' : '#8ba5ad', 'font-size': 10.5, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle' }).textContent = stat
 })
 
+// waiting files piled in front of each station: height = queue length
+const piles = [[2, 12, 'q'], [4, 146, 'q'], [8, 214, 'w']]
+piles.forEach(([i, n, kind]) => {
+  const levels = Math.min(6, Math.ceil(n / 30)), x0 = i * STEP + 14, y0 = 136
+  for (let lv = 0; lv < levels; lv++) for (let a = 0; a < 3; a++) for (let b = 0; b < 2; b++) {
+    if (lv === levels - 1 && (a + b) % 2 && n < 200) continue
+    box(x0 + a * 13, y0 + b * 12, lv * 9, 11, 10, 8, kind === 'w' ? '#b8781a' : '#178d89', { top: kind === 'w' ? '#f5a524' : '#4fd3cb', stroke: 'rgba(0,0,0,.35)' })
+  }
+  const t = P(x0 + 20, y0 + 26, 0)
+  el('text', { x: t[0] + 26, y: t[1] + 8, fill: kind === 'w' ? '#f5a524' : '#7fe9e2', 'font-size': 11, 'font-family': 'SF Mono, Menlo, monospace' }).textContent = kind === 'w' ? `待复核 ${n}` : `排队 ${n}`
+})
+
 // files on the belt
 for (let k = 0; k < 34; k++) {
   const x = 210 + k * 21 + (k % 3) * 2
@@ -316,7 +351,7 @@ for (let k = 0; k < 34; k++) {
 // hover card on S05
 ;(() => {
   const p = P(4 * STEP + 40, 40, 52)
-  const gx = p[0] + 270, gy = p[1] - 140
+  const gx = p[0] + 300, gy = p[1] - 165
   el('polyline', { points: `${p[0]},${p[1]} ${p[0] + 70},${gy + 70} ${gx},${gy + 70}`, fill: 'none', stroke: '#22c7c0', 'stroke-width': 1, opacity: .6 })
   el('rect', { x: gx, y: gy, width: 200, height: 82, rx: 4, fill: 'rgba(13,26,32,.95)', stroke: '#22c7c0', 'stroke-opacity': .55 })
   const t = (x, y, txt, attrs) => { el('text', { x, y, ...attrs }).textContent = txt }
