@@ -644,6 +644,15 @@ window.__ModuleLoader__.load({
       'ws.vis.cat.logo': '徽标',
       'ws.vis.cat.blank': '空白',
       'ws.vis.cat.other': '其他',
+      'ws.lg.del': '原文',
+      'ws.lg.ins': '假名',
+      'ws.lg.flag': '待复核',
+      'ws.lg.sus': '长数字·请抽查',
+      'ws.cmp.nextJudge': '下一处待判断',
+      'ws.cmp.scope.file': '本文件',
+      'ws.cmp.scope.batch': '全批次',
+      'ws.cmp.scopeHint': '右侧按钮作用于本文件还是整个批次',
+      'ws.cmp.noImagesHere': '这份文件没有待处理的图片等内容；右侧可选「全批次」处理其他文件的。',
       'ws.cmp.mode.all': '全部',
       'ws.cmp.mode.changed': '只看改动',
       'ws.cmp.mode.judge': '待判断',
@@ -1533,6 +1542,15 @@ window.__ModuleLoader__.load({
       'ws.vis.cat.logo': 'Logo',
       'ws.vis.cat.blank': 'Blank',
       'ws.vis.cat.other': 'Other',
+      'ws.lg.del': 'original',
+      'ws.lg.ins': 'pseudonym',
+      'ws.lg.flag': 'to review',
+      'ws.lg.sus': 'long number · spot-check',
+      'ws.cmp.nextJudge': 'Next to judge',
+      'ws.cmp.scope.file': 'This file',
+      'ws.cmp.scope.batch': 'Whole batch',
+      'ws.cmp.scopeHint': 'Whether the buttons act on this file or the whole batch',
+      'ws.cmp.noImagesHere': 'Nothing of this kind left in this file; pick "Whole batch" on the right to handle the other files.',
       'ws.cmp.mode.all': 'All',
       'ws.cmp.mode.changed': 'Changes',
       'ws.cmp.mode.judge': 'To judge',
@@ -2946,7 +2964,25 @@ window.__ModuleLoader__.load({
       .wd-cmp-page{padding:0;overflow:hidden}
       .wd-cmp-head{flex:none;display:flex;align-items:baseline;gap:10px;padding:9px 14px;border-bottom:1px solid var(--dsw-alias-border-l2)}
       .wd-cmp-head b{font-size:13px}
-      .wd-cmp-head .ma-hint{margin-left:auto}
+      .ws-lg{margin-left:auto;display:inline-flex;align-items:center;gap:10px;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-lg span{padding:0 5px;border-radius:3px;line-height:17px}
+      .ws-lg-del{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}
+      .ws-lg-ins{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 14%,transparent)}
+      .ws-lg-flag{box-shadow:inset 0 0 0 1px var(--dsw-alias-state-warn-primary)}
+      .ws-lg .ws-lg-sus{padding:0;border-radius:0;text-decoration:underline dotted;text-underline-offset:3px}
+      .ws-lg-info{cursor:help;color:var(--wd-ink3);font-size:13px;margin-left:2px}
+      .ws-cmp-tools{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:7px 14px;border-bottom:1px solid var(--dsw-alias-border-l1)}
+      .ws-cmp-view{display:flex;align-items:center;gap:12px}
+      .ws-cmp-act{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:12px;border-left:1px solid var(--dsw-alias-border-l2)}
+      .ws-cmp-act .ma-btn{display:inline-flex;align-items:center;gap:4px}
+      .ws-cmp-scope{display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
+      .ws-cmp-scope .ws-cmp-mode{padding:2px 9px}
+      .ws-cmp-cats{font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ws-cmp-checking{display:inline-flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dsw-alias-label-secondary);min-width:120px}
+      .ws-cmp-nextjudge{display:inline-flex;align-items:center;gap:5px;border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 45%,transparent)!important;color:var(--dsw-alias-state-error-primary)!important}
+      .ws-cmp-nextjudge i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;padding:0 5px;border-radius:8px;color:#fff;background:var(--dsw-alias-state-error-primary)}
+      .ws-cmp-nextjudge:disabled{opacity:.45;color:var(--dsw-alias-label-secondary)!important;border-color:var(--dsw-alias-border-l2)!important}
+      .ws-cmp-nextjudge:disabled i{display:none}
       .wd-cmp-run{font-size:11px;color:var(--wd-ink3)}
       .wd-runs{display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:min(60vh,520px);scrollbar-width:thin}
       .wd-runs-act .wd-runs-pop{right:0;width:440px}
@@ -4783,7 +4819,9 @@ window.__ModuleLoader__.load({
         }, 60)
         return () => clearInterval(timer)
       }, [jumpRow])
-      const [compareRows, setCompareRows] = React.useState('all') // 'all' | 'changed' | 'judge'
+      const [compareRows, setCompareRows] = React.useState('all') // 'all' | 'changed' | 'judge' | 'opaque'
+      // Range of the image actions on the review page: this file or the batch.
+      const [opScope, setOpScope] = React.useState('file')
       const rowMode = compareRows
       // Comparison rows whose long cells are shown in full.
       const [expanded, setExpanded] = React.useState({})
@@ -5681,6 +5719,11 @@ window.__ModuleLoader__.load({
         const flags = (reviewFile?.items ?? []).filter((item) => !item.decision && item.text).map((item) => item.text)
         const dir = (path) => path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
         const name = (path) => path.slice(path.lastIndexOf('/') + 1)
+        // Open items of the whole batch, for the image actions and "next to judge".
+        const batchOpaqueOpen = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision && isOpaque(item))
+        const fileOpaqueOpen = (reviewFile?.items ?? []).filter((item) => !item.decision && isOpaque(item))
+        const fileJudgeOpen = (reviewFile?.items ?? []).filter((item) => !item.decision && !isOpaque(item)).length
+        const viewMode = (compareRows === 'judge' && fileJudgeOpen === 0) || (compareRows === 'opaque' && batchOpaqueOpen.length === 0) ? 'all' : compareRows
         const pane = () => {
           if (!selected) return h('p', { className: 'ma-empty' }, t('ws.cmp.pick'))
           if (selected.reviewOnly) {
@@ -5729,7 +5772,7 @@ window.__ModuleLoader__.load({
           }
           const openHere = judgeItems.filter((item) => !item.decision)
           const openOpaque = opaqueItems.filter((item) => !item.decision)
-          const mode = (rowMode === 'judge' && openHere.length === 0) || (rowMode === 'opaque' && openOpaque.length === 0) ? 'all' : rowMode
+          const mode = viewMode
           const indexed = rows.map((change, index) => ({ change, index }))
           const visible = mode === 'judge'
             ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => !item.decision))
@@ -5744,12 +5787,11 @@ window.__ModuleLoader__.load({
             : content)
           return h(React.Fragment, {},
             reviewFile ? reviewBlocks(reviewFile, unlocated, opUnlocated) : null,
-            h('div', { className: 'ws-cmp-rowbar' },
-              h('span', { className: 'ma-hint' }, full ? t('ws.cmp.legend') : t('ws.cmp.legacy')),
-              full && adviceRunId ? h('span', { className: 'ma-hint ws-mx-tip' }, t('ws.mx.tip')) : null),
+            full ? null : h('p', { className: 'ma-hint' }, t('ws.cmp.legacy')),
+            mode === 'opaque' && openOpaque.length === 0 ? h('p', { className: 'ma-empty' }, t('ws.cmp.noImagesHere')) : null,
             compareFrom > 0 && visible.length > 0 ? h('button', { className: 'ma-btn ma-small ws-cmp-more', onClick: () => { const from = Math.max(0, compareFrom - 300); setCompareShow(compareShow + (compareFrom - from)); setCompareFrom(from) } }, t('ws.cmp.earlier', { n: compareFrom })) : null,
             visible.length === 0
-              ? h('p', { className: 'ma-empty' }, rows.length === 0 ? t('ws.cmp.empty') : t('ws.cmp.nochange'))
+              ? (mode === 'opaque' ? null : h('p', { className: 'ma-empty' }, rows.length === 0 ? t('ws.cmp.empty') : t('ws.cmp.nochange')))
               : h('table', { className: 'ws-cmp-table', onMouseUp: (event) => onCompareSelect(event, selected) },
                 h('thead', {}, h('tr', {}, h('th', { className: 'ws-cmp-no', title: t('ws.cmp.noHint') }, '#'), h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
                 // Rows flagged for review stay listed beyond the page size.
@@ -5806,59 +5848,6 @@ window.__ModuleLoader__.load({
         } },
           manualPopover(),
           h('aside', { className: 'ws-cmp-side' },
-            (() => {
-              const judge = (reviewData?.files ?? []).flatMap((file) => file.items.filter((item) => !item.decision && !isOpaque(item)).map((item) => ({ file, item })))
-              if (judge.length === 0) return null
-              const open = ({ file, item }) => {
-                const entry = list.find((candidate) => candidate.relPath === file.relPath)
-                if (compareFilter !== 'all' && !(compareFilter === 'review')) setCompareFilter('review')
-                if (entry) setCompareSel(entry.n)
-                setCompareRows('judge')
-                setFocusReview(item.id)
-              }
-              return h('div', { className: 'ws-cmp-judge' },
-                h('b', {}, t('ws.rv.judgeTitle', { count: judge.length })),
-                h('ul', {}, judge.map((pair) => h('li', { key: pair.item.id },
-                  h('button', { type: 'button', className: `ma-link${focusReview === pair.item.id ? ' ws-on' : ''}`, title: pair.file.relPath, onClick: () => open(pair) },
-                    h('span', { className: 'ws-cmp-judge-code' }, t(`ws.rv.code.${pair.item.code}`) === `ws.rv.code.${pair.item.code}` ? pair.item.code : t(`ws.rv.code.${pair.item.code}`)),
-                    pair.item.type ? h('span', {}, ` · ${pair.item.type}`) : null,
-                    h('small', {}, name(pair.file.relPath)))))))
-            })(),
-            (() => {
-              const pending = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code))
-              if (pending.length === 0) return null
-              const removable = pending.filter((item) => item.code === 'opaque').length
-              const images = pending.filter((item) => item.image && item.baseId)
-              const seen = images.filter((item) => item.vision && !item.vision.error)
-              const suggestRemove = pending.filter((item) => item.code === 'opaque' && item.vision?.suggestion === 'remove')
-              const suggestKeep = pending.filter((item) => item.vision?.suggestion === 'keep')
-              const visionOn = config?.imageCheck === true
-              const checking = imageJob?.state === 'running'
-              const visionRow = images.length === 0 ? null
-                : checking ? h('div', { className: 'ws-vis-row' }, h('span', {}, t('ws.vis.running', { done: imageJob.done, total: imageJob.total })), h('div', { className: 'wd-fl-bar' }, h('i', { style: { width: `${imageJob.total ? Math.round((imageJob.done / imageJob.total) * 100) : 0}%` } })))
-                  : seen.length < images.length
-                    ? h('div', { className: 'ws-vis-row' },
-                      h('button', { className: 'ma-btn ma-small', disabled: !visionOn || anyRunning || reviewBusy !== null, title: !visionOn ? t('ws.vis.offHint') : anyRunning ? t('ws.vis.busyHint') : t('ws.vis.runHint'), onClick: startImageCheck },
-                        imageGlyph(), ` ${seen.length ? t('ws.vis.runRest', { n: images.length - seen.length }) : t('ws.vis.run', { n: images.length })}`),
-                      imageJob?.state === 'failed' ? h('span', { className: 'ma-hint ma-error' }, imageJob.error) : null)
-                    : null
-              const summary = seen.length
-                ? h('div', { className: 'ws-vis-sum' },
-                  Object.entries(seen.reduce((map, item) => ({ ...map, [item.vision.category]: (map[item.vision.category] ?? 0) + 1 }), {}))
-                    .sort((x, y) => y[1] - x[1])
-                    .map(([category, count]) => h('span', { key: category }, `${t(`ws.vis.cat.${category}`)} ${count}`)))
-                : null
-              return h('div', { className: 'ws-cmp-bulk', title: t('ws.rv.bulkHint') },
-                h('span', {}, t('ws.rv.bulkTitle', { count: pending.length })),
-                visionRow,
-                summary,
-                suggestRemove.length || suggestKeep.length ? h('div', { className: 'ma-actions' },
-                  suggestRemove.length ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null, title: t('ws.vis.removeHint'), onClick: () => bulkReview('remove', undefined, (item) => item.vision?.suggestion === 'remove') }, t('ws.vis.removeSuggested', { n: suggestRemove.length })) : null,
-                  suggestKeep.length ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.vis.keepHint'), onClick: () => bulkReview('accept', undefined, (item) => item.vision?.suggestion === 'keep') }, t('ws.vis.keepSuggested', { n: suggestKeep.length })) : null) : null,
-                h('div', { className: 'ma-actions' },
-                  removable ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null, onClick: () => bulkReview('remove') }, reviewBusy === 'bulk' ? t('save.saving') : t('ws.rv.bulkRemove', { count: removable })) : null,
-                  h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, onClick: () => bulkReview('accept') }, t('ws.rv.bulkKeep'))))
-            })(),
             h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'review'].map((id) => h('button', {
               key: id, type: 'button', className: `ws-cmp-filter${compareFilter === id ? ' ws-on' : ''}`, onClick: () => setCompareFilter(id),
             }, t(`ws.cmp.f.${id}`), h('i', {}, String(id === 'all' ? list.length : id === 'changed' ? list.filter((entry) => entry.changed > 0).length : list.filter((entry) => reviewByPath.has(entry.relPath)).length))))),
@@ -5877,50 +5866,99 @@ window.__ModuleLoader__.load({
                   : h('span', { className: 'ma-mono ws-cmp-n' }, String(entry.changed)))
             }))),
           h('section', { className: 'ws-cmp-main' },
-            h('div', { className: 'ws-cmp-bar' },
-              h('span', { className: 'ma-mono ws-cmp-path', title: selected?.relPath ?? '' }, selected?.relPath ?? ''),
-              selected ? h('span', { className: 'ma-hint' }, t('ws.cmp.stats', { changed: selected.changed, total: selected.total })) : null,
-              // Stays in the fixed bar, so it is reachable however far the table is scrolled.
-              (() => {
-                const openJudge = (reviewFile?.items ?? []).filter((item) => !item.decision && !isOpaque(item)).length
-                const openOpaque = (reviewFile?.items ?? []).filter((item) => !item.decision && isOpaque(item))
-                const current = (compareRows === 'judge' && openJudge === 0) || (compareRows === 'opaque' && openOpaque.length === 0) ? 'all' : compareRows
-                const count = { changed: Number(selected?.changed ?? 0), judge: openJudge, opaque: openOpaque.length }
-                return h(React.Fragment, {},
+            // Row 2: the open file and moving between files / items to judge.
+            (() => {
+              // Items to judge across the batch, in file-list order.
+              const order = new Map(list.map((entry, index) => [entry.relPath, index]))
+              const pairs = (reviewData?.files ?? []).flatMap((file) => file.items.filter((item) => !item.decision && !isOpaque(item)).map((item) => ({ file, item })))
+                .sort((x, y) => (order.get(x.file.relPath) ?? 0) - (order.get(y.file.relPath) ?? 0))
+              const at = pairs.findIndex((pair) => pair.item.id === focusReview)
+              const here = order.get(selected?.relPath) ?? -1
+              const next = pairs.length === 0 ? null
+                : at >= 0 ? pairs[(at + 1) % pairs.length]
+                  : pairs.find((pair) => (order.get(pair.file.relPath) ?? 0) >= here && pair.file.relPath !== selected?.relPath) ?? pairs.find((pair) => pair.file.relPath === selected?.relPath) ?? pairs[0]
+              const goJudge = () => {
+                if (!next) return
+                const entry = list.find((candidate) => candidate.relPath === next.file.relPath)
+                if (compareFilter === 'changed' && entry && !(entry.changed > 0)) setCompareFilter('review')
+                if (entry) setCompareSel(entry.n)
+                setCompareRows('judge')
+                setCompareShow(300)
+                setCompareFrom(0)
+                setFocusReview(next.item.id)
+              }
+              return h('div', { className: 'ws-cmp-bar' },
+                h('span', { className: 'ma-mono ws-cmp-path', title: selected?.relPath ?? '' }, selected?.relPath ?? ''),
+                selected ? h('span', { className: 'ma-hint' }, t('ws.cmp.stats', { changed: selected.changed, total: selected.total })) : null,
+                h('span', { className: 'ma-mono' }, shown.length ? `${position < 0 ? '—' : position + 1} / ${shown.length}` : ''),
+                h('button', { className: 'ma-btn ma-small', disabled: position <= 0, onClick: () => go(-1) }, `↑ ${t('ws.cmp.prev')}`),
+                h('button', { className: 'ma-btn ma-small', disabled: position < 0 || position >= shown.length - 1, onClick: () => go(1) }, `↓ ${t('ws.cmp.next')}`),
+                h('button', { className: 'ma-btn ma-small ws-cmp-nextjudge', disabled: !next, title: next ? `${codeLabel(next.item)} · ${next.file.relPath}` : '', onClick: goJudge },
+                  t('ws.cmp.nextJudge'), pairs.length ? h('i', {}, String(pairs.length)) : null, ' →'))
+            })(),
+            // Row 3: how the table is shown (left) and what changes the data (right).
+            (() => {
+              const count = { changed: Number(selected?.changed ?? 0), judge: fileJudgeOpen, opaque: fileOpaqueOpen.length }
+              const scope = fileOpaqueOpen.length === 0 ? 'batch' : opScope
+              const scoped = scope === 'file' ? fileOpaqueOpen : batchOpaqueOpen
+              const scopeFiles = scope === 'file' && reviewFile ? [reviewFile] : undefined
+              const removable = scoped.filter((item) => item.code === 'opaque').length
+              const images = batchOpaqueOpen.filter((item) => item.image && item.baseId)
+              const seen = images.filter((item) => item.vision && !item.vision.error)
+              const suggestRemove = scoped.filter((item) => item.code === 'opaque' && item.vision?.suggestion === 'remove').length
+              const suggestKeep = scoped.filter((item) => item.vision?.suggestion === 'keep').length
+              const cats = Object.entries(scoped.filter((item) => item.vision && !item.vision.error).reduce((map, item) => ({ ...map, [item.vision.category]: (map[item.vision.category] ?? 0) + 1 }), {})).sort((x, y) => y[1] - x[1])
+              const checking = imageJob?.state === 'running'
+              const visionOn = config?.imageCheck === true
+              const busy = reviewBusy !== null
+              return h('div', { className: 'ws-cmp-tools' },
+                h('div', { className: 'ws-cmp-view' },
                   h('div', { className: 'ws-cmp-modes', role: 'radiogroup' }, ['all', 'changed', 'judge', 'opaque'].map((id) => h('button', {
-                    key: id, type: 'button', role: 'radio', 'aria-checked': current === id ? 'true' : 'false',
-                    className: `ws-cmp-mode${current === id ? ' ws-on' : ''}${id === 'judge' ? ' ws-cmp-mode-judge' : ''}`,
+                    key: id, type: 'button', role: 'radio', 'aria-checked': viewMode === id ? 'true' : 'false',
+                    className: `ws-cmp-mode${viewMode === id ? ' ws-on' : ''}${id === 'judge' ? ' ws-cmp-mode-judge' : ''}`,
                     title: id === 'changed' ? t('ws.cmp.onlyHint') : id === 'opaque' ? t('ws.rv.bulkHint') : undefined,
-                    disabled: (id === 'judge' && openJudge === 0) || (id === 'opaque' && openOpaque.length === 0),
+                    disabled: (id === 'judge' && fileJudgeOpen === 0) || (id === 'opaque' && batchOpaqueOpen.length === 0),
                     onClick: () => { setCompareRows(id); setCompareShow(300); setCompareFrom(0); setJumpRow(null) },
                   }, id === 'opaque' ? imageGlyph() : null, t(`ws.cmp.mode.${id}`), id in count ? h('i', { className: id === 'judge' && count.judge > 0 ? 'ws-cnt-hot' : '' }, String(count[id])) : null))),
-                  current === 'opaque' && openOpaque.length ? h('span', { className: 'ma-actions ws-cmp-opbulk' },
-                    openOpaque.some((item) => item.code === 'opaque') ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !reviewFile.editable, title: reviewFile.editable ? t('ws.rv.removeHint') : reviewFile.reason, onClick: () => bulkReview('remove', [reviewFile]) }, t('ws.rv.fileRemove')) : null,
-                    h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => bulkReview('accept', [reviewFile]) }, t('ws.rv.fileKeep'))) : null)
-              })(),
-              // Jump to a row number (the # column): shown in the full view.
-              h('form', {
-                className: 'ws-cmp-jump', title: t('ws.cmp.jumpHint'),
-                onSubmit: (event) => {
-                  event.preventDefault()
-                  const input = event.currentTarget.elements.row
-                  const n = Number(String(input.value).trim())
-                  const rows = data?.changes ?? []
-                  if (!Number.isInteger(n) || n < 1 || rows.length === 0) return
-                  const index = rows.findIndex((change, i) => rowNumber(change, i) === n)
-                  if (index < 0) { setReviewNote({ ok: false, text: selected?.truncated && n <= Number(selected.total ?? 0) ? t('ws.cmp.jumpCapped', { n, shown: selected.truncated }) : t('ws.cmp.jumpMissing', { n }) }); return }
-                  setReviewNote(null)
-                  setCompareRows('all')
-                  setCompareFrom(Math.max(0, index - 100))
-                  setCompareShow(300)
-                  setJumpRow(n)
-                },
-              },
-                h('span', {}, t('ws.cmp.jumpTo')),
-                h('input', { name: 'row', type: 'text', inputMode: 'numeric', autoComplete: 'off', placeholder: '#', disabled: !data?.changes?.length })),
-              h('span', { className: 'ma-mono' }, shown.length ? `${position < 0 ? '—' : position + 1} / ${shown.length}` : ''),
-              h('button', { className: 'ma-btn ma-small', disabled: position <= 0, onClick: () => go(-1) }, `↑ ${t('ws.cmp.prev')}`),
-              h('button', { className: 'ma-btn ma-small', disabled: position < 0 || position >= shown.length - 1, onClick: () => go(1) }, `↓ ${t('ws.cmp.next')}`)),
+                  // Jump to a row number (the # column): shown in the full view.
+                  h('form', {
+                    className: 'ws-cmp-jump', title: t('ws.cmp.jumpHint'),
+                    onSubmit: (event) => {
+                      event.preventDefault()
+                      const input = event.currentTarget.elements.row
+                      const n = Number(String(input.value).trim())
+                      const rows = data?.changes ?? []
+                      if (!Number.isInteger(n) || n < 1 || rows.length === 0) return
+                      const index = rows.findIndex((change, i) => rowNumber(change, i) === n)
+                      if (index < 0) { setReviewNote({ ok: false, text: selected?.truncated && n <= Number(selected.total ?? 0) ? t('ws.cmp.jumpCapped', { n, shown: selected.truncated }) : t('ws.cmp.jumpMissing', { n }) }); return }
+                      setReviewNote(null)
+                      setCompareRows('all')
+                      setCompareFrom(Math.max(0, index - 100))
+                      setCompareShow(300)
+                      setJumpRow(n)
+                    },
+                  },
+                    h('span', {}, t('ws.cmp.jumpTo')),
+                    h('input', { name: 'row', type: 'text', inputMode: 'numeric', autoComplete: 'off', placeholder: '#', disabled: !data?.changes?.length }))),
+                // Actions on images and other unreadable content, in the image view only.
+                viewMode === 'opaque' && batchOpaqueOpen.length ? h('div', { className: 'ws-cmp-act' },
+                  h('div', { className: 'ws-cmp-scope', role: 'radiogroup', title: t('ws.cmp.scopeHint') }, ['file', 'batch'].map((id) => h('button', {
+                    key: id, type: 'button', role: 'radio', 'aria-checked': scope === id ? 'true' : 'false',
+                    className: `ws-cmp-mode${scope === id ? ' ws-on' : ''}`, disabled: id === 'file' && fileOpaqueOpen.length === 0,
+                    onClick: () => setOpScope(id),
+                  }, t(`ws.cmp.scope.${id}`), h('i', {}, String(id === 'file' ? fileOpaqueOpen.length : batchOpaqueOpen.length))))),
+                  cats.length ? h('span', { className: 'ws-cmp-cats' }, cats.slice(0, 4).map(([category, n]) => `${t(`ws.vis.cat.${category}`)} ${n}`).join(' · ')) : null,
+                  checking
+                    ? h('span', { className: 'ws-cmp-checking' }, t('ws.vis.running', { done: imageJob.done, total: imageJob.total }), h('span', { className: 'wd-fl-bar' }, h('i', { style: { width: `${imageJob.total ? Math.round((imageJob.done / imageJob.total) * 100) : 0}%` } })))
+                    : seen.length < images.length
+                      ? h('button', { className: 'ma-btn ma-small', disabled: !visionOn || anyRunning || busy, title: !visionOn ? t('ws.vis.offHint') : anyRunning ? t('ws.vis.busyHint') : imageJob?.state === 'failed' ? imageJob.error : t('ws.vis.runHint'), onClick: startImageCheck },
+                        imageGlyph(), ` ${seen.length ? t('ws.vis.runRest', { n: images.length - seen.length }) : t('ws.vis.run', { n: images.length })}`)
+                      : null,
+                  suggestRemove ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: busy, title: t('ws.vis.removeHint'), onClick: () => bulkReview('remove', scopeFiles, (item) => item.vision?.suggestion === 'remove') }, t('ws.vis.removeSuggested', { n: suggestRemove })) : null,
+                  suggestKeep ? h('button', { className: 'ma-btn ma-small', disabled: busy, title: t('ws.vis.keepHint'), onClick: () => bulkReview('accept', scopeFiles, (item) => item.vision?.suggestion === 'keep') }, t('ws.vis.keepSuggested', { n: suggestKeep })) : null,
+                  removable ? h('button', { className: `ma-btn ma-small${suggestRemove ? '' : ' ma-primary'}`, disabled: busy || (scope === 'file' && !reviewFile?.editable), title: scope === 'file' && !reviewFile?.editable ? reviewFile?.reason : t('ws.rv.removeHint'), onClick: () => bulkReview('remove', scopeFiles) }, reviewBusy === 'bulk' ? t('save.saving') : t('ws.rv.bulkRemove', { count: removable })) : null,
+                  h('button', { className: 'ma-btn ma-small', disabled: busy, title: t('ws.rv.keepHint'), onClick: () => bulkReview('accept', scopeFiles) }, t('ws.rv.bulkKeep'))) : null)
+            })(),
             reviewNote ? h('p', { className: `ws-cmp-note ${reviewNote.ok ? 'ma-hint ma-ok' : 'ma-hint ma-error'}` }, reviewNote.text) : null,
             h('div', { className: 'ws-cmp-pane' }, pane())))
       }
@@ -6885,7 +6923,12 @@ window.__ModuleLoader__.load({
           compareOpen ? h('section', { className: 'wd-full wd-cmp-page' },
             h('div', { className: 'wd-cmp-head' },
               h('b', {}, t('ws.cmp.title')), h('span', { className: 'ma-mono wd-cmp-run' }, current?.id ?? ''),
-              h('span', { className: 'ma-hint' }, t('ws.cmp.keys'))),
+              h('span', { className: 'ws-lg' },
+                h('span', { className: 'ws-lg-del' }, t('ws.lg.del')),
+                h('span', { className: 'ws-lg-ins' }, t('ws.lg.ins')),
+                h('span', { className: 'ws-lg-flag' }, t('ws.lg.flag')),
+                h('span', { className: 'ws-lg-sus' }, t('ws.lg.sus'))),
+              h('span', { className: 'ws-lg-info', tabIndex: 0, title: `${t('ws.mx.tip')}\n${t('ws.cmp.keys')}` }, 'ⓘ')),
             compareBody()) : null,
           view === 'drawer' && !compareOpen ? h('section', { className: 'wd-full' },
             h('div', { className: 'ws-drawer-wrap', style: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } },
