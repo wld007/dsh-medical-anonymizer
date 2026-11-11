@@ -119,6 +119,23 @@ try {
     assert.equal(flagAt('编号 2026 已登记', '2026'), 3)
     assert.equal(flagAt('联系林主任', '林主任'), 2)
   })
+
+  await check('长批次复核项：银行卡只认独立的数字串；复合编号整段替换不算「部分替换」', async () => {
+    const { wholeParts } = await import('../lib/pipeline.js')
+    const luhn = (s) => { for (let d = 0; d < 10; d++) { const x = s + d; let sum = 0; [...x].reverse().forEach((c, i) => { let n = +c; if (i % 2) { n *= 2; if (n > 9) n -= 9 } sum += n }); if (sum % 10 === 0) return x } }
+    const card = luhn('622202020000123')
+    const cards = (text) => scan(text).filter((e) => e.type === '银行卡号').map((e) => e.text)
+    assert.deepEqual(cards(card), [card])
+    assert.deepEqual(cards(`${card}X1234`), [])
+    assert.deepEqual(cards(`A1${card}`), [])
+    assert.deepEqual(cards(`card${card}`), [card], 'a word before the card still counts')
+    assert.equal(wholeParts('330100000000000-12345678901', '330100000000000-病历-1A2B3C'), true)
+    assert.equal(wholeParts('123456,654321', '病历-1A2B3C,病历-4D5E6F'), true)
+    assert.equal(wholeParts('12345678901-9', '病历-1A2B3C-9'), true)
+    assert.equal(wholeParts('2026-06-05', '病历-1A2B3C-06-05'), false, 'a year is never a replaced whole')
+    assert.equal(wholeParts('12345678901', '123病历-1A2B3C'), false)
+    assert.equal(wholeParts('12345678/87654321', '病历-1A2B3C/87654321'), false, 'a same-length sibling stays in review')
+  })
 } finally {
   await rm(tmp, { recursive: true, force: true })
 }
