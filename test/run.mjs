@@ -8,7 +8,7 @@ import { readFile, writeFile, rm, stat, mkdir, readdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as XLSX from '../vendor/xlsx.mjs'
-import { runBatch, echoesPseudonym } from '../lib/pipeline.js'
+import { runBatch, echoesPseudonym, parseServerMetrics } from '../lib/pipeline.js'
 import { createLlm } from '../lib/llm.js'
 import { createService } from '../lib/service.js'
 import { Vault } from '../lib/pseudonym.js'
@@ -991,7 +991,7 @@ async function main() {
   const prompts = { detect: [], verify: [] }
   const detector = { model: 'det-a', async chatJson(messages) { const p = messages.map((m) => m.content).join('\n'); prompts.detect.push(p); return p.includes('另一位审查员') ? { json: { verdicts: [] } } : { json: { entities: [] } } } }
   const reviewer = { model: 'rev-b', async chatJson(messages) { prompts.verify.push(messages.map((m) => m.content).join('\n')); return { json: { issues: [] } } } }
-  const sepRun = await runBatch({ inputDir: join(fixtures, 'note1.txt'), outputRoot: join(tmp, 'sep-out'), options: { runId: 'sep-1', llm: detector, verifyLlm: reviewer, model: 'det-a' } })
+  const sepRun = await runBatch({ inputDir: join(fixtures, 'note1.txt'), outputRoot: join(tmp, 'sep-out'), options: { runId: 'sep-1', llm: detector, verifyLlm: reviewer, model: 'det-a', concurrency: 3, verifyConcurrency: 9 } })
   await check('核验可用独立模型；核验提示不含替换值清单，以外部审查员身份提问', async () => {
     assert.equal(sepRun.status, 'completed')
     assert.ok(prompts.verify.length >= 1)
@@ -1006,6 +1006,24 @@ async function main() {
     assert.ok(log.filter((e) => e.stage === '盲审').every((e) => e.model === 'rev-b'))
     assert.ok(sepRun.totals.models.detect.calls > 0 && sepRun.totals.models.verify.calls > 0, JSON.stringify(sepRun.totals.models))
     assert.ok(log.filter((e) => e.stage === '识别·替换').every((e) => !e.model))
+    // Each model has its own request slots; throughput samples per model.
+    assert.equal(sepRun.requests.detect.limit, 3)
+    assert.equal(sepRun.requests.verify.limit, 9)
+    assert.equal(sepRun.config.verifyConcurrency, 9)
+    assert.ok(sepRun.loadSeries.done.length === sepRun.loadSeries.points.length && sepRun.loadSeries.done.every((row) => row.length === 4), JSON.stringify(sepRun.loadSeries))
+  })
+  await check('读取 vLLM /metrics：按模型名取运行、排队、KV 占用和生成总量', () => {
+    const text = [
+      '# HELP vllm:num_requests_running x',
+      'vllm:num_requests_running{engine="0",model_name="a"} 3.0',
+      'vllm:num_requests_running{engine="0",model_name="b"} 9.0',
+      'vllm:num_requests_waiting{engine="0",model_name="a"} 2.0',
+      'vllm:num_requests_waiting_by_reason{engine="0",model_name="a",reason="capacity"} 5.0',
+      'vllm:kv_cache_usage_perc{engine="0",model_name="a"} 0.42',
+      'vllm:generation_tokens_total{engine="0",model_name="a"} 1.5e+06',
+    ].join('\n')
+    assert.deepEqual(parseServerMetrics(text, 'a'), { running: 3, waiting: 2, kv: 0.42, generated: 1500000 })
+    assert.equal(parseServerMetrics('ollama_up 1', 'a'), null)
   })
 
   // One large file: its batches run concurrently, never above the limit;

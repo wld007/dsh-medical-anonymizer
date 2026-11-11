@@ -75,8 +75,8 @@ window.__ModuleLoader__.load({
       'run.roundsHint': '每轮都以核验结束：第 1 轮识别后核验；有可疑项时进入下一轮，先复判修正再核验。用完轮次仍有问题的转人工复核。',
       'run.maxFiles': '每组文件数',
       'run.concurrency': '模型并发',
-      'run.concurrencyTip': '每个模型同时处理的请求数；同时处理的文件数自动为它的 3 倍（最多 32 个）。',
-      'run.concurrencyHint': '每组文件数：输入超出时自动分组，依次处理，不丢文件。模型并发是每个模型同时处理的请求数。同时处理的文件数为模型并发的 3 倍（最多 32 个），后面文件的请求提前排队，模型不会空等；内存用到 70% 时暂停补充新文件。',
+      'run.concurrencyTip': '每个模型同时处理的请求数；同时处理的文件数自动为它的 3 倍（最多 64 个）。',
+      'run.concurrencyHint': '每组文件数：输入超出时自动分组，依次处理，不丢文件。模型并发是每个模型同时处理的请求数。同时处理的文件数为模型并发的 3 倍（最多 64 个），后面文件的请求提前排队，模型不会空等；内存用到 70% 时暂停补充新文件。',
       'run.maxDicom': '单批 DICOM 文件上限',
       'model.timeout': '单次模型调用超时（秒）',
       'model.temperature': '温度（0 最稳定）',
@@ -121,6 +121,7 @@ window.__ModuleLoader__.load({
       'field.maxRounds': '核验轮次上限',
       'field.maxFiles': '每组文件数',
       'field.concurrency': '模型并发',
+      'field.verifyConcurrency': '核验并发',
       'field.maxDicomFiles': 'DICOM 上限',
       'field.timeoutMs': '模型超时',
       'field.temperature': '温度',
@@ -262,6 +263,26 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'run.concurrencyDetect': '识别并发',
+      'run.concurrencyVerify': '核验并发',
+      'ws.ps.concurrency2': '并发 {d}/{v}',
+      'ws.m.thru': '吞吐 次/分',
+      'ws.m.thruHint': '每分钟完成的调用数（运行中为最近约 30 秒，结束后为全程平均）。提高并发后这个数还在涨，说明服务器还有余力；不涨了就是到顶。',
+      'ws.m.thruNow': '最近 30 秒：{calls} 次/分，输出 {out} tok/s',
+      'ws.m.thruAll': '全程：{calls} 次/分，输出 {out} tok/s；30 秒峰值 {peak} 次/分',
+      'ws.m.srvLoad': '服务器 运行/排队',
+      'ws.m.srvKv': '服务器 KV',
+      'ws.m.srvNa': '不可读',
+      'ws.m.srvHint': '推理服务器自己的指标（vLLM /metrics，含其他客户端的请求）：运行 = 服务器正在计算的请求数，排队 = 服务器内部等待的请求数，KV = KV 缓存占用。结束后显示峰值。',
+      'ws.m.srvNaHint': '读取不到服务器的 /metrics（不是 vLLM、未开放或需要认证），只能参考插件这边的数字。',
+      'ws.m.srvNow': '当前：运行 {running} · 排队 {waiting} · KV {kv}% · 服务器生成 {gen} tok/s',
+      'ws.m.srvPeak': '本批峰值：运行 {running} · 排队 {waiting} · KV {kv}%',
+      'ws.m.verdictHint': '按最近约 1 分钟的数据判断：插件这边的名额是否用满，以及服务器是否已经排队或 KV 缓存接近满载。',
+      'ws.m.vIdle': '名额只在 {pct}% 的时间用满，瓶颈不在并发（在读取拆层、另一模型或文件供给），加并发无用',
+      'ws.m.vFull': '服务器已饱和（平均排队 {waiting} · KV 峰值 {kv}%），再加并发只会排队，可维持或略降',
+      'ws.m.vUp': '名额用满，服务器仍有余量（运行 {running} · 无排队 · KV {kv}%），可试 {next} 并观察吞吐是否上升',
+      'ws.m.vTry': '名额用满且有排队，读不到服务器指标；可试 {next}，吞吐上升就保留，不升或耗时翻倍就退回',
+      'ws.m.vTryLite': '名额基本用满，读不到服务器指标；可试 {next}，看吞吐是否上升',
       'ws.tab.cross': '交叉核验',
       'ws.xt.none': '该批次没有交叉核验明细（新版本之前运行的批次，或没有独立盲审）。',
       'ws.xt.empty': '没有符合条件的记录。',
@@ -365,7 +386,7 @@ window.__ModuleLoader__.load({
       'ws.m.busyCollect': '正在采样…',
       'ws.m.inflightTag': '进行',
       'ws.m.queueTag': '排队',
-      'ws.m.busyAxis': '横轴以上：进行中的请求（虚线 = 模型并发 {limit}）；横轴以下：插件内排队（峰值 {max}）。覆盖最近约 {minutes} 分钟。',
+      'ws.m.busyAxis': '横轴以上：进行中的请求，各模型按自己的并发上限缩放（虚线 = 名额全满）；横轴以下：插件内排队（峰值 {max}）。覆盖最近约 {minutes} 分钟。',
       'ws.m.queueChart': '插件内排队',
       'ws.m.queuePeak': '排队峰值 {max}',
       'ws.m.queueMax': '峰值 {max} · 当前 {now}',
@@ -727,8 +748,8 @@ window.__ModuleLoader__.load({
       'run.roundsHint': 'Every round ends with verification: round 1 verifies after detection; with suspects, the next round re-judges and fixes, then verifies again. Files still failing after the last round go to manual review.',
       'run.maxFiles': 'Files per chunk',
       'run.concurrency': 'Model concurrency',
-      'run.concurrencyTip': 'Requests each model handles at once; three times as many files (at most 32) are processed at once.',
-      'run.concurrencyHint': 'Files per chunk: larger inputs are split and processed in turn; nothing is dropped. Concurrency is the number of requests each model handles at once. Three times as many files (at most 32) are processed at once, so later files queue requests and the model never waits; no new files start while memory use is at 70% or more.',
+      'run.concurrencyTip': 'Requests each model handles at once; three times as many files (at most 64) are processed at once.',
+      'run.concurrencyHint': 'Files per chunk: larger inputs are split and processed in turn; nothing is dropped. Concurrency is the number of requests each model handles at once. Three times as many files (at most 64) are processed at once, so later files queue requests and the model never waits; no new files start while memory use is at 70% or more.',
       'run.maxDicom': 'DICOM files per batch (cap)',
       'model.timeout': 'Model call timeout (seconds)',
       'model.temperature': 'Temperature (0 is most stable)',
@@ -773,6 +794,7 @@ window.__ModuleLoader__.load({
       'field.maxRounds': 'max rounds',
       'field.maxFiles': 'files per chunk',
       'field.concurrency': 'concurrency',
+      'field.verifyConcurrency': 'verifier concurrency',
       'field.maxDicomFiles': 'DICOM cap',
       'field.timeoutMs': 'model timeout',
       'field.temperature': 'temperature',
@@ -914,6 +936,26 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'run.concurrencyDetect': 'Detector concurrency',
+      'run.concurrencyVerify': 'Verifier concurrency',
+      'ws.ps.concurrency2': 'conc {d}/{v}',
+      'ws.m.thru': 'Calls/min',
+      'ws.m.thruHint': 'Completed calls per minute (last ~30 s while running, whole batch afterwards). If it still rises after raising concurrency, the server has room; if not, it is at its limit.',
+      'ws.m.thruNow': 'Last 30 s: {calls}/min, output {out} tok/s',
+      'ws.m.thruAll': 'Whole batch: {calls}/min, output {out} tok/s; 30-s peak {peak}/min',
+      'ws.m.srvLoad': 'Server run/wait',
+      'ws.m.srvKv': 'Server KV',
+      'ws.m.srvNa': 'n/a',
+      'ws.m.srvHint': 'The inference server’s own metrics (vLLM /metrics, other clients included): running = requests being computed, waiting = queued on the server, KV = KV-cache use. Peaks after the batch.',
+      'ws.m.srvNaHint': 'The server’s /metrics cannot be read (not vLLM, not exposed, or needs auth); only the plugin’s numbers are available.',
+      'ws.m.srvNow': 'Now: running {running} · waiting {waiting} · KV {kv}% · server generation {gen} tok/s',
+      'ws.m.srvPeak': 'Batch peak: running {running} · waiting {waiting} · KV {kv}%',
+      'ws.m.verdictHint': 'From about the last minute: are the plugin’s slots full, and is the server queueing or near a full KV cache.',
+      'ws.m.vIdle': 'Slots full only {pct}% of the time: the bottleneck is elsewhere (reading, the other model, file supply); more concurrency will not help',
+      'ws.m.vFull': 'Server saturated (avg waiting {waiting} · KV peak {kv}%): more concurrency only queues; keep or lower it',
+      'ws.m.vUp': 'Slots full, server has room (running {running} · no queue · KV {kv}%): try {next} and watch calls/min',
+      'ws.m.vTry': 'Slots full with a queue, no server metrics: try {next}; keep it if calls/min rises, go back if not or if time per call doubles',
+      'ws.m.vTryLite': 'Slots mostly full, no server metrics: try {next} and watch calls/min',
       'ws.tab.cross': 'Cross-check',
       'ws.xt.none': 'No cross-check detail for this batch (run before this version, or no blind review).',
       'ws.xt.empty': 'Nothing matches.',
@@ -1017,7 +1059,7 @@ window.__ModuleLoader__.load({
       'ws.m.busyCollect': 'Sampling…',
       'ws.m.inflightTag': 'run',
       'ws.m.queueTag': 'queue',
-      'ws.m.busyAxis': 'Above the axis: requests in flight (dashed = concurrency {limit}); below: queued in the plugin (peak {max}). Covers about the last {minutes} min.',
+      'ws.m.busyAxis': 'Above the axis: requests in flight, each model scaled to its own concurrency (dashed = all slots in use); below: queued in the plugin (peak {max}). Covers about the last {minutes} min.',
       'ws.m.queueChart': 'Queued in plugin',
       'ws.m.queuePeak': 'queue peak {max}',
       'ws.m.queueMax': 'peak {max} · now {now}',
@@ -1795,6 +1837,12 @@ window.__ModuleLoader__.load({
       .ws-x-gleaves .ws-x-zero{opacity:.45}
       .ws-xt-chip.ws-xt-filtered{background:color-mix(in srgb,var(--dsw-alias-label-primary) 35%,transparent)}
       .ws-xt-chip.ws-xt-unlocated{background:color-mix(in srgb,var(--dsw-alias-state-danger-primary,#d4380d) 80%,transparent)}
+      .ws-verdicts{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+      .ws-verdict{display:flex;gap:6px;align-items:baseline;font-size:11px;line-height:15px;padding:3px 6px;border-radius:5px;border-left:3px solid var(--dsw-alias-label-secondary);background:color-mix(in srgb,var(--dsw-alias-label-primary) 5%,transparent);color:var(--dsw-alias-label-secondary)}
+      .ws-verdict b{flex:none;color:var(--dsw-alias-label-primary);font-weight:600}
+      .ws-verdict-up{border-left-color:var(--dsw-alias-state-success-primary)}
+      .ws-verdict-full{border-left-color:var(--dsw-alias-state-warn-primary)}
+      .ws-verdict-idle{border-left-color:var(--dsw-alias-label-secondary)}
       .ws-busy-now{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-primary);margin-left:2px}
       .ws-busy-now.ws-mt-warn{color:var(--dsw-alias-state-warn-primary)}
       .ws-busy-qhead{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);margin-top:2px}
@@ -2334,6 +2382,7 @@ window.__ModuleLoader__.load({
       const [maxRounds, setMaxRounds] = React.useState(3)
       const [maxFiles, setMaxFiles] = React.useState(200)
       const [concurrency, setConcurrency] = React.useState(4)
+      const [verifyConcurrency, setVerifyConcurrency] = React.useState(4)
       const [maxDicomFiles, setMaxDicomFiles] = React.useState(50000)
       const [timeoutSec, setTimeoutSec] = React.useState(120)
       const [temperature, setTemperature] = React.useState(0)
@@ -2370,6 +2419,7 @@ window.__ModuleLoader__.load({
         setMaxRounds(Number(info.maxRounds ?? 3))
         setMaxFiles(Number(info.maxFiles ?? 200))
         setConcurrency(Number(info.concurrency ?? 4))
+        setVerifyConcurrency(Number(info.verifyConcurrency ?? info.concurrency ?? 4))
         setMaxDicomFiles(Number(info.maxDicomFiles ?? 50000))
         setTimeoutSec(Math.round(Number(info.timeoutMs ?? 120000) / 1000))
         setTemperature(Number(info.temperature ?? 0))
@@ -2416,6 +2466,7 @@ window.__ModuleLoader__.load({
         ['maxRounds', Number(maxRounds) !== Number(config.maxRounds ?? 3)],
         ['maxFiles', Number(maxFiles) !== Number(config.maxFiles ?? 200)],
         ['concurrency', Number(concurrency) !== Number(config.concurrency ?? 4)],
+        ['verifyConcurrency', Number(verifyConcurrency) !== Number(config.verifyConcurrency ?? config.concurrency ?? 4)],
         ['maxDicomFiles', Number(maxDicomFiles) !== Number(config.maxDicomFiles ?? 50000)],
         ['timeoutMs', Number(timeoutSec) * 1000 !== Number(config.timeoutMs ?? 120000)],
         ['temperature', Number(temperature) !== Number(config.temperature ?? 0)],
@@ -2469,6 +2520,7 @@ window.__ModuleLoader__.load({
             maxRounds: Number(maxRounds),
             maxFiles: Number(maxFiles),
             concurrency: Number(concurrency),
+            verifyConcurrency: Number(verifyConcurrency),
             maxDicomFiles: Number(maxDicomFiles),
             timeoutMs: Math.round(Number(timeoutSec) * 1000),
             temperature: Number(temperature),
@@ -2524,7 +2576,7 @@ window.__ModuleLoader__.load({
       const tabFields = {
         model: ['baseURL', 'model', 'apiKey', 'verifyModel', 'disableThinking', 'timeoutMs', 'temperature'],
         rules: ['rules'],
-        batch: ['outputRoot', 'maxRounds', 'maxFiles', 'concurrency', 'maxDicomFiles', 'vaultPassphrase', 'showSidebarEntry'],
+        batch: ['outputRoot', 'maxRounds', 'maxFiles', 'concurrency', 'verifyConcurrency', 'maxDicomFiles', 'vaultPassphrase', 'showSidebarEntry'],
         guide: [],
       }
       const tabs = ['model', 'rules', 'batch', 'guide']
@@ -2742,11 +2794,16 @@ window.__ModuleLoader__.load({
                 className: 'ma-input', type: 'number', min: 1, max: 2000, value: maxFiles,
                 onChange: (event) => setMaxFiles(Number(event.target.value)),
               })),
-            h('label', { className: 'ma-field' }, t('run.concurrency'),
+            h('label', { className: 'ma-field' }, verifyModelName.trim() ? t('run.concurrencyDetect') : t('run.concurrency'),
               h('input', {
-                className: 'ma-input', type: 'number', min: 1, max: 16, value: concurrency,
+                className: 'ma-input', type: 'number', min: 1, max: 64, value: concurrency,
                 onChange: (event) => setConcurrency(Number(event.target.value)),
               })),
+            verifyModelName.trim() ? h('label', { className: 'ma-field' }, t('run.concurrencyVerify'),
+              h('input', {
+                className: 'ma-input', type: 'number', min: 1, max: 64, value: verifyConcurrency,
+                onChange: (event) => setVerifyConcurrency(Number(event.target.value)),
+              })) : null,
             h('label', { className: 'ma-field' }, t('run.maxDicom'),
               h('input', {
                 className: 'ma-input', type: 'number', min: 1, max: 500000, value: maxDicomFiles,
@@ -3227,6 +3284,7 @@ window.__ModuleLoader__.load({
       return {
         maxRounds: Number(info?.maxRounds ?? 3),
         concurrency: Number(info?.concurrency ?? 4),
+        verifyConcurrency: Number(info?.verifyConcurrency ?? info?.concurrency ?? 4),
         maxFiles: Number(info?.maxFiles ?? 200),
         timeoutSec: Math.round(Number(info?.timeoutMs ?? 120000) / 1000),
         temperature: Number(info?.temperature ?? 0),
@@ -3510,6 +3568,7 @@ window.__ModuleLoader__.load({
           const batchParams = draft ? {
             maxRounds: draft.maxRounds,
             concurrency: draft.concurrency,
+            verifyConcurrency: draft.verifyConcurrency,
             maxFiles: draft.maxFiles,
             timeoutMs: Math.round(Number(draft.timeoutSec) * 1000),
             temperature: draft.temperature,
@@ -3594,6 +3653,7 @@ window.__ModuleLoader__.load({
       const runParams = running && current?.config ? {
         maxRounds: Number(current.config.maxRounds ?? draft?.maxRounds),
         concurrency: Number(current.config.concurrency ?? draft?.concurrency),
+        verifyConcurrency: Number(current.config.verifyConcurrency ?? current.config.concurrency ?? draft?.verifyConcurrency),
         maxFiles: Number(current.config.chunkSize ?? draft?.maxFiles),
         timeoutSec: current.config.timeoutMs ? Math.round(current.config.timeoutMs / 1000) : draft?.timeoutSec,
         temperature: Number(current.config.temperature ?? draft?.temperature ?? 0),
@@ -3607,7 +3667,7 @@ window.__ModuleLoader__.load({
         const shown = runParams ?? draft
         const summaryText = [
           t('ws.ps.rounds', { n: shown.maxRounds }),
-          t('ws.ps.concurrency', { n: shown.concurrency }),
+          (running ? current?.config?.verifyModel : config?.verifyModel) ? t('ws.ps.concurrency2', { d: shown.concurrency, v: shown.verifyConcurrency }) : t('ws.ps.concurrency', { n: shown.concurrency }),
           t('ws.ps.chunk', { n: shown.maxFiles }),
           `${shown.timeoutSec}s`,
           t('ws.ps.temp', { n: Number(shown.temperature).toFixed(1) }),
@@ -5048,6 +5108,81 @@ window.__ModuleLoader__.load({
                 }
                 // Token counts as 2.3k / 4.6k so a cell stays narrow.
                 const kTok = (value) => (value >= 1000 ? `${(value / 1000).toFixed(value >= 100000 ? 0 : 1)}k` : String(Math.round(value)))
+                // Throughput per model from the completed-call samples: the last
+                // ~30 s while running, the whole batch afterwards.
+                const doneSeries = current?.loadSeries?.done ?? []
+                const stepMs = Number(current?.loadSeries?.step ?? 2000)
+                const doneAt = (row, key) => (key === 'verify' ? [row?.[2] ?? 0, row?.[3] ?? 0] : [row?.[0] ?? 0, row?.[1] ?? 0])
+                const throughput = (key, window) => {
+                  if (doneSeries.length < 2) return null
+                  const last = doneSeries.length - 1
+                  const first = window ? Math.max(0, last - Math.max(1, Math.round(window / stepMs))) : 0
+                  const span = ((last - first) * stepMs) / 1000
+                  if (span <= 0) return null
+                  const [c1, o1] = doneAt(doneSeries[last], key)
+                  const [c0, o0] = doneAt(doneSeries[first], key)
+                  return { perMin: ((c1 - c0) / span) * 60, outPerSec: (o1 - o0) / span }
+                }
+                const peakThroughput = (key) => {
+                  const k = Math.max(1, Math.round(30000 / stepMs))
+                  let best = 0
+                  for (let i = k; i < doneSeries.length; i += 1) best = Math.max(best, ((doneAt(doneSeries[i], key)[0] - doneAt(doneSeries[i - k], key)[0]) / ((k * stepMs) / 1000)) * 60)
+                  return best
+                }
+                const thruCell = (key) => {
+                  const now = throughput(key, running ? 30000 : 0)
+                  return now ? now.perMin.toFixed(now.perMin >= 10 ? 0 : 1) : '—'
+                }
+                const thruHint = (key) => {
+                  const now = throughput(key, 30000)
+                  const all = throughput(key, 0)
+                  return `${t('ws.m.thruHint')}\n${now ? t('ws.m.thruNow', { calls: now.perMin.toFixed(1), out: Math.round(now.outPerSec) }) : ''}${all ? `\n${t('ws.m.thruAll', { calls: all.perMin.toFixed(1), out: Math.round(all.outPerSec), peak: peakThroughput(key).toFixed(1) })}` : ''}`
+                }
+                // Inference-server load (vLLM /metrics): running / waiting, KV cache.
+                const srv = (key) => current?.server?.[key] ?? null
+                const srvLoadCell = (key) => {
+                  const v = srv(key)
+                  if (!v) return '—'
+                  if (v.available === false) return h('span', { className: 'ws-x-sub' }, t('ws.m.srvNa'))
+                  if (!running) return `${v.peakRunning}/${v.peakWaiting}`
+                  return `${v.running ?? 0}/${v.waiting ?? 0}`
+                }
+                const srvKvCell = (key) => {
+                  const v = srv(key)
+                  if (!v || v.available !== true) return '—'
+                  return `${Math.round(((running ? v.kv : v.peakKv) ?? 0) * 100)}%`
+                }
+                const srvHint = (key) => {
+                  const v = srv(key)
+                  const base = t('ws.m.srvHint')
+                  if (!v) return base
+                  if (v.available === false) return `${base}\n${t('ws.m.srvNaHint')}`
+                  return `${base}\n${t('ws.m.srvNow', { running: v.running ?? 0, waiting: v.waiting ?? 0, kv: Math.round((v.kv ?? 0) * 100), gen: v.genRate === null || v.genRate === undefined ? '—' : Math.round(v.genRate) })}\n${t('ws.m.srvPeak', { running: v.peakRunning, waiting: v.peakWaiting, kv: Math.round((v.peakKv ?? 0) * 100) })}`
+                }
+                // Verdict per model over the last minute: should concurrency go up?
+                const verdict = (key) => {
+                  const pts = (current?.loadSeries?.points ?? []).slice(-30)
+                  const limit = Number(current?.requests?.[key]?.limit ?? 0)
+                  if (pts.length < 10 || !limit) return null
+                  const [ai, qi] = key === 'verify' ? [2, 3] : [0, 1]
+                  const fullShare = pts.filter((p) => (p[ai] ?? 0) >= limit).length / pts.length
+                  const queuedShare = pts.filter((p) => (p[qi] ?? 0) > 0).length / pts.length
+                  const v = srv(key)
+                  const samples = v?.available ? v.samples.slice(-12) : []
+                  const avg = (index) => (samples.length ? samples.reduce((sum, row) => sum + (row[index] ?? 0), 0) / samples.length : null)
+                  const waiting = avg(1)
+                  const kv = samples.length ? Math.max(...samples.map((row) => row[2] ?? 0)) : null
+                  const running_ = avg(0)
+                  if (fullShare < 0.6) return { tone: 'idle', text: t('ws.m.vIdle', { pct: Math.round(fullShare * 100) }) }
+                  if (samples.length && (waiting >= 1 || kv >= 0.9)) return { tone: 'full', text: t('ws.m.vFull', { waiting: waiting.toFixed(1), kv: Math.round(kv * 100) }) }
+                  if (samples.length) return { tone: 'up', text: t('ws.m.vUp', { running: running_.toFixed(1), kv: Math.round(kv * 100), next: Math.min(64, limit * 2) }) }
+                  return { tone: 'up', text: t(queuedShare > 0.5 ? 'ws.m.vTry' : 'ws.m.vTryLite', { next: Math.min(64, limit * 2) }) }
+                }
+                const verdicts = running ? cols.map((key) => [key, verdict(key)]).filter(([, v]) => v) : []
+                const verdictBox = verdicts.length
+                  ? h('div', { className: 'ws-verdicts', title: t('ws.m.verdictHint') }, verdicts.map(([key, v]) => h('div', { key, className: `ws-verdict ws-verdict-${v.tone}` },
+                    h('b', {}, key === 'verify' ? t('ws.verifyModel') : (separate ? t('ws.model') : t('ws.modelShared'))), h('span', {}, v.text))))
+                  : null
                 // Failed calls (cancelled ones excluded) and retries per model.
                 const FAIL_LABEL = (code) => callResultLabel(t, code)
                 const failCell = (m) => {
@@ -5070,6 +5205,9 @@ window.__ModuleLoader__.load({
                   // One row: average output tokens / average time per call.
                   [t('ws.m.perCall'), (key) => (models[key]?.okN ? `${models[key].outSum ? kTok(models[key].outSum / models[key].okN) : '—'} / ${(models[key].msSum / models[key].okN / 1000).toFixed(1)}s` : '—'),
                     (key) => `${t('ws.m.outPerHint')}\n${t('ws.m.msPerHint')}\n${t('ws.m.speed')} ${fmtSpeed(speedOf(key))}\n${speedHint(key)}`],
+                  [t('ws.m.thru'), (key) => thruCell(key), (key) => thruHint(key)],
+                  [t('ws.m.srvLoad'), (key) => srvLoadCell(key), (key) => srvHint(key)],
+                  [t('ws.m.srvKv'), (key) => srvKvCell(key), (key) => srvHint(key), (key) => ((current?.server?.[key]?.kv ?? 0) >= 0.9 ? 'warn' : '')],
                 ]
                 const table = h('div', { className: `ws-mtable${separate ? '' : ' ws-mtable-one'}` },
                   h('span', { className: 'ws-mt-head' }),
@@ -5115,8 +5253,11 @@ window.__ModuleLoader__.load({
                   // queued in the plugin, on their own scale.
                   const AX = H / 2
                   const x = (index) => (index / Math.max(1, points.length - 1)) * W
-                  const up = (value) => AX - (Math.min(value, limit) / limit) * (AX - 3)
-                  const line = (pick) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${up(pick(p)).toFixed(1)}`).join(' ')
+                  // Each model is drawn against its own concurrency: the dashed
+                  // line means "all of that model's slots in use".
+                  const vLimit = Number(current?.requests?.verify?.limit ?? current?.config?.verifyConcurrency ?? limit)
+                  const up = (value, lim = limit) => AX - (Math.min(value, lim) / lim) * (AX - 3)
+                  const line = (pick, lim = limit) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${up(pick(p), lim).toFixed(1)}`).join(' ')
                   const qMax = Math.max(1, ...points.map((p) => Math.max(p[1], p[3] ?? 0)))
                   void qMax
                   const down = (value) => AX + (value / qMax) * (AX - 3)
@@ -5143,14 +5284,14 @@ window.__ModuleLoader__.load({
                         !empty && hasVerify ? h('path', { className: 'ws-busy-lv ws-busy-q', d: qLine((p) => p[3] ?? 0) }) : null,
                         // Light fill between the in-flight lines and the axis.
                         empty ? null : h('path', { className: 'ws-busy-fd', d: `${line((p) => p[0])} L${W} ${AX} L0 ${AX} Z` }),
-                        !empty && hasVerify ? h('path', { className: 'ws-busy-fv', d: `${line((p) => p[2] ?? 0)} L${W} ${AX} L0 ${AX} Z` }) : null,
+                        !empty && hasVerify ? h('path', { className: 'ws-busy-fv', d: `${line((p) => p[2] ?? 0, vLimit)} L${W} ${AX} L0 ${AX} Z` }) : null,
                         h('line', { className: 'ws-busy-axis', x1: 0, x2: W, y1: AX, y2: AX }),
                         empty ? null : h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
-                        !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0) }) : null),
+                        !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0, vLimit) }) : null),
                       empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null,
                     ))
                 })()
-                return h(React.Fragment, {}, splitBar, sumLine, table, busy)
+                return h(React.Fragment, {}, splitBar, sumLine, table, verdictBox, busy)
               })()),
             crossCheckPanel(),
             null)),
