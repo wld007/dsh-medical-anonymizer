@@ -287,6 +287,9 @@ window.__ModuleLoader__.load({
       'wd.results': '处理结果',
       'wd.resources': '资源',
       'wd.alerts': '待办 · 告警',
+      'wd.aMore': '还有 {n} 条',
+      'ws.md.lines': '{n} 行',
+      'wd.aLess': '收起',
       'wd.perMin': '件/分',
       'wd.min': 'min',
       'wd.bytes': '字节',
@@ -1081,6 +1084,9 @@ window.__ModuleLoader__.load({
       'wd.results': 'Results',
       'wd.resources': 'Resources',
       'wd.alerts': 'To do · alerts',
+      'wd.aMore': '{n} more',
+      'ws.md.lines': '{n} lines',
+      'wd.aLess': 'Show less',
       'wd.perMin': '/min',
       'wd.min': 'min',
       'wd.bytes': 'Bytes',
@@ -2150,6 +2156,9 @@ window.__ModuleLoader__.load({
       .ws-md h1{font-size:18px;margin:6px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--ws-accent)}
       .ws-md h2{font-size:15px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--ws-accent)}
       .ws-md h3{font-size:13.5px;margin:16px 0 6px}
+      .ws-md h3.ws-md-fold{display:flex;align-items:baseline;gap:10px;margin:6px 0}
+      .ws-md-fold .ma-link{font:inherit;font-weight:600;color:var(--dsw-alias-label-primary);text-align:left}
+      .ws-md-fold small{font-weight:400;font-size:11px;color:var(--wd-ink3,var(--dsw-alias-label-tertiary))}
       .ws-md h4{font-size:13px;margin:12px 0 4px}
       .ws-md p{margin:6px 0}
       .ws-md ul,.ws-md ol{margin:4px 0 8px;padding-left:20px}
@@ -2467,7 +2476,9 @@ window.__ModuleLoader__.load({
       .wd-tab.wd-tab-gap{margin-left:14px}
       .wd-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
       .wd-main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:8px}
-      .wd-stage{position:relative;min-height:0;overflow:hidden;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:radial-gradient(ellipse at 45% 55%,rgba(34,199,192,.08),transparent 62%),var(--ws-paper);display:flex;flex-direction:column}
+      .wd-left{min-width:0;min-height:0;display:flex;flex-direction:column;gap:8px}
+      .wd-left>.wd-stage{flex:1}
+      .wd-stage{container-type:inline-size;container-name:wdstage;position:relative;min-height:0;overflow:hidden;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:radial-gradient(ellipse at 45% 55%,rgba(34,199,192,.08),transparent 62%),var(--ws-paper);display:flex;flex-direction:column}
       .wd-stage-head{position:absolute;left:12px;right:12px;top:9px;z-index:2;display:flex;align-items:center;gap:12px;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .wd-legend{display:flex;gap:10px}
       .wd-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
@@ -2533,7 +2544,7 @@ window.__ModuleLoader__.load({
       .wd-rank>div>i{display:block;height:100%;border-radius:2px}
       .wd-rank>b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:var(--dsw-alias-label-primary);text-align:right}
       .wd-ovr-list{display:flex;flex-direction:column;gap:3px}
-      .wd-bottom{flex:none;display:grid;grid-template-columns:1fr 1.1fr 1.1fr 1.2fr;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);min-height:150px}
+      .wd-bottom{flex:none;display:grid;grid-template-columns:1fr 1.1fr 1.1fr;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);min-height:150px}
       .wd-ro{padding:10px 14px 12px;border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;justify-content:space-between;gap:7px;min-width:0}
       .wd-ro>.wd-roh{flex:none}
       .wd-ro>.wd-gauges{flex:1;align-items:center}
@@ -2553,6 +2564,23 @@ window.__ModuleLoader__.load({
       .wd-lg b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);margin-left:3px}
       .wd-path{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--wd-ink3);min-width:0}
       .wd-path span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+      .wd-ov-tr{top:40px;right:12px;width:300px;max-height:calc(100% - 90px);overflow:auto;gap:2px;padding:6px 10px}
+      .wd-al-head{display:flex;align-items:center;gap:6px;width:100%;padding:2px 0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}
+      .wd-al-head b{font-size:12px;font-weight:600;letter-spacing:1px}
+      .wd-al-head .wd-en{margin-left:2px}
+      .wd-al-n{margin-left:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--wd-ink3)}
+      .wd-al-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-success-primary)}
+      .wd-al-list{display:flex;flex-direction:column}
+      .wd-al-more{align-self:flex-start;font-size:11px;padding:3px 0 1px}
+      .wd-ov-tr.wd-al-crit{border-color:var(--dsw-alias-state-error-primary);box-shadow:inset 3px 0 0 var(--dsw-alias-state-error-primary)}
+      .wd-ov-tr.wd-al-crit .wd-al-dot{animation:wd-al-pulse 1.4s ease-in-out infinite}
+      @keyframes wd-al-pulse{50%{opacity:.25}}
+      .wd-ov-tr.wd-al-ok{flex-direction:row;align-items:center;gap:6px;width:auto;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .wd-ov-shut .wd-al-list{display:none}
+      @container wdstage (max-width:820px){.wd-ov-tr:not(.wd-ov-open) .wd-al-list{display:none}.wd-ov-tr:not(.wd-ov-open){width:auto}}
+      .wd-ov-shut{width:auto}
+      .wd-alert-info i{height:14px}
+      .wd-alert small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .wd-alert{display:grid;grid-template-columns:3px 1fr auto;gap:9px;align-items:center;padding:4px 0;border-bottom:1px solid var(--dsw-alias-border-l1);background:none;border-left:0;border-right:0;border-top:0;color:inherit;font:inherit;text-align:left;width:100%}
       .wd-alert[data-click]{cursor:pointer}
       .wd-alert[data-click]:hover b{color:var(--wd-acc2)}
@@ -3896,6 +3924,10 @@ window.__ModuleLoader__.load({
       // Dark layout: the main view, the station shown on the right, the new-batch popover.
       const [view, setView] = React.useState('line') // 'line' | 'drawer' | 'runs'
       const [stationSel, setStationSel] = React.useState(null)
+      // Alerts overlay on the line: null = automatic (folded when the stage
+      // is narrow), 'open' / 'shut' once the reviewer toggles it; all = past 3.
+      const [alertFold, setAlertFold] = React.useState(null)
+      const [alertAll, setAlertAll] = React.useState(false)
       const [newOpen, setNewOpen] = React.useState(false)
       const [runsOpen, setRunsOpen] = React.useState(false)
       // Follow the Harness theme (light / dark).
@@ -5734,6 +5766,37 @@ window.__ModuleLoader__.load({
       const RANK = { crit: 0, warn: 1, info: 2, ok: 3 }
       alerts.sort((a, b) => RANK[a.tone] - RANK[b.tone])
       if (alerts.length === 0) alerts.push({ tone: 'ok', tag: '正常', title: current ? t('wd.aNone') : t('wd.aIdle'), sub: '' })
+      // To do and alerts, top-right of the line: at most 3 (then "+N"),
+      // notices in one line, the worst one marked; folds to a pill when narrow.
+      const ALERT_COLOR = { crit: 'var(--dsw-alias-state-error-primary)', warn: 'var(--dsw-alias-state-warn-primary)', ok: 'var(--dsw-alias-state-success-primary)', info: 'var(--wd-ink3)' }
+      const alertOverlay = () => {
+        if (!current) return null
+        const real = alerts.filter((a) => a.tone !== 'ok')
+        const worst = real[0]?.tone ?? 'ok'
+        if (real.length === 0) {
+          return h('div', { className: 'wd-ov wd-ov-tr wd-al-ok' }, h('i', { className: 'wd-al-dot' }), h('span', {}, alerts[0].title))
+        }
+        const shown = alertAll ? real : real.slice(0, 3)
+        const toggle = (event) => {
+          const list = event.currentTarget.parentElement.querySelector('.wd-al-list')
+          const visible = list && window.getComputedStyle(list).display !== 'none'
+          setAlertFold(visible ? 'shut' : 'open')
+        }
+        return h('div', { className: `wd-ov wd-ov-tr wd-al-${worst}${alertFold ? ` wd-ov-${alertFold}` : ''}` },
+          h('button', { type: 'button', className: 'wd-al-head', onClick: toggle, title: t('ws.collapse') },
+            h('i', { className: 'wd-al-dot', style: { background: ALERT_COLOR[worst] } }),
+            h('b', {}, t('wd.alerts')), enKicker('ALERTS'),
+            h('span', { className: 'wd-al-n' }, String(real.length))),
+          h('div', { className: 'wd-al-list' },
+            shown.map((a, index) => h('button', {
+              key: index, type: 'button', className: `wd-alert wd-alert-${a.tone}`, 'data-click': a.onClick ? '1' : undefined, onClick: a.onClick, disabled: !a.onClick,
+            },
+              h('i', { style: { background: ALERT_COLOR[a.tone] } }),
+              h('div', { style: { minWidth: 0 } }, h('b', {}, a.title), a.sub && a.tone !== 'info' ? h('small', {}, a.sub) : null),
+              h('span', { className: `wd-chip wd-c-${a.tone}` }, a.tag))),
+            real.length > 3 ? h('button', { type: 'button', className: 'ma-link wd-al-more', onClick: () => setAlertAll(!alertAll) },
+              alertAll ? t('wd.aLess') : t('wd.aMore', { n: real.length - 3 })) : null))
+      }
       const etaMin = running && rate > 0 && planned > done ? (planned - done) / rate : null
       const fmtEta = (min) => (min >= 60 ? `${Math.floor(min / 60)}:${String(Math.round(min % 60)).padStart(2, '0')}` : `${Math.max(1, Math.round(min))}`)
       const gauge = (label, ratio, detail, tone = '', title = '') => {
@@ -6048,6 +6111,7 @@ window.__ModuleLoader__.load({
         h('div', { className: 'wd-body' },
           view === 'line' ? h(React.Fragment, {},
             h('div', { className: 'wd-main' },
+              h('div', { className: 'wd-left' },
               h('section', { className: 'wd-stage' },
                 h('div', { className: 'wd-stage-head' },
                   h('b', { style: { fontSize: 12.5 } }, t('ws.line')),
@@ -6085,16 +6149,10 @@ window.__ModuleLoader__.load({
                         h('b', {}, `${((f.durationMs ?? 0) / 1000).toFixed(f.durationMs < 10000 ? 1 : 0)}s`)))) : null)
                 })() : null,
                 !current ? h('div', { className: 'wd-ov', style: { left: '50%', top: '42%', transform: 'translate(-50%,-50%)', textAlign: 'center' } }, h('span', {}, t('wd.empty'))) : null,
+                alertOverlay(),
                 h('div', { className: 'wd-strip' },
                   h('span', { className: 'wd-cap' }, planned > 240 ? t('wd.stripGroup', { n: Math.ceil(planned / 240) }) : t('wd.strip')),
                   h('div', { className: 'ws-pieces', ref: piecesRef }, workpieces()))),
-              h('aside', { className: 'wd-side' },
-                stationSel
-                  ? stationDetail(stationSel)
-                  : h(React.Fragment, {},
-                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), enKicker('BATCH OVERVIEW')),
-                    modelOverview(),
-                    block('wd.secCross', 'CROSS-CHECK', crossCheckPanel({ open: true }))))),
             h('section', { className: 'wd-bottom' },
               // Progress
               h('div', { className: 'wd-ro' },
@@ -6132,16 +6190,14 @@ window.__ModuleLoader__.load({
                   gauge(t('wd.heap'), memRatio, mem?.heapLimit ? `${((running ? mem.heapUsed : mem.peakHeap) / GB).toFixed(1)} / ${(mem.heapLimit / GB).toFixed(1)}G` : '—', memRatio >= 0.85 ? 'crit' : memRatio >= 0.7 ? 'warn' : '', t('ws.m.memHint')),
                   gauge(t('wd.disk'), disk?.total ? 1 - disk.free / disk.total : null, disk?.total ? t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }) : '—', disk?.total && disk.free < 5 * GB ? 'crit' : disk?.total && disk.free < 20 * GB ? 'warn' : '', t('wd.diskHint')),
                   srvGauge('detect'),
-                  verifierName ? srvGauge('verify') : null)),
-              // To do and alerts
-              h('div', { className: 'wd-ro' },
-                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.alerts'), enKicker('ALERTS')), h('span', { className: 'wd-cap' }, String(alerts.filter((a) => a.tone !== 'ok').length))),
-                alerts.slice(0, 3).map((a, index) => h('button', {
-                  key: index, type: 'button', className: 'wd-alert', 'data-click': a.onClick ? '1' : undefined, onClick: a.onClick, disabled: !a.onClick,
-                },
-                  h('i', { style: { background: a.tone === 'crit' ? 'var(--dsw-alias-state-error-primary)' : a.tone === 'warn' ? 'var(--dsw-alias-state-warn-primary)' : a.tone === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--wd-ink3)' } }),
-                  h('div', { style: { minWidth: 0 } }, h('b', {}, a.title), a.sub ? h('small', { style: { display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, a.sub) : null),
-                  h('span', { className: `wd-chip wd-c-${a.tone}` }, a.tag)))))) : null,
+                  verifierName ? srvGauge('verify') : null)))),
+              h('aside', { className: 'wd-side' },
+                stationSel
+                  ? stationDetail(stationSel)
+                  : h(React.Fragment, {},
+                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), enKicker('BATCH OVERVIEW')),
+                    modelOverview(),
+                    block('wd.secCross', 'CROSS-CHECK', crossCheckPanel({ open: true })))))) : null,
           compareOpen ? h('section', { className: 'wd-full wd-cmp-page' },
             h('div', { className: 'wd-cmp-head' },
               h('b', {}, t('ws.cmp.title')), h('span', { className: 'ma-mono wd-cmp-run' }, current?.id ?? ''),
@@ -6385,14 +6441,14 @@ window.__ModuleLoader__.load({
       return out
     }
 
-    function MarkdownView({ text }) {
-      const lines = String(text ?? '').split(/\r?\n/)
+    // Markdown blocks for a slice of lines (keys stay unique across slices).
+    function markdownBlocks(lines, base = 0) {
       const blocks = []
       let i = 0
       const cells = (line) => line.trim().replace(/^\||\|$/g, '').split('|').map((cell) => cell.trim())
       while (i < lines.length) {
         const line = lines[i]
-        const key = `b${i}`
+        const key = `b${base + i}`
         if (!line.trim()) { i += 1; continue }
         const heading = /^(#{1,4})\s+(.*)$/.exec(line)
         if (heading) {
@@ -6435,7 +6491,48 @@ window.__ModuleLoader__.load({
         if (para.length === 0) { para.push(line); i += 1 }
         blocks.push(h('p', { key }, inlineMd(para.join(' '), key)))
       }
-      return h('div', { className: 'ws-md' }, blocks)
+      return blocks
+    }
+
+    // A report runs to tens of thousands of lines (one section per file), so
+    // long "###" sections start folded and are only built when opened; the
+    // split is cached per text, so reopening the tab is instant.
+    const MD_FOLD_LINES = 40
+    let markdownMemo = { text: null, sections: [] }
+    function markdownSections(text) {
+      if (markdownMemo.text === text) return markdownMemo.sections
+      const lines = String(text ?? '').split(/\r?\n/)
+      const sections = []
+      let cur = { head: null, start: 0, lines: [] }
+      lines.forEach((line, index) => {
+        if (/^#{1,3}\s/.test(line)) {
+          if (cur.head !== null || cur.lines.length) sections.push(cur)
+          cur = { head: line, start: index, lines: [] }
+        } else cur.lines.push(line)
+      })
+      sections.push(cur)
+      for (const section of sections) {
+        section.fold = section.head !== null && /^###\s/.test(section.head) && section.lines.length > MD_FOLD_LINES
+        section.blocks = null
+      }
+      markdownMemo = { text, sections }
+      return sections
+    }
+    function MarkdownView({ text }) {
+      const [open, setOpen] = React.useState({})
+      const sections = markdownSections(text)
+      const build = (section) => (section.blocks ??= markdownBlocks(section.head === null ? section.lines : [section.head, ...section.lines], section.start))
+      return h('div', { className: 'ws-md' }, sections.map((section) => {
+        if (!section.fold) return h(React.Fragment, { key: `s${section.start}` }, build(section))
+        const on = open[section.start] === true
+        const title = section.head.replace(/^###\s+/, '')
+        return h(React.Fragment, { key: `s${section.start}` },
+          h('h3', { className: 'ws-md-fold' },
+            h('button', { type: 'button', className: 'ma-link', 'aria-expanded': on ? 'true' : 'false', onClick: () => setOpen({ ...open, [section.start]: !on }) },
+              `${on ? '▾' : '▸'} `, inlineMd(title, `f${section.start}`)),
+            h('small', {}, services.t('ws.md.lines', { n: section.lines.filter((line) => line.trim()).length }))),
+          on ? (section.body ??= markdownBlocks(section.lines, section.start + 1)) : null)
+      }))
     }
 
     // Original artwork: a medical record (clipboard with a cross) whose text
