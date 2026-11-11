@@ -2185,11 +2185,11 @@ window.__ModuleLoader__.load({
       .wd-conc-plot .ws-busy-gutter span:nth-child(1){top:-1px}
       .wd-conc-plot .ws-busy-gutter span:nth-child(2){top:calc(75% - 6px)}
       .wd-conc-plot .ws-busy-gutter span:nth-child(3){bottom:-4px}
-      .wd-conc-act{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
-      .wd-conc-lim{fill:none;stroke-width:1.2;stroke-dasharray:4 3;vector-effect:non-scaling-stroke;opacity:.85}
+      .wd-conc-act{fill:none;stroke-width:2.2;vector-effect:non-scaling-stroke}
+      .wd-conc-lim{fill:none;stroke-width:.8;stroke-dasharray:3 3;vector-effect:non-scaling-stroke;opacity:.5}
       .wd-conc-lim-d{stroke:var(--ws-accent)}
       .wd-conc-lim-v{stroke:#3b82c4}
-      .wd-conc-thrline{fill:none;stroke:var(--wd-vio);stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.9}
+      .wd-conc-thrline{fill:none;stroke:var(--wd-vio);stroke-width:1;vector-effect:non-scaling-stroke;opacity:.45}
       .wd-conc-thr{color:var(--wd-vio)}
       .wd-conc-thr em{color:var(--wd-vio)}
       .wd-conc-rg{flex:none;width:26px;position:relative;font-size:9.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--wd-vio)}
@@ -2197,8 +2197,8 @@ window.__ModuleLoader__.load({
       .wd-conc-lg{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:10.5px;color:var(--dsw-alias-label-secondary)}
       .wd-conc-lg span{display:inline-flex;align-items:center;gap:4px}
       .wd-conc-lg i{display:inline-block;width:14px;height:0;border-top:2px solid var(--dsw-alias-label-primary)}
-      .wd-conc-lg i.wd-lg-lim{border-top:1.5px dashed var(--dsw-alias-label-secondary)}
-      .wd-conc-lg i.wd-lg-thr{border-top-color:var(--wd-vio)}
+      .wd-conc-lg i.wd-lg-lim{border-top:1px dashed var(--dsw-alias-label-secondary);opacity:.6}
+      .wd-conc-lg i.wd-lg-thr{border-top:1px solid var(--wd-vio);opacity:.6}
       .wd-conc-lg i.wd-lg-q{border-top:1px solid var(--dsw-alias-label-secondary);opacity:.6}
       .wd-conc-f{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--dsw-alias-label-secondary);padding:0 30px}
       .wd-conc-f .ma-mono{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
