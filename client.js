@@ -279,7 +279,6 @@ window.__ModuleLoader__.load({
       'wd.overview': '批次概览',
       'wd.version': '版本',
       'wd.runsShort': '记录',
-      'wd.pctEta': '完成 · 约 {eta}{unit}',
       'wd.peakAt': '峰值 {pct}%',
       'wd.rss': '进程常驻',
       'wd.rssPeak': '峰值 {gb}G',
@@ -1109,7 +1108,6 @@ window.__ModuleLoader__.load({
       'wd.overview': 'Batch overview',
       'wd.version': 'Version',
       'wd.runsShort': 'Batches',
-      'wd.pctEta': 'done · ~{eta}{unit} left',
       'wd.peakAt': 'peak {pct}%',
       'wd.rss': 'process RSS',
       'wd.rssPeak': 'peak {gb}G',
@@ -6266,7 +6264,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'ws-clock wd-clk' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           // Completion beside the clock: visible on every tab.
           current ? h('div', { className: 'ws-clock wd-pct', title: `${done} / ${planned || '—'} ${t('ws.unitFiles')}` },
-            h('span', {}, running && etaMin !== null ? t('wd.pctEta', { eta: fmtEta(etaMin), unit: etaMin >= 60 ? 'h' : t('wd.min') }) : t('wd.bFiles')),
+            h('span', {}, t('wd.bFiles')),
             h('b', {}, String(percent), h('small', {}, '%'))) : null,
           // Plugin version after the readouts.
           config?.version ? h('div', { className: 'ws-clock wd-ver' }, h('span', {}, t('wd.version')), h('b', {}, `v${config.version}`)) : null,
