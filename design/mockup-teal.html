@@ -51,7 +51,7 @@
   .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: 0; }
   .strip { position: absolute; left: 14px; right: 14px; bottom: 10px; }
   .ov { position: absolute; border: 1px solid var(--line2); background: rgba(10,22,27,.82); backdrop-filter: blur(4px); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
-  .ov-tl { left: 14px; bottom: 44px; width: 390px; }
+  .ov-tl { right: 14px; top: 38px; width: 390px; }
   .ov-br { right: 14px; top: 38px; width: 340px; border-color: rgba(245,165,36,.45); }
   .ovh { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; white-space: nowrap; }
   .ovh .btn { white-space: nowrap; }
@@ -81,8 +81,16 @@
   .kv span { display: block; font-size: 10px; color: var(--ink3); letter-spacing: 1px; font-family: var(--mono); }
   .kv b { font-family: var(--mono); font-size: 18px; font-weight: 600; }
   .kv b small { font-size: 10px; color: var(--ink3); margin-left: 3px; font-weight: 400; }
-  .funnel { display: grid; grid-template-columns: 64px 1fr 44px; gap: 6px 8px; align-items: center; font-size: 11.5px; color: var(--ink2); }
+  .funnel { display: grid; grid-template-columns: 70px 1fr 64px; gap: 6px 8px; align-items: center; font-size: 11.5px; color: var(--ink2); }
   .funnel .num { text-align: right; color: var(--ink); font-size: 12px; }
+  .mtab { display: grid; grid-template-columns: auto 1fr 1fr; font-size: 11.5px; color: var(--ink2); }
+  .mtab > * { padding: 3px 6px; white-space: nowrap; }
+  .mtab b { font-family: var(--mono); font-weight: 600; color: var(--ink); text-align: right; }
+  .mtab b small { font-size: 10px; color: var(--ink3); font-weight: 400; }
+  .mtab b.h { font-family: var(--sans); border-bottom: 1px solid var(--line2); }
+  .mtab b.h i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-left: 3px; }
+  .mtab b.m { font-weight: 400; color: var(--ink2); font-size: 10.5px; }
+  .mtab .z { background: rgba(255,255,255,.035); }
 
   .ticks { height: 10px; background: repeating-linear-gradient(90deg, var(--fill, var(--amber)) 0 2px, transparent 2px 5px); width: var(--w); position: relative; }
   .track { height: 10px; background: repeating-linear-gradient(90deg, #1f343d 0 2px, transparent 2px 5px); position: relative; }
@@ -129,7 +137,6 @@
     <div class="tab">记录</div>
     <div class="tab">报告</div>
     <div class="sp"></div>
-    <div class="search">⌕ 搜索文件、字段、假名…</div>
   </div>
 
   <!-- main -->
@@ -148,46 +155,41 @@
         <div class="ovr"><span class="num">证件-75315E/…/C0102_0515_02首次病程.json</span><i>S03 · R1</i><b>9s</b></div>
         <div class="ovr dim"><span>另 3 个文件在 S03 识别·替换</span><i></i><b></b></div>
       </div>
-      <div class="ov ov-br">
-        <div class="ovh"><span class="cap" style="color:var(--warn)">▲ 瓶颈 · 10 分钟</span><span style="display:flex;gap:6px"><span class="btn" style="height:20px;font-size:10.5px;padding:0 8px;border-color:rgba(34,199,192,.6);color:var(--amber2)">核验并发 4 → 8</span><span class="btn" style="height:20px;font-size:10.5px;padding:0 8px">调用 →</span></span></div>
-        <div style="font-size:12.5px;font-weight:600">S05 独立盲审</div>
-        <div class="sub" style="font-size:10.5px;line-height:15px;white-space:nowrap">核验并发已满，部分请求格式出错重试；识别侧空闲</div>
-      </div>
       <div class="strip">
         <div class="row"><span class="cap">文件带 · 每格 36 个文件</span></div>
         <div class="cells" id="cells"></div>
       </div>
     </div>
 
-    <div class="frame drawer">
-      <div class="dh"><b>S05 · 独立盲审</b><span class="chip run">RUNNING</span><span class="sp"></span><span style="color:var(--ink3)">✕</span></div>
-      <div class="sub">核验模型 <span class="num" style="color:var(--ink)">gemma-4-26b</span> · 不告知识别结果，重新找人<br>模型请求 <span class="num" style="color:var(--amber2)">3/4</span> 并发 · <span class="num">146</span> 个请求排队</div>
-      <div class="kv">
-        <div><span>CALLS</span><b>14.6k</b></div>
-        <div><span>FLAGGED</span><b>1770<small>次</small></b></div>
-        <div><span>PER CALL</span><b>3.1<small>s</small></b></div>
-        <div><span>CONTEXT</span><b>2.7k<small>/ 9.1k</small></b></div>
+    <div class="frame drawer" style="gap:10px">
+      <div class="dh"><b style="font-family:var(--sans);letter-spacing:1px">批次概览</b><span class="cap">OVERVIEW</span><span class="sp"></span><span style="font-size:11px;color:var(--ink3)">点工位看详情</span></div>
+      <div class="cap" style="color:var(--ink)">模型 · MODELS</div>
+      <div class="mtab">
+        <span></span><b class="h">识别 <i style="background:var(--amber)"></i></b><b class="h">核验 <i style="background:var(--blue)"></i></b>
+        <span>模型</span><b class="m">qwen3.6-35b</b><b class="m">gemma-4-26b</b>
+        <span class="z">并发 · 排队</span><b class="z">4/4 · +12</b><b class="z">3/4 · +146</b>
+        <span>调用</span><b>11.3k</b><b>15.9k</b>
+        <span class="z">失败</span><b class="z">0.3% <small>↻291</small></b><b class="z" style="color:var(--warn)">3.1% <small>↻1095</small></b>
+        <span>每次</span><b>3.7s · 101 tok</b><b>3.5s · 120 tok</b>
+        <span class="z">上下文 均/最大</span><b class="z">1.1k / 5.6k</b><b class="z">2.7k / 9.1k</b>
       </div>
-      <div class="sep"></div>
-      <div class="dh"><span class="cap">吞吐 · 60 MIN</span><span class="sp"></span><span class="num" style="font-size:11px;color:var(--ink2)">峰值 39 件/分</span></div>
-      <svg viewBox="0 0 300 74" style="width:100%;height:74px">
-        <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c7c0" stop-opacity=".35"/><stop offset="1" stop-color="#22c7c0" stop-opacity="0"/></linearGradient></defs>
-        <line x1="0" y1="20" x2="300" y2="20" stroke="#26404a" stroke-dasharray="3 4"/>
-        <line x1="0" y1="66" x2="300" y2="66" stroke="#1a2c34"/>
-        <path id="spark" fill="url(#ga)" stroke="none"/><path id="sparkl" fill="none" stroke="#22c7c0" stroke-width="1.6"/>
-        <circle id="sparkd" r="3" fill="#7fe9e2"/>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink2)"><span>Token <b class="num" style="color:var(--ink)">53.9M</b></span><span>复用 <b class="num" style="color:var(--ink)">40</b></span><span>发送 1% · 免送 99%</span></div>
+      <div class="dh"><span class="cap">请求占用 · 60 MIN</span><span class="sp"></span><span class="num" style="font-size:10.5px;color:var(--ink3)">上：进行 · 下：排队</span></div>
+      <svg viewBox="0 0 300 64" style="width:100%;height:58px" preserveAspectRatio="none">
+        <line x1="0" y1="6" x2="300" y2="6" stroke="#26404a" stroke-dasharray="3 3"/><line x1="0" y1="36" x2="300" y2="36" stroke="#26404a"/>
+        <path id="s1" fill="rgba(34,199,192,.12)" stroke="#22c7c0" stroke-width="1.3"/><path id="s2" fill="rgba(165,139,255,.10)" stroke="#a58bff" stroke-width="1.3"/>
+        <path id="q2" fill="none" stroke="#a58bff" stroke-width="1" opacity=".6"/>
       </svg>
       <div class="sep"></div>
-      <div class="dh"><span class="cap">交叉核验 · 报出 18 661 条</span><span class="sp"></span><span class="num" style="font-size:11px;color:var(--ok)">一致 97%</span></div>
+      <div class="dh"><span class="cap" style="color:var(--ink)">交叉核验 · 报出 18 661 条</span><span class="sp"></span><span class="num" style="font-size:11px;color:var(--ok)">一致 97%</span></div>
       <div class="funnel">
         <span>过滤</span><div class="track"><div class="ticks" style="--w:22%;--fill:#58717a"></div></div><span class="num">4062</span>
         <span>无法定位</span><div class="track"><div class="ticks" style="--w:9%;--fill:var(--bad)"></div></div><span class="num">1737</span>
         <span>确认</span><div class="track"><div class="ticks" style="--w:67%;--fill:var(--ok)"></div></div><span class="num">12528</span>
-        <span>误报</span><div class="track"><div class="ticks" style="--w:3%;--fill:#8ba5ad"></div></div><span class="num">255</span>
-        <span>分歧</span><div class="track"><div class="ticks" style="--w:2%;--fill:var(--warn)"></div></div><span class="num">75</span>
+        <span>误报 · 分歧</span><div class="track"><div class="ticks" style="--w:3%;--fill:var(--warn)"></div></div><span class="num">255 · 75</span>
       </div>
       <div class="sp"></div>
-      <div class="btn" style="justify-content:center">查看全部盲审明细 →</div>
+      <div class="btn" style="justify-content:center">模型调用明细 →</div>
     </div>
   </div>
 
@@ -197,7 +199,7 @@
       <div class="bh"><span class="cap" style="color:var(--ink)">进度</span><span class="cap" style="color:var(--amber2)">∿ LIVE</span></div>
       <div class="big"><div><span>FILES</span><b>72<small>%</small></b></div><div><span>RATE</span><b>16.6<small>件/分</small></b></div><div><span>ETA</span><b style="color:var(--ink2)">2:27<small>h</small></b></div></div>
       <div class="bar"><span>字节</span><div class="track"><div class="ticks" style="--w:68%"></div></div><span class="num">0.93G</span></div>
-      <div class="bar"><span>内存</span><div class="track"><div class="ticks" style="--w:73%;--fill:var(--warn)"></div></div><span class="num">3.0G</span></div>
+      <svg viewBox="0 0 300 26" style="width:100%;height:24px" preserveAspectRatio="none"><path id="rate" fill="rgba(34,199,192,.14)"/><path id="ratel" fill="none" stroke="#22c7c0" stroke-width="1.3"/></svg>
     </div>
     <div class="bp">
       <div class="bh"><span class="cap" style="color:var(--ink)">处理结果</span></div>
@@ -206,15 +208,16 @@
       <div style="display:flex;gap:12px;font-size:11.5px;color:var(--ink2);white-space:nowrap"><span>通过 <b class="num" style="color:var(--ink)">5952</b></span><span>待复核 <b class="num" style="color:var(--warn)">155</b></span><span style="margin-left:auto;color:var(--ink3)">病历号 29% · 医院 20% · 医生 13%</span></div>
     </div>
     <div class="bp">
-      <div class="bh"><span class="cap" style="color:var(--ink)">模型负载</span><span class="num" style="font-size:11px;color:var(--ink3)">发送 1% · 免送 99%</span></div>
-      <div class="bar" style="grid-template-columns:96px 1fr 78px"><span>识别 <span class="num" style="color:var(--ink3);font-size:10px">qwen3.6</span></span><div class="track"><div class="ticks" style="--w:100%"></div></div><span class="num">4/4 · 0.3%</span></div>
-      <div class="bar" style="grid-template-columns:96px 1fr 78px"><span>核验 <span class="num" style="color:var(--ink3);font-size:10px">gemma-4</span></span><div class="track"><div class="ticks" style="--w:75%;--fill:var(--blue)"></div></div><span class="num" style="color:var(--warn)">3/4 · 3.1%</span></div>
-      <div class="big"><div><span>CALLS</span><b>27.2<small>k</small></b></div><div><span>REUSED</span><b style="color:var(--ink2)">40</b></div><div><span>TOKENS</span><b>53.9<small>M</small></b></div></div>
+      <div class="bh"><span class="cap" style="color:var(--ink)">资源</span><span class="num" style="font-size:11px;color:var(--ink3)">本机</span></div>
+      <div class="bar" style="grid-template-columns:54px 1fr 92px"><span>堆内存</span><div class="track"><div class="ticks" style="--w:73%;--fill:var(--warn)"></div></div><span class="num">3.0 / 4.1G</span></div>
+      <div class="bar" style="grid-template-columns:54px 1fr 92px"><span>磁盘</span><div class="track"><div class="ticks" style="--w:96%;--fill:var(--bad)"></div></div><span class="num" style="color:#ff9797">剩 17G</span></div>
+      <div class="bar" style="grid-template-columns:54px 1fr 92px"><span>进程</span><div class="track"><div class="ticks" style="--w:52%"></div></div><span class="num">4.5G RSS</span></div>
+      <div style="display:flex;gap:14px;font-size:11px;color:var(--ink3)"><span>记录 <b class="num" style="color:var(--ink2)">1.1G</b></span><span>临时解压 <b class="num" style="color:var(--ink2)">0.3G</b></span><span>峰值内存 <b class="num" style="color:var(--ink2)">3.2G</b></span></div>
     </div>
     <div class="bp">
       <div class="bh"><span class="cap" style="color:var(--ink)">待办 · 告警</span><span class="num" style="font-size:11px;color:var(--ink3)">2</span></div>
       <div class="alert"><i class="rail" style="background:var(--warn)"></i><span class="t">08:31</span><div><b>需你判断 54 项</b><small>另有图片等 160 项可批量处理</small></div><span class="chip warn">REVIEW</span></div>
-      <div class="alert"><i class="rail" style="background:var(--warn)"></i><span class="t">00:03</span><div><b>跳过 3 个文件</b><small>不支持的格式：.pdf ×2 · .docx ×1</small></div><span class="chip warn">SKIP</span></div>
+      <div class="alert"><i class="rail" style="background:var(--bad)"></i><span class="t">07:40</span><div><b>磁盘剩余不足 20 GB</b><small>按当前速度约可再处理 1.2 万个文件</small></div><span class="chip crit">DISK</span></div>
     </div>
   </div>
 </div>
@@ -360,13 +363,22 @@ for (let i = 0; i < 240; i++) {
   cells.appendChild(c)
 }
 
+// ---------- request slots / rate ----------
+const SS = (n, f) => Array.from({ length: n }, (_, i) => f(i))
+const up = (f) => SS(90, (i) => 36 - 30 * f(i)).map((y, i) => `${i ? 'L' : 'M'}${(i / 89 * 300).toFixed(1)},${y.toFixed(1)}`).join('') + 'L300,36L0,36Z'
+document.getElementById('s1').setAttribute('d', up((i) => (i % 30 < 18 ? 1 : .25)))
+document.getElementById('s2').setAttribute('d', up((i) => (i % 30 >= 12 ? .75 : .5)))
+document.getElementById('q2').setAttribute('d', SS(90, (i) => 36 + Math.min(26, (i % 45) * .9)).map((y, i) => `${i ? 'L' : 'M'}${(i / 89 * 300).toFixed(1)},${y.toFixed(1)}`).join(''))
+const rr = SS(60, (i) => 15 - 5 * Math.sin(i / 3.1) - 3 * Math.sin(i / 1.3 + 1))
+const rp = rr.map((y, i) => `${i ? 'L' : 'M'}${(i / 59 * 300).toFixed(1)},${y.toFixed(1)}`).join('')
+document.getElementById('ratel').setAttribute('d', rp); document.getElementById('rate').setAttribute('d', rp + 'L300,26L0,26Z')
 // ---------- sparklines ----------
 const series = (n, f) => Array.from({ length: n }, (_, i) => f(i))
 const pts = series(60, (i) => 48 - 8 * Math.sin(i / 3.1) - 6 * Math.sin(i / 1.3 + 1) - 4 * Math.cos(i / 7) - (i > 50 ? (i - 50) * 2.2 : 0))
 const path = pts.map((y, i) => `${i ? 'L' : 'M'}${(i / 59 * 300).toFixed(1)},${y.toFixed(1)}`).join('')
-document.getElementById('sparkl').setAttribute('d', path)
-document.getElementById('spark').setAttribute('d', path + 'L300,66L0,66Z')
-const last = pts[pts.length - 1]; const d = document.getElementById('sparkd'); d.setAttribute('cx', 300); d.setAttribute('cy', last)
+document.getElementById('sparkl')?.setAttribute('d', path)
+document.getElementById('spark')?.setAttribute('d', path + 'L300,66L0,66Z')
+
 
 </script>
 </body>
