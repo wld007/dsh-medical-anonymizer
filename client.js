@@ -1829,6 +1829,34 @@ window.__ModuleLoader__.load({
       .ma-guide-body li{font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}
     `
 
+    const HELP_CSS = `
+      .ma-help-host{--ws-accent:#0e9f98}
+      .ma-help-title{margin:22px 0 0}
+      .ws-help h4{margin:18px 0 8px;font-size:13px;letter-spacing:.5px;color:var(--ws-accent);border-bottom:1px solid color-mix(in srgb,var(--ws-accent) 25%,transparent);padding-bottom:4px}
+      .ws-help-table{width:100%;border-collapse:collapse;font-size:12.5px}
+      .ws-help-table th{text-align:left;font-weight:600;font-size:11.5px;color:var(--dsw-alias-label-secondary);background:color-mix(in srgb,var(--ws-accent) 7%,transparent);padding:5px 8px}
+      .ws-help-table td{padding:5px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);vertical-align:top;color:var(--dsw-alias-label-primary)}
+      .ws-help-stage{white-space:nowrap;font-weight:600}
+      .ws-help-stage em,.ws-hf-node em{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--dsw-alias-label-secondary);margin-right:5px}
+      .ws-help-sub{margin:10px 0 6px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-help-chips{display:flex;flex-wrap:wrap;gap:5px}
+      .ws-help-chip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:5px;font-size:12px;border:1px solid color-mix(in srgb,var(--ws-accent) 35%,transparent);background:color-mix(in srgb,var(--ws-accent) 6%,transparent)}
+      .ws-help-chip i{font-style:normal;font-size:10.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-help-flow,.ws-help-loop{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+      .ws-help-loop{margin-top:8px;padding-left:14px}
+      .ws-help-note{margin:8px 0;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-help-two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+      .ws-help-dl{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin:0;font-size:12.5px}
+      .ws-help-dl dt{font-weight:600;white-space:nowrap}
+      .ws-help-dl dd{margin:0;color:var(--dsw-alias-label-secondary)}
+      .ws-help-tree{font-size:12px;display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:6px;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1)}
+      .ws-help-tree div{display:flex;gap:10px;align-items:baseline}
+      .ws-help-tree code{flex:none;white-space:pre;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
+      .ws-help-tree span{color:var(--dsw-alias-label-secondary);font-size:11px}
+      @media (max-width:760px){.ws-help-two{grid-template-columns:1fr}}
+      .ws-help{font-size:13px;line-height:20px}
+      .ws-help>h4:first-child{margin-top:0}
+    `
     const WS_CSS = `
       .ws-page{height:100%;overflow:hidden;padding:10px 14px 12px;display:flex;flex-direction:column;gap:10px;font-size:13px}
       .ws-page .ma-mono{word-break:normal}
@@ -2081,7 +2109,7 @@ window.__ModuleLoader__.load({
       .ws-busy-wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--dsw-alias-label-secondary);pointer-events:none}
       .ws-busy-qlabel{position:absolute;right:2px;top:0;font-size:9.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none}
       .ws-busy-ld.ws-busy-q,.ws-busy-lv.ws-busy-q{stroke-width:1;opacity:.5}
-      .ws-version{font-style:normal;margin-left:8px;padding:0 5px;border-radius:4px;border:1px solid var(--dsw-alias-border-l2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0;color:var(--dsw-alias-label-secondary)}
+      .ws-version{font-style:normal;vertical-align:middle;position:relative;top:-1px;font-weight:500;margin-left:10px;padding:0 5px;border-radius:4px;border:1px solid var(--dsw-alias-border-l2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0;color:var(--dsw-alias-label-secondary)}
       .ws-busy-fd{fill:color-mix(in srgb,var(--ws-accent) 11%,transparent);stroke:none}
       .ws-busy-fv{fill:color-mix(in srgb,#3b82c4 11%,transparent);stroke:none}
       .ws-call-mark{font-style:normal;margin-left:4px;font-size:10.5px;color:var(--dsw-alias-state-warn-primary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
@@ -3432,7 +3460,9 @@ window.__ModuleLoader__.load({
         ),
       )
 
-      const panels = { model: modelPanel, rules: rulesPanel, batch: batchPanel, guide: () => h('div', { className: 'ma-panel' }, h(GuideBody)) }
+      // The processing reference (scope, flow, principles) sits under the
+      // usage guide; the workspace title no longer opens it.
+      const panels = { model: modelPanel, rules: rulesPanel, batch: batchPanel, guide: () => h('div', { className: 'ma-panel ma-help-host' }, h('style', {}, HELP_CSS), h(GuideBody), h('h3', { className: 'ma-help-title' }, t('ws.helpTitle')), h(HelpBody, { config })) }
 
       return h('section', { className: 'ma-section ma-settings' },
         h('style', { key: 'ma-style' }, CSS),
@@ -6217,9 +6247,8 @@ window.__ModuleLoader__.load({
           h('div', { className: 'ws-brand' },
             h('span', { className: 'ws-brand-mark' }, h(AnonymizerIcon, { size: 18 })),
             h('div', {},
-              h('h2', {}, h('button', { type: 'button', className: 'ws-brand-title', onClick: () => setModal('help'), title: t('ws.helpHint') },
-                t('ws.title'), h('span', { className: 'ws-brand-info', 'aria-hidden': 'true' }, 'i'))),
-              h('span', {}, t('ws.subtitle'), config?.version ? h('em', { className: 'ws-version' }, `v${config.version}`) : null))),
+              h('h2', {}, t('ws.title'), config?.version ? h('em', { className: 'ws-version' }, `v${config.version}`) : null),
+              h('span', {}, t('ws.subtitle')))),
           h('div', { className: `ws-status ws-s-${lineStatus}` },
             h('span', { className: 'ws-lamp' }),
             h('div', {},
