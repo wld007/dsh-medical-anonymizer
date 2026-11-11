@@ -368,13 +368,13 @@ export function apply(ctx, config = {}) {
         case 'reviewItems':
           return { ok: true, value: await service.reviewItems(request.runId) }
         case 'reviewBulk':
-          return { ok: true, value: await service.reviewBulk(request.runId, request.itemIds, request.action) }
+          return { ok: true, value: await service.reviewBulk(request.runId, request.itemIds, request.action, { bySuggestion: request.bySuggestion === true }) }
         case 'manualEdit':
           return { ok: true, value: await service.manualEdit(request.runId, { relPath: request.relPath, action: request.action, text: request.text, type: request.type, scope: request.scope }) }
         case 'manualEdits':
           return { ok: true, value: await service.manualEdits(request.runId) }
         case 'reviewDecide':
-          return { ok: true, value: await service.reviewDecide(request.runId, request.itemId, request.action) }
+          return { ok: true, value: await service.reviewDecide(request.runId, request.itemId, request.action, { removeIndexes: Array.isArray(request.removeIndexes) ? request.removeIndexes : null }) }
         case 'calls':
           return { ok: true, value: await service.calls(request.runId, request.since) }
         case 'start':

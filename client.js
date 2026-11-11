@@ -660,6 +660,12 @@ window.__ModuleLoader__.load({
       'ws.op.disputed': '仍不一致，转人工',
       'ws.op.confirmed': '确认，已替换',
       'ws.op.unjudged': '未复判',
+      'ws.pv.remove': '移除',
+      'ws.pv.keepAll': '全部保留',
+      'ws.pv.gone': '已移除 {n} 张',
+      'ws.pv.keep': '保留',
+      'ws.pv.apply': '按所选处理（移除 {remove} 张，保留 {keep} 张）',
+      'ws.rv.split': '已移除 {removed} 张，保留 {kept} 张',
       'ws.cmp.mode.all': '全部',
       'ws.cmp.mode.changed': '只看改动',
       'ws.cmp.mode.judge': '待判断',
@@ -1569,6 +1575,12 @@ window.__ModuleLoader__.load({
       'ws.op.disputed': 'still disputed, to a person',
       'ws.op.confirmed': 'confirmed, replaced',
       'ws.op.unjudged': 'not re-judged',
+      'ws.pv.remove': 'Remove',
+      'ws.pv.keepAll': 'Keep all',
+      'ws.pv.gone': '{n} removed',
+      'ws.pv.keep': 'Keep',
+      'ws.pv.apply': 'Apply (remove {remove}, keep {keep})',
+      'ws.rv.split': 'Removed {removed}, kept {kept}',
       'ws.cmp.mode.all': 'All',
       'ws.cmp.mode.changed': 'Changes',
       'ws.cmp.mode.judge': 'To judge',
@@ -2645,6 +2657,17 @@ window.__ModuleLoader__.load({
       .ws-op-d{grid-column:3;color:var(--dsw-alias-label-primary)}
       .ws-op-out{grid-column:4;white-space:nowrap;font-size:10.5px;color:var(--wd-ink3)}
       .ws-op-out-disputed{color:var(--dsw-alias-state-warn-primary);font-weight:600}
+      .ws-pv-gone{align-self:center;font-size:11px;color:var(--wd-ink3);padding:6px 10px;border:1px dashed var(--dsw-alias-border-l2);border-radius:6px}
+      .ws-pv-wrap{display:flex;flex-direction:column;gap:6px}
+      .ws-pv-cell{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:4px;border-radius:7px;border:1.5px solid transparent}
+      .ws-pv-cell.ws-pv-rm{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 45%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 5%,transparent)}
+      .ws-pv-cell.ws-pv-rm .ws-pv-thumb img{opacity:.55}
+      .ws-pv-cell.ws-pv-keep{border-color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 45%,transparent)}
+      .ws-pv-pick{display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:5px;overflow:hidden}
+      .ws-pv-opt{padding:1px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:11.5px;cursor:pointer}
+      .ws-pv-opt:first-child{border-left:0}
+      .ws-pv-opt-remove.ws-on{background:var(--dsw-alias-state-error-primary);color:#fff}
+      .ws-pv-opt-keep.ws-on{background:var(--dsw-alias-state-success-primary);color:#fff}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -4230,11 +4253,14 @@ window.__ModuleLoader__.load({
     // Thumbnails of an embedded image under review, loaded when the card is
     // drawn. Read from the deliverable on this machine; never sent to a model.
     const previewStore = new Map() // `${runId}:${itemId}` -> result
-    function OpaquePreview({ runId, item, removed }) {
+    // Several images in one record get their own remove / keep choice
+    // (`onSplit(removeIndexes)`); one image keeps the card's buttons.
+    function OpaquePreview({ runId, item, removed, onSplit = null, busy = false }) {
       const t = services.t
       const key = `${runId}:${item.id}`
       const [state, setState] = React.useState(() => previewStore.get(key) ?? null)
       const [zoom, setZoom] = React.useState(null)
+      const [choice, setChoice] = React.useState({}) // index -> 'remove' | 'keep'
       React.useEffect(() => {
         if (removed || !runId || previewStore.has(key)) return undefined
         let live = true
@@ -4246,11 +4272,35 @@ window.__ModuleLoader__.load({
       if (removed) return h('div', { className: 'ws-pv ws-pv-note' }, t('ws.pv.removed'))
       if (!state) return h('div', { className: 'ws-pv ws-pv-note' }, t('detail.loading'))
       if (state.error) return h('div', { className: 'ws-pv ws-pv-note' }, state.error)
-      if (!state.images.length) return h('div', { className: 'ws-pv ws-pv-note' }, t(state.note === 'removed' ? 'ws.pv.removed' : 'ws.pv.none'))
-      return h('div', { className: 'ws-pv' },
-        state.images.map((src, index) => h('button', { key: index, type: 'button', className: 'ws-pv-thumb', title: t('ws.pv.zoom'), onClick: () => setZoom(src) },
-          h('img', { src, alt: t('ws.pv.alt', { n: index + 1 }), loading: 'lazy' }))),
-        state.skipped ? h('span', { className: 'ws-pv-note' }, t('ws.pv.skipped', { n: state.skipped })) : null,
+      if (!state.images.length || state.note === 'removed') return h('div', { className: 'ws-pv ws-pv-note' }, t(state.note === 'removed' ? 'ws.pv.removed' : 'ws.pv.none'))
+      const all = state.images.map((image, position) => (typeof image === 'string' ? { index: position, src: image } : image))
+      const gone = all.filter((image) => image.removed)
+      const images = all.filter((image) => !image.removed)
+      const per = new Map((item.vision?.perImage ?? []).map((entry) => [entry.index, entry]))
+      const split = Boolean(onSplit) && images.length > 1 && !item.decision
+      // Default per image: the model's suggestion; without one, remove.
+      const chosen = (index) => choice[index] ?? (per.get(index)?.suggestion === 'keep' ? 'keep' : 'remove')
+      const removeList = images.filter((image) => chosen(image.index) === 'remove').map((image) => image.index)
+      return h('div', { className: 'ws-pv-wrap' },
+        h('div', { className: 'ws-pv' },
+          images.map((image, position) => {
+            const vision = per.get(image.index)
+            const pickRemove = chosen(image.index) === 'remove'
+            return h('div', { key: image.index, className: `ws-pv-cell${split ? (pickRemove ? ' ws-pv-rm' : ' ws-pv-keep') : ''}` },
+              h('button', { type: 'button', className: 'ws-pv-thumb', title: t('ws.pv.zoom'), onClick: () => setZoom(image.src) },
+                h('img', { src: image.src, alt: t('ws.pv.alt', { n: position + 1 }), loading: 'lazy' })),
+              vision && images.length > 1 ? h('span', { className: `ws-vis ws-vis-${vision.error ? 'err' : vision.suggestion}`, title: vision.reason ?? '' }, vision.error ? t('ws.vis.failed') : `${t(`ws.vis.cat.${vision.category ?? 'other'}`)} · ${t(`ws.vis.s.${vision.suggestion}`)}`) : null,
+              split ? h('div', { className: 'ws-pv-pick', role: 'radiogroup' }, ['remove', 'keep'].map((id) => h('button', {
+                key: id, type: 'button', role: 'radio', 'aria-checked': chosen(image.index) === id ? 'true' : 'false',
+                className: `ws-pv-opt ws-pv-opt-${id}${chosen(image.index) === id ? ' ws-on' : ''}`,
+                onClick: () => setChoice({ ...choice, [image.index]: id }),
+              }, t(`ws.pv.${id}`)))) : null)
+          }),
+          gone.length ? h('span', { className: 'ws-pv-gone' }, t('ws.pv.gone', { n: gone.length })) : null,
+          state.skipped ? h('span', { className: 'ws-pv-note' }, t('ws.pv.skipped', { n: state.skipped })) : null),
+        split ? h('div', { className: 'ma-actions' },
+          h('button', { className: 'ma-btn ma-small ma-primary', disabled: busy, onClick: () => onSplit(removeList) },
+            t('ws.pv.apply', { remove: removeList.length, keep: images.length - removeList.length }))) : null,
         zoom ? h('div', { className: 'ws-pv-zoom', role: 'dialog', onClick: () => setZoom(null) }, h('img', { src: zoom, alt: '' })) : null)
     }
 
@@ -4937,19 +4987,19 @@ window.__ModuleLoader__.load({
         if (adviceRunId && compareByRun[adviceRunId] === undefined) loadCompareList(adviceRunId)
       }, [adviceRunId, recordsRetry])
 
-      async function decideReview(file, item, action) {
+      async function decideReview(file, item, action, extra = {}) {
         // The button may be stale; the host refuses as well.
         if (action === 'replace' && anyRunning) { setReviewNote({ ok: false, text: t('ws.rv.runningHint') }); return }
         setReviewBusy(item.id)
         setReviewNote(null)
         try {
-          const result = await call('reviewDecide', { runId: adviceRunId, itemId: item.id, action })
+          const result = await call('reviewDecide', { runId: adviceRunId, itemId: item.id, action, ...extra })
           if (action === 'allow' && item.text && config && !anyRunning) {
             // Future batches no longer treat this value as an identifier.
             await saveAndReload({ allowValues: [...new Set([...(config.allowValues ?? []), item.text])] })
           }
           await loadReview(adviceRunId)
-          if (action === 'replace' && Array.isArray(compareByRun[adviceRunId])) {
+          if ((action === 'replace' || action === 'absorb') && Array.isArray(compareByRun[adviceRunId])) {
             const hit = compareByRun[adviceRunId].find((entry) => entry.relPath === file.relPath)
             if (hit) await loadCompareFile(adviceRunId, hit.n, true)
           }
@@ -5553,7 +5603,7 @@ window.__ModuleLoader__.load({
       }
 
       // `pick` narrows the items (e.g. only those the model suggests removing).
-      async function bulkReview(action, files = reviewData?.files ?? [], pick = null) {
+      async function bulkReview(action, files = reviewData?.files ?? [], pick = null, bySuggestion = false) {
         const ids = files.flatMap((file) => file.items)
           .filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code) && (action === 'accept' || item.code === 'opaque') && (!pick || pick(item)))
           .map((item) => item.id)
@@ -5561,7 +5611,7 @@ window.__ModuleLoader__.load({
         setReviewBusy('bulk')
         setReviewNote(null)
         try {
-          const result = await call('reviewBulk', { runId: adviceRunId, itemIds: ids, action })
+          const result = await call('reviewBulk', { runId: adviceRunId, itemIds: ids, action, bySuggestion })
           await loadReview(adviceRunId)
           setCompareFiles({})
           // The open file was dropped from the cache with the rest: fetch it again.
@@ -5592,14 +5642,15 @@ window.__ModuleLoader__.load({
         ? h('div', { className: 'ws-rv-result' }, item.decision.action === 'replace'
           ? t('ws.rv.replaced', { to: item.decision.replacement, count: item.decision.count })
           : item.decision.action === 'absorb' ? t('ws.rv.absorbed', { count: item.decision.count })
+          : item.decision.action === 'split' ? t('ws.rv.split', { removed: item.decision.removed?.length ?? 0, kept: item.decision.kept ?? 0 })
           : item.decision.action === 'remove' ? t('ws.rv.removed')
             : item.decision.action === 'allow' ? t('ws.rv.allowed') : t('ws.rv.accepted'))
         : OPAQUE_REVIEW.has(item.code)
           ? h('div', { className: 'ma-actions' },
-            item.code === 'opaque'
+            item.code === 'opaque' && !(item.image && Number(item.count ?? 1) > 1)
               ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable, title: file.editable ? t('ws.rv.removeHint') : file.reason, onClick: () => decideReview(file, item, 'remove') }, reviewBusy === item.id ? t('save.saving') : t('ws.rv.remove'))
               : null,
-            h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.keepOpaque')))
+            h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, item.image && Number(item.count ?? 1) > 1 ? t('ws.pv.keepAll') : t('ws.rv.keepOpaque')))
           : h('div', { className: 'ma-actions' },
             neighbour(item) ? h('button', {
               className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable,
@@ -5623,7 +5674,7 @@ window.__ModuleLoader__.load({
         item.text
           ? h('div', { className: 'ws-rv-ctx' }, item.before, h('mark', {}, item.text), item.after)
           : h('div', { className: 'ws-rv-ctx ws-rv-plain' }, item.detail),
-        item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove' }) : null,
+        item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove', busy: reviewBusy !== null || !file.editable, onSplit: (removeIndexes) => decideReview(file, item, 'split', { removeIndexes }) }) : null,
         item.decision ? null : opinions(item),
         reviewActions(file, item))
       // The model's reading of an image under review: category and suggestion.
@@ -5639,7 +5690,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'ws-rv-op-kind' }, item.kind ?? item.detail ?? ''),
           item.field ? h('span', { className: 'ma-mono' }, item.field) : null,
           visionChip(item)),
-        item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove' }) : h('div', { className: 'ws-pv-note' }, item.detail),
+        item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove', busy: reviewBusy !== null || !file.editable, onSplit: (removeIndexes) => decideReview(file, item, 'split', { removeIndexes }) }) : h('div', { className: 'ws-pv-note' }, item.detail),
         reviewActions(file, item))
       // Both models' opinions, round by round (cross-checked items).
       const OUTCOME = { dismissed: 'ws.op.dismissed', disputed: 'ws.op.disputed', confirmed: 'ws.op.confirmed', unjudged: 'ws.op.unjudged' }
@@ -5975,7 +6026,8 @@ window.__ModuleLoader__.load({
               const scopeFiles = scope === 'file' && reviewFile ? [reviewFile] : undefined
               const removable = scoped.filter((item) => item.code === 'opaque').length
               const images = batchOpaqueOpen.filter((item) => item.image && item.baseId)
-              const seen = images.filter((item) => item.vision && !item.vision.error)
+              // Read = has a verdict; several images also need one per image.
+              const seen = images.filter((item) => item.vision && !item.vision.error && (Number(item.count ?? 1) <= 1 || item.vision.perImage?.length))
               const suggestRemove = scoped.filter((item) => item.code === 'opaque' && item.vision?.suggestion === 'remove').length
               const suggestKeep = scoped.filter((item) => item.vision?.suggestion === 'keep').length
               const cats = Object.entries(scoped.filter((item) => item.vision && !item.vision.error).reduce((map, item) => ({ ...map, [item.vision.category]: (map[item.vision.category] ?? 0) + 1 }), {})).sort((x, y) => y[1] - x[1])
@@ -6025,7 +6077,7 @@ window.__ModuleLoader__.load({
                       ? h('button', { className: 'ma-btn ma-small', disabled: !visionOn || anyRunning || busy, title: !visionOn ? t('ws.vis.offHint') : anyRunning ? t('ws.vis.busyHint') : imageJob?.state === 'failed' ? imageJob.error : t('ws.vis.runHint'), onClick: startImageCheck },
                         imageGlyph(), ` ${seen.length ? t('ws.vis.runRest', { n: images.length - seen.length }) : t('ws.vis.run', { n: images.length })}`)
                       : null,
-                  suggestRemove ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: busy, title: t('ws.vis.removeHint'), onClick: () => bulkReview('remove', scopeFiles, (item) => item.vision?.suggestion === 'remove') }, t('ws.vis.removeSuggested', { n: suggestRemove })) : null,
+                  suggestRemove ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: busy, title: t('ws.vis.removeHint'), onClick: () => bulkReview('remove', scopeFiles, (item) => item.vision?.suggestion === 'remove', true) }, t('ws.vis.removeSuggested', { n: suggestRemove })) : null,
                   suggestKeep ? h('button', { className: 'ma-btn ma-small', disabled: busy, title: t('ws.vis.keepHint'), onClick: () => bulkReview('accept', scopeFiles, (item) => item.vision?.suggestion === 'keep') }, t('ws.vis.keepSuggested', { n: suggestKeep })) : null,
                   removable ? h('button', { className: `ma-btn ma-small${suggestRemove ? '' : ' ma-primary'}`, disabled: busy || (scope === 'file' && !reviewFile?.editable), title: scope === 'file' && !reviewFile?.editable ? reviewFile?.reason : t('ws.rv.removeHint'), onClick: () => bulkReview('remove', scopeFiles) }, reviewBusy === 'bulk' ? t('save.saving') : t('ws.rv.bulkRemove', { count: removable })) : null,
                   h('button', { className: 'ma-btn ma-small', disabled: busy, title: t('ws.rv.keepHint'), onClick: () => bulkReview('accept', scopeFiles) }, t('ws.rv.bulkKeep'))) : null)

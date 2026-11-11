@@ -58,7 +58,14 @@ function functionBody(header) {
   assert.ok(start >= 0, `missing ${header}`)
   let depth = 0
   let seenBrace = false
-  for (let i = source.indexOf('{', start); i < source.length; i += 1) {
+  // Skip the parameter list: default values such as `extra = {}` hold braces too.
+  let paren = 0
+  let open = start
+  for (let i = source.indexOf('(', start); i < source.length; i += 1) {
+    if (source[i] === '(') paren += 1
+    if (source[i] === ')') { paren -= 1; if (paren === 0) { open = i; break } }
+  }
+  for (let i = source.indexOf('{', open); i < source.length; i += 1) {
     if (source[i] === '{') { depth += 1; seenBrace = true }
     if (source[i] === '}') depth -= 1
     if (seenBrace && depth === 0) return source.slice(start, i + 1)
