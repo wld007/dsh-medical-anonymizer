@@ -2459,7 +2459,7 @@ window.__ModuleLoader__.load({
       .wd-tab.on{color:var(--dsw-alias-label-primary);border-bottom-color:var(--ws-accent)}
       .wd-tab i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--wd-ink3)}
       .wd-tab i.hot{color:var(--dsw-alias-state-warn-primary)}
-      .wd-tab-sep{flex:none;align-self:center;width:1px;height:18px;margin:0 8px;background:var(--dsw-alias-border-l1)}
+      .wd-tab-sep{flex:none;align-self:center;width:1px;height:20px;margin:0 10px;background:var(--dsw-alias-label-tertiary,var(--dsw-alias-border-l2));opacity:.55}
       .wd-tab.wd-tab-gap{margin-left:14px}
       .wd-tab-pop{font-size:10.5px;color:var(--wd-ink3);margin-left:-3px}
       .wd-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
