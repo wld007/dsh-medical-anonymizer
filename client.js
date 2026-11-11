@@ -295,7 +295,7 @@ window.__ModuleLoader__.load({
       'wd.perMin': '件/分',
       'wd.min': 'min',
       'wd.bytes': '字节',
-      'wd.resScope': '本机 · 推理服务器',
+      'wd.resScope': '本机',
       'wd.heap': '堆内存',
       'wd.disk': '磁盘',
       'wd.diskFree': '剩 {gb}G',
@@ -419,6 +419,10 @@ window.__ModuleLoader__.load({
       'ws.m.srvLoad': '服务器 运行/排队',
       'ws.m.srvKv': '服务器 KV',
       'ws.m.srvNa': '不可读',
+      'ws.m.srvTag': '服务器',
+      'ws.m.srvLine': '在跑 {running} · 排队 {waiting} · KV {kv}% · 生成 {gen} tok/s（整台）',
+      'ws.m.srvPeakLine': '峰值 在跑 {running} · 排队 {waiting} · KV {kv}%（整台）',
+      'ws.m.lgSrvQ': '服务器排队',
       'ws.m.srvHint': '推理服务器自己的指标（vLLM /metrics，含其他客户端的请求）：运行 = 服务器正在计算的请求数，排队 = 服务器内部等待的请求数，KV = KV 缓存占用。结束后显示峰值。',
       'ws.m.srvNaHint': '读取不到服务器的 /metrics（不是 vLLM、未开放或需要认证），只能参考插件这边的数字。',
       'ws.m.srvNow': '当前：运行 {running} · 排队 {waiting} · KV {kv}% · 服务器生成 {gen} tok/s',
@@ -1113,7 +1117,7 @@ window.__ModuleLoader__.load({
       'wd.perMin': '/min',
       'wd.min': 'min',
       'wd.bytes': 'Bytes',
-      'wd.resScope': 'this machine · inference servers',
+      'wd.resScope': 'this machine',
       'wd.heap': 'Heap',
       'wd.disk': 'Disk',
       'wd.diskFree': '{gb}G free',
@@ -1237,6 +1241,10 @@ window.__ModuleLoader__.load({
       'ws.m.srvLoad': 'Server run/wait',
       'ws.m.srvKv': 'Server KV',
       'ws.m.srvNa': 'n/a',
+      'ws.m.srvTag': 'server',
+      'ws.m.srvLine': 'running {running} · waiting {waiting} · KV {kv}% · generating {gen} tok/s (whole server)',
+      'ws.m.srvPeakLine': 'peak running {running} · waiting {waiting} · KV {kv}% (whole server)',
+      'ws.m.lgSrvQ': 'server queue',
       'ws.m.srvHint': 'The inference server’s own metrics (vLLM /metrics, other clients included): running = requests being computed, waiting = queued on the server, KV = KV-cache use. Peaks after the batch.',
       'ws.m.srvNaHint': 'The server’s /metrics cannot be read (not vLLM, not exposed, or needs auth); only the plugin’s numbers are available.',
       'ws.m.srvNow': 'Now: running {running} · waiting {waiting} · KV {kv}% · server generation {gen} tok/s',
@@ -2023,6 +2031,8 @@ window.__ModuleLoader__.load({
       .ws-mtable>b,.ws-mt-label,.ws-mt-head{padding:2px 5px;border-bottom:0!important}
       .ws-mt-head{padding-bottom:3px;border-bottom:1px solid var(--dsw-alias-border-l2)!important}
       .ws-mt-head:first-child{border-bottom-color:transparent!important}
+      .ws-mt-label{align-items:flex-end}
+      .ws-mtable>b{align-items:flex-end}
       .ws-mt-z{background:color-mix(in srgb,var(--dsw-alias-label-primary) 6%,transparent)}
       .ws-mt-label.ws-mt-z{border-radius:4px 0 0 4px}
       .ws-mtable>b.ws-mt-z:last-child,.ws-mtable>b.ws-mt-z:nth-child(3n){border-radius:0 4px 4px 0}
@@ -2199,6 +2209,10 @@ window.__ModuleLoader__.load({
       .wd-conc-lg i{display:inline-block;width:14px;height:0;border-top:2px solid var(--dsw-alias-label-primary)}
       .wd-conc-lg i.wd-lg-lim{border-top:1px dashed var(--dsw-alias-label-secondary);opacity:.6}
       .wd-conc-lg i.wd-lg-thr{border-top:1px solid var(--wd-vio);opacity:.6}
+      .wd-conc-srvq{fill:none;stroke:var(--dsw-alias-state-warn-primary);stroke-width:1;stroke-dasharray:2 2;vector-effect:non-scaling-stroke;opacity:.7}
+      .wd-conc-lg i.wd-lg-srvq{border-top:1px dashed var(--dsw-alias-state-warn-primary);opacity:.8}
+      .wd-conc-srv{display:flex;gap:6px;align-items:baseline;padding:0 30px;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .wd-conc-srv-k{font-family:-apple-system,"PingFang SC",sans-serif;flex:none;padding:0 4px;border-radius:3px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 8%,transparent)}
       .wd-conc-lg i.wd-lg-q{border-top:1px solid var(--dsw-alias-label-secondary);opacity:.6}
       .wd-conc-f{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--dsw-alias-label-secondary);padding:0 30px}
       .wd-conc-f .ma-mono{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2708,6 +2722,7 @@ window.__ModuleLoader__.load({
       .wd-line{font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .wd-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-weight:500}
       .wd-gauges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;align-items:start}
+      .wd-ro .wd-gauges{grid-template-columns:repeat(2,minmax(0,1fr))}
       .wd-gauge{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;text-align:center}
       .wd-gauge svg{width:68px;height:68px}
       .wd-gauge .wd-g-track{fill:none;stroke:var(--wd-track);stroke-width:6}
@@ -5748,7 +5763,7 @@ window.__ModuleLoader__.load({
                   const last = steps[steps.length - 1]
                   const nowLimit = empty ? fixed : limOf(points.length - 1)
                   const top = Math.max(1, ...points.map((p, i) => Math.max(p[ai] ?? 0, limOf(i))))
-                  const qMax = Math.max(1, ...points.map((p) => p[qi] ?? 0))
+                  const qMax = Math.max(1, ...points.map((p) => p[qi] ?? 0), ...(series?.srv?.length === points.length ? series.srv.map((row) => row?.[slot]?.[1] ?? 0) : []))
                   // Throughput per sample over the tuner's window; batches before
                   // the io series fall back to output tokens.
                   const ioRows = series?.io
@@ -5759,6 +5774,12 @@ window.__ModuleLoader__.load({
                   const k = Math.max(1, Math.round(30000 / stepMs))
                   const thr = cum.length === points.length ? cum.map((value, i) => (i === 0 ? 0 : Math.max(0, value - cum[Math.max(0, i - k)]) / ((Math.min(i, k) * stepMs) / 1000))) : []
                   const thrMax = Math.max(1, ...thr)
+                  // The inference server over the same samples (whole server,
+                  // other clients included): its own queue is drawn below the axis.
+                  const srvRows = series?.srv?.length === points.length ? series.srv.map((row) => row?.[slot] ?? null) : []
+                  const srvSeen = srvRows.some(Boolean)
+                  const srvNow = current?.server?.[key] ?? null
+                  const srvQMax = srvSeen ? Math.max(0, ...srvRows.map((row) => row?.[1] ?? 0)) : 0
                   const thrNow = thr.length ? thr[thr.length - 1] : 0
                   const thrPeak = thr.length ? Math.max(...thr) : 0
                   const W = 300
@@ -5794,12 +5815,20 @@ window.__ModuleLoader__.load({
                       h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': `${role} ${t('ws.m.busy')}` },
                         empty ? null : h('path', { className: `ws-busy-f${cls}`, d: `${line((p) => up(p[ai] ?? 0))} L${W} ${AX} L0 ${AX} Z` }),
                         empty ? null : h('path', { className: `ws-busy-l${cls} ws-busy-q`, d: line((p) => down(p[qi] ?? 0)) }),
+                        srvSeen && srvQMax > 0 ? h('path', { className: 'wd-conc-srvq', d: line((p, i) => down(srvRows[i]?.[1] ?? 0)) }) : null,
                         h('line', { className: 'ws-busy-axis', x1: 0, x2: W, y1: AX, y2: AX }),
                         empty ? h('line', { className: `wd-conc-lim wd-conc-lim-${cls}`, x1: 0, x2: W, y1: up(fixed), y2: up(fixed) }) : h('path', { className: `wd-conc-lim wd-conc-lim-${cls}`, d: stepLine }),
                         thrLine ? h('path', { className: 'wd-conc-thrline', d: thrLine }) : null,
                         empty ? null : h('path', { className: `wd-conc-act ws-busy-l${cls}`, d: line((p) => up(p[ai] ?? 0)) })),
                       h('div', { className: 'wd-conc-rg', 'aria-hidden': 'true' }, thr.length ? h('span', {}, fmtTok(thrMax)) : null),
                       empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null),
+                    srvNow?.available === true
+                      ? h('div', { className: 'wd-conc-srv', title: srvHint(key) },
+                        h('span', { className: 'wd-conc-srv-k' }, t('ws.m.srvTag')),
+                        running
+                          ? t('ws.m.srvLine', { running: srvNow.running ?? 0, waiting: srvNow.waiting ?? 0, kv: Math.round((srvNow.kv ?? 0) * 100), gen: srvNow.genRate === null || srvNow.genRate === undefined ? '—' : fmtTok(srvNow.genRate) })
+                          : t('ws.m.srvPeakLine', { running: srvNow.peakRunning ?? 0, waiting: srvNow.peakWaiting ?? 0, kv: Math.round((srvNow.peakKv ?? 0) * 100) }))
+                      : srvNow?.available === false ? h('div', { className: 'wd-conc-srv', title: t('ws.m.srvNaHint') }, h('span', { className: 'wd-conc-srv-k' }, t('ws.m.srvTag')), t('ws.m.srvNa')) : null,
                     h('div', { className: 'wd-conc-f' },
                       h('span', { className: 'ma-mono' }, autoOn ? path : t('ws.m.cFixed', { n: fixed })),
                       nowReq
@@ -5810,7 +5839,8 @@ window.__ModuleLoader__.load({
                   h('span', {}, h('i', { className: 'wd-lg-act' }), t('ws.m.lgAct')),
                   h('span', {}, h('i', { className: 'wd-lg-lim' }), t('ws.m.lgLim')),
                   h('span', {}, h('i', { className: 'wd-lg-thr' }), t('ws.m.lgThr')),
-                  h('span', {}, h('i', { className: 'wd-lg-q' }), t('ws.m.lgQ')))
+                  h('span', {}, h('i', { className: 'wd-lg-q' }), t('ws.m.lgQ')),
+                  cols.some((key) => current?.server?.[key]?.available) ? h('span', {}, h('i', { className: 'wd-lg-srvq' }), t('ws.m.lgSrvQ')) : null)
                 const concPanels = h('div', { className: 'wd-concs' }, concLegend, cols.map((key) => concPanel(key)))
                 return h(React.Fragment, {},
                   block('wd.secLoad', 'WORKLOAD', splitBar, sumLine),
@@ -5921,15 +5951,6 @@ window.__ModuleLoader__.load({
             h('text', { x: 29, y: 33, textAnchor: 'middle' }, v === null ? '—' : `${Math.round(v * 100)}%`)),
           h('span', {}, label),
           h('small', {}, detail))
-      }
-      const srvGauge = (key) => {
-        const v = current?.server?.[key]
-        const name = key === 'verify' ? t('wd.kvVerify') : t('wd.kvDetect')
-        if (!v) return gauge(name, null, '—', '', t('ws.m.srvHint'))
-        if (v.available === false) return gauge(name, null, t('ws.m.srvNa'), '', t('ws.m.srvNaHint'))
-        const kv = (running ? v.kv : v.peakKv) ?? 0
-        const waiting = running ? (v.waiting ?? 0) : (v.peakWaiting ?? 0)
-        return gauge(name, kv, t('wd.srvWait', { n: waiting }), kv >= 0.9 || waiting > 0 ? 'warn' : '', t('ws.m.srvHint'), v.peakKv ?? null)
       }
       // Batch switcher: the header status card opens the list of all batches.
       const runsPopover = () => h('div', { className: 'wd-pop wd-runs-pop', role: 'dialog' },
@@ -6295,14 +6316,12 @@ window.__ModuleLoader__.load({
                 !current?.withheld && (current?.output || current?.runDir)
                   ? h('div', { className: 'wd-path' }, h('span', { title: current.output ?? current.runDir }, current.output ?? current.runDir), h('button', { className: 'ma-btn ma-small', onClick: copyPath }, copied ? t('detail.copied') : t('detail.copy')))
                   : null),
-              // Resources: this machine and the inference servers
+              // Resources: this machine (inference servers: see the concurrency block)
               h('div', { className: 'wd-ro' },
                 h('div', { className: 'wd-roh' }, h('b', {}, t('wd.resources'), enKicker('RESOURCES')), h('span', { className: 'wd-cap' }, t('wd.resScope'))),
                 h('div', { className: 'wd-gauges' },
                   gauge(t('wd.heap'), memRatio, mem?.heapLimit ? `${((running ? mem.heapUsed : mem.peakHeap) / GB).toFixed(1)} / ${(mem.heapLimit / GB).toFixed(1)}G` : '—', memRatio >= 0.85 ? 'crit' : memRatio >= 0.7 ? 'warn' : '', t('ws.m.memHint'), mem?.heapLimit && mem.peakHeap ? mem.peakHeap / mem.heapLimit : null),
-                  gauge(t('wd.disk'), disk?.total ? 1 - disk.free / disk.total : null, disk?.total ? t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }) : '—', disk?.total && disk.free < 5 * GB ? 'crit' : disk?.total && disk.free < 20 * GB ? 'warn' : '', t('wd.diskHint'), disk?.total && Number.isFinite(disk.minFree) ? 1 - disk.minFree / disk.total : null),
-                  srvGauge('detect'),
-                  verifierName ? srvGauge('verify') : null)))),
+                  gauge(t('wd.disk'), disk?.total ? 1 - disk.free / disk.total : null, disk?.total ? t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }) : '—', disk?.total && disk.free < 5 * GB ? 'crit' : disk?.total && disk.free < 20 * GB ? 'warn' : '', t('wd.diskHint'), disk?.total && Number.isFinite(disk.minFree) ? 1 - disk.minFree / disk.total : null))))),
               h('aside', { className: 'wd-side' },
                 stationSel
                   ? stationDetail(stationSel)
