@@ -289,6 +289,7 @@ window.__ModuleLoader__.load({
       'wd.alerts': '待办 · 告警',
       'wd.aMore': '还有 {n} 条',
       'ws.md.lines': '{n} 行',
+      'ws.md.toc': '目录',
       'wd.aLess': '收起',
       'wd.perMin': '件/分',
       'wd.min': 'min',
@@ -1085,6 +1086,7 @@ window.__ModuleLoader__.load({
       'wd.alerts': 'To do · alerts',
       'wd.aMore': '{n} more',
       'ws.md.lines': '{n} lines',
+      'ws.md.toc': 'Contents',
       'wd.aLess': 'Show less',
       'wd.perMin': '/min',
       'wd.min': 'min',
@@ -2152,6 +2154,17 @@ window.__ModuleLoader__.load({
       .ws-md h1{font-size:18px;margin:6px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--ws-accent)}
       .ws-md h2{font-size:15px;margin:20px 0 8px;padding-left:8px;border-left:3px solid var(--ws-accent)}
       .ws-md h3{font-size:13.5px;margin:16px 0 6px}
+      .ws-md-layout{display:grid;grid-template-columns:minmax(0,960px) 280px;gap:28px;align-items:start}
+      .ws-md-toc{position:sticky;top:0;max-height:calc(100vh - 220px);overflow:auto;display:flex;flex-direction:column;gap:1px;padding:4px 0 4px 12px;border-left:1px solid var(--dsw-alias-border-l1);scrollbar-width:thin}
+      .ws-md-toc-h{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--wd-ink3,var(--dsw-alias-label-tertiary));padding:2px 6px 6px}
+      .ws-md-toc-i{display:flex;align-items:baseline;gap:6px;width:100%;padding:3px 6px;border:0;border-radius:4px;background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;text-align:left;cursor:pointer}
+      .ws-md-toc-i span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .ws-md-toc-i i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--wd-ink3,var(--dsw-alias-label-tertiary))}
+      .ws-md-toc-2{font-weight:600;color:var(--dsw-alias-label-primary);margin-top:4px}
+      .ws-md-toc-3{padding-left:16px}
+      .ws-md-toc-i:hover{background:var(--ws-accent-soft,rgba(14,159,152,.12))}
+      .ws-md-toc-i.ws-on{color:var(--ws-accent);background:var(--ws-accent-soft,rgba(14,159,152,.12));box-shadow:inset 2px 0 0 var(--ws-accent)}
+      @media (max-width:1100px){.ws-md-layout{grid-template-columns:minmax(0,1fr)}.ws-md-toc{display:none}}
       .ws-md h3.ws-md-fold{display:flex;align-items:baseline;gap:10px;margin:6px 0}
       .ws-md-fold .ma-link{font:inherit;font-weight:600;color:var(--dsw-alias-label-primary);text-align:left}
       .ws-md-fold small{font-weight:400;font-size:11px;color:var(--wd-ink3,var(--dsw-alias-label-tertiary))}
@@ -4530,10 +4543,6 @@ window.__ModuleLoader__.load({
         }
       }
 
-      async function copyText(text) {
-        try { await navigator.clipboard.writeText(text) } catch { setError('clipboard unavailable') }
-      }
-
       async function copyDraft(text) {
         try {
           await navigator.clipboard.writeText(text)
@@ -5002,7 +5011,7 @@ window.__ModuleLoader__.load({
           ? h('p', { className: 'ma-empty' }, t('detail.noReport'))
           : (reportText
             ? h('div', { className: 'ws-report' },
-              h(MarkdownView, { text: reportText }))
+              h(MarkdownView, { text: reportText, outline: true }))
             : h('p', { className: 'ma-empty' }, t('detail.loading')))
       }
 
@@ -6445,7 +6454,7 @@ window.__ModuleLoader__.load({
         if (!line.trim()) { i += 1; continue }
         const heading = /^(#{1,4})\s+(.*)$/.exec(line)
         if (heading) {
-          blocks.push(h(`h${heading[1].length}`, { key }, inlineMd(heading[2], key)))
+          blocks.push(h(`h${heading[1].length}`, { key, id: `md-l${base + i}` }, inlineMd(heading[2], key)))
           i += 1
           continue
         }
@@ -6511,21 +6520,73 @@ window.__ModuleLoader__.load({
       markdownMemo = { text, sections }
       return sections
     }
-    function MarkdownView({ text }) {
+    function MarkdownView({ text, outline = false }) {
       const [open, setOpen] = React.useState({})
+      const [active, setActive] = React.useState(null)
+      const rootRef = React.useRef(null)
       const sections = markdownSections(text)
       const build = (section) => (section.blocks ??= markdownBlocks(section.head === null ? section.lines : [section.head, ...section.lines], section.start))
-      return h('div', { className: 'ws-md' }, sections.map((section) => {
+      // Outline: level-2 and level-3 headings (the level-1 title is the page itself).
+      const toc = outline ? sections.filter((section) => section.head !== null && /^#{2,3}\s/.test(section.head)).map((section) => ({
+        start: section.start, level: /^###\s/.test(section.head) ? 3 : 2, title: section.head.replace(/^#{1,3}\s+/, '').replace(/[`*]/g, ''), fold: section.fold,
+        n: section.fold ? section.lines.filter((line) => line.trim()).length : 0,
+      })) : []
+      // Highlight the section at the top of the scrolling report.
+      React.useEffect(() => {
+        if (!outline) return undefined
+        const box = rootRef.current?.closest('.ws-drawer-body')
+        if (!box) return undefined
+        let frame = 0
+        const onScroll = () => {
+          cancelAnimationFrame(frame)
+          frame = requestAnimationFrame(() => {
+            const top = box.getBoundingClientRect().top + 24
+            let hit = null
+            for (const item of toc) {
+              const node = document.getElementById(`md-l${item.start}`)
+              if (node && node.getBoundingClientRect().top <= top) hit = item.start
+              else if (node) break
+            }
+            setActive(hit)
+          })
+        }
+        onScroll()
+        box.addEventListener('scroll', onScroll, { passive: true })
+        return () => { box.removeEventListener('scroll', onScroll); cancelAnimationFrame(frame) }
+      }, [outline, text, open])
+      // Jumping to a folded file section also opens it.
+      const jump = (item) => {
+        const start = item.start
+        if (item.fold && open[start] !== true) setOpen({ ...open, [start]: true })
+        const node = document.getElementById(`md-l${start}`)
+        if (node) node.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      }
+      const body = h('div', { className: 'ws-md', ref: rootRef }, sections.map((section) => {
         if (!section.fold) return h(React.Fragment, { key: `s${section.start}` }, build(section))
         const on = open[section.start] === true
         const title = section.head.replace(/^###\s+/, '')
         return h(React.Fragment, { key: `s${section.start}` },
-          h('h3', { className: 'ws-md-fold' },
+          h('h3', { className: 'ws-md-fold', id: `md-l${section.start}` },
             h('button', { type: 'button', className: 'ma-link', 'aria-expanded': on ? 'true' : 'false', onClick: () => setOpen({ ...open, [section.start]: !on }) },
               `${on ? '▾' : '▸'} `, inlineMd(title, `f${section.start}`)),
             h('small', {}, services.t('ws.md.lines', { n: section.lines.filter((line) => line.trim()).length }))),
           on ? (section.body ??= markdownBlocks(section.lines, section.start + 1)) : null)
       }))
+      if (!outline || toc.length < 2) return body
+      return h('div', { className: 'ws-md-layout' },
+        body,
+        h('nav', { className: 'ws-md-toc', 'aria-label': services.t('ws.md.toc') },
+          h('div', { className: 'ws-md-toc-h' }, services.t('ws.md.toc')),
+          toc.map((item) => {
+            // File sections: the file name first, its folder after.
+            const slash = item.title.lastIndexOf('/')
+            const label = item.level === 3 && slash > 0 ? item.title.slice(slash + 1) : item.title
+            return h('button', {
+              key: item.start, type: 'button', title: item.title,
+              className: `ws-md-toc-i ws-md-toc-${item.level}${active === item.start ? ' ws-on' : ''}`,
+              onClick: () => jump(item),
+            }, h('span', {}, label), item.n ? h('i', {}, String(item.n)) : null)
+          })))
     }
 
     // Original artwork: a medical record (clipboard with a cross) whose text
