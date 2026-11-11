@@ -221,6 +221,7 @@ window.__ModuleLoader__.load({
       'ws.tab.parts': '文件',
       'wd.tab.line': '产线',
       'wd.tab.review': '复核',
+      'wd.tab.reviewHint': '在弹出窗口中打开结果比对与复核',
       'wd.tab.runs': '记录',
       'wd.live': '实时',
       'wd.bFiles': '完成',
@@ -1011,6 +1012,7 @@ window.__ModuleLoader__.load({
       'ws.tab.parts': 'Files',
       'wd.tab.line': 'Line',
       'wd.tab.review': 'Review',
+      'wd.tab.reviewHint': 'Opens the comparison and review in a dialog',
       'wd.tab.runs': 'Runs',
       'wd.live': 'live',
       'wd.bFiles': 'Done',
@@ -2219,6 +2221,7 @@ window.__ModuleLoader__.load({
       .ws-cmp-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--dsw-alias-border-l2)}
       .ws-cmp-path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--dsw-alias-label-primary)}
       .ws-cmp-pane{flex:1;min-height:0;overflow:auto;padding:10px 14px 18px;display:flex;flex-direction:column;gap:10px}
+      .ws-cmp-pane>*{flex-shrink:0}
       .ws-cmp-review{display:flex;flex-direction:column;border:1px solid var(--dsw-alias-state-warn-primary);border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-base)}
       .ws-cmp-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}
       .ws-cmp-table th{position:sticky;top:-10px;z-index:1;text-align:left;font-weight:600;font-size:11.5px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l2)}
@@ -2456,6 +2459,9 @@ window.__ModuleLoader__.load({
       .wd-tab.on{color:var(--dsw-alias-label-primary);border-bottom-color:var(--ws-accent)}
       .wd-tab i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--wd-ink3)}
       .wd-tab i.hot{color:var(--dsw-alias-state-warn-primary)}
+      .wd-tab-sep{flex:none;align-self:center;width:1px;height:18px;margin:0 8px;background:var(--dsw-alias-border-l1)}
+      .wd-tab.wd-tab-gap{margin-left:14px}
+      .wd-tab-pop{font-size:10.5px;color:var(--wd-ink3);margin-left:-3px}
       .wd-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
       .wd-main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:8px}
       .wd-stage{position:relative;min-height:0;overflow:hidden;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:radial-gradient(ellipse at 45% 55%,rgba(34,199,192,.08),transparent 62%),var(--ws-paper);display:flex;flex-direction:column}
@@ -5170,7 +5176,8 @@ window.__ModuleLoader__.load({
               ? h('p', { className: 'ma-empty' }, rows.length === 0 ? t('ws.cmp.empty') : t('ws.cmp.nochange'))
               : h('table', { className: 'ws-cmp-table', onMouseUp: (event) => onCompareSelect(event, selected) },
                 h('thead', {}, h('tr', {}, h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
-                h('tbody', {}, visible.slice(0, compareShow).map((change, row) => {
+                // Rows flagged for review stay listed beyond the page size.
+                h('tbody', {}, visible.filter((change, index) => index < compareShow || change.flagged).map((change, row) => {
                   const after = change.same ? change.before : change.after
                   const flaggedRow = change.flagged && flags.some((flag) => flagAt(after, flag) >= 0)
                   const onPseudo = (event, token) => openManual(event, { kind: 'revert', text: token, relPath: selected.relPath, n: selected.n })
@@ -5749,14 +5756,16 @@ window.__ModuleLoader__.load({
                   h('span', {}, `${formatTime(run.startedAt)}${run.source ? ` · ${t(`ws.src.${run.source.kind}`)}` : ''}`),
                   run.resumedFrom ? h('span', { className: 'ws-run-resume', title: run.resumedFrom }, t('ws.resumedFrom', { id: run.resumedFrom.slice(-6) })) : null,
                   h('span', {}, `${run.files ?? 0} ${t('ws.unitFiles')} · ${run.entities ?? 0} ${t('ws.unitEntities')}${run.unresolved ? ` · ⚠ ${run.unresolved}` : ''}`))))))
+      // [id, label, count, hot, group start]: the line view, then its details
+      // grouped as results / process / conclusions ('sep' = divider, 'gap' = spacing).
       const TABS = [
         ['line', t('wd.tab.line')],
-        ['parts', t('ws.tab.parts')],
+        ['parts', t('ws.tab.parts'), 0, false, 'sep'],
         ['review', t('wd.tab.review'), reviewOpen, true],
-        ['calls', t('ws.tab.calls')],
+        ['calls', t('ws.tab.calls'), 0, false, 'gap'],
         ['cross', t('ws.tab.cross')],
         ['log', t('ws.tab.log')],
-        ['warn', t('ws.tab.warn'), current?.warnings?.length ?? 0],
+        ['warn', t('ws.tab.warn'), current?.warnings?.length ?? 0, false, 'gap'],
         ['advice', t('ws.tab.advice'), adviceCount],
         ['report', t('ws.tab.report')],
       ]
@@ -5999,9 +6008,12 @@ window.__ModuleLoader__.load({
           h('button', { type: 'button', className: 'wd-icon', title: t('settings.title'), onClick: () => setModal('settings') }, '⚙')),
         error ? h('div', { className: 'ma-banner' }, `${t('error.title')}: ${error}`, h('button', { className: 'ma-link', style: { marginLeft: 8 }, onClick: () => setError('') }, '×')) : null,
         // ── Tabs ──
-        h('nav', { className: 'wd-tabs', role: 'tablist' }, TABS.map(([id, label, count, hot]) => h('button', {
-          key: id, type: 'button', role: 'tab', className: `wd-tab${tabOn(id) ? ' on' : ''}`, 'aria-selected': tabOn(id) ? 'true' : 'false', onClick: () => openTab(id),
-        }, id === 'line' ? `◈ ${label}` : label, count ? h('i', { className: hot ? 'hot' : '' }, String(count)) : null))),
+        h('nav', { className: 'wd-tabs', role: 'tablist' }, TABS.map(([id, label, count, hot, group]) => h(React.Fragment, { key: id },
+          group === 'sep' ? h('span', { className: 'wd-tab-sep', 'aria-hidden': 'true' }) : null,
+          h('button', {
+            type: 'button', role: 'tab', className: `wd-tab${tabOn(id) ? ' on' : ''}${group === 'gap' ? ' wd-tab-gap' : ''}`, 'aria-selected': tabOn(id) ? 'true' : 'false', onClick: () => openTab(id),
+            title: id === 'review' ? t('wd.tab.reviewHint') : undefined,
+          }, id === 'line' ? `◈ ${label}` : label, id === 'review' ? h('span', { className: 'wd-tab-pop', 'aria-hidden': 'true' }, '↗') : null, count ? h('i', { className: hot ? 'hot' : '' }, String(count)) : null)))),
         h('div', { className: 'wd-body' },
           view === 'line' ? h(React.Fragment, {},
             h('div', { className: 'wd-main' },
