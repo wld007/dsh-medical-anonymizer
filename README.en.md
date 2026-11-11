@@ -107,21 +107,19 @@ Configuration only, with a collapsible **How it works** guide at the top:
 
 ### Left sidebar → Medical Anonymization (pipeline dashboard)
 
-One screen for the whole batch: input on the left, the pipeline in the middle,
-monitoring and settings on the right. The interface is in Chinese or English
-following the Harness locale.
+One screen for the whole batch, following the Harness light / dark theme. The
+interface is in Chinese or English following the Harness locale.
 
 | Area | Content |
 | --- | --- |
-| A1 Input | Choose folders or files / `.zip` (native macOS dialog; ⌘-click several in one folder to process them as one batch, each delivered separately); optional output root |
-| A2 Batches | History with status and origin (page / `/anonymize` / agent session, linked back); delete a record, optionally with its deliverable |
-| B1 Pipeline | 10 stations: prescan → parse & unwrap → detect & replace → rule checks → blind review → re-judge & fix → batch rescan → compare & pack → manual review → deliver, DICOM as a bypass; re-judge loops back to the rule checks, up to N rounds; blind review shows the verification model, manual review shows the held state; the file queue below colors each file |
-| B2 / B3 | Identifiers replaced by type; verification outcome (clean / review / failed) and the deliverable path |
-| Bottom tabs | Files (click a row to compare), log, model calls (duration strip + per-call metadata), notices, report (rendered Markdown, full screen) |
-| Compare | Full-screen, file by file: file list on the left, original and result side by side per field (originals red, pseudonyms green, suspects orange); review items are decided right there (replace / not an identifier / keep) |
-| C1 Monitor | Progress, throughput curve, files left and ETA, identifiers, model calls, review items, tokens, memory |
-| C2 Settings | Rounds, concurrency, chunk size, timeout, temperature, thinking, quasi-identifier switch; locked while running; everything else under All settings |
-| C3 Improvements | One-click setting suggestions after each batch; a value-free plugin-improvement draft for what settings cannot fix |
+| Header | Title (opens the method notes), current batch status, elapsed time, "+ New batch" (folders or files / `.zip`, ⌘-click several in one folder to process them as one batch, each delivered separately; optional output root; "■ Stop batch" while running), "Batches" (switch, delete, clear; origin page / `/anonymize` / agent session), settings ⚙ |
+| Tabs | Line ｜ Files, Review ｜ Model calls, Cross-check, Log ｜ Notices, Improve, Report; everything but the line shows full page in the same area |
+| Line | 2.5D line with 10 stations: prescan → parse & unwrap → detect & replace → rule checks → blind review → re-judge & fix → batch rescan → compare & pack → manual review → deliver, DICOM as a bypass, re-judge loops back to the rule checks (up to N rounds); click a station for its details on the right. Files in progress and recently finished bottom-left, to-dos and alerts top-right (disk, memory, items to judge, model failures, notices, resumable), and a file strip coloring each file |
+| Batch overview (right) | Workload, models (calls, failures, context, time, throughput per detector / verifier), concurrency (automatic concurrency and the request chart), cross-check (blind-review findings and re-judge outcomes) |
+| Bottom | Progress (completion, rate curve, ETA), results (identifiers, replacements, clean / review, deliverable path), resources (heap, disk, inference-server KV) |
+| Review | File-by-file comparison: items to judge and the file list on the left, original and result side by side per field on the right (originals red, pseudonyms green, suspects orange); review items are decided at the top of each file (replace / not an identifier / keep), content that cannot be checked (images …) can be removed or kept in bulk |
+| Report | Rendered Markdown with a contents outline; long file sections start folded |
+| Improve | One-click setting suggestions after each batch; a value-free plugin-improvement draft for what settings cannot fix |
 
 Click the title to open the processing reference: scope, current identifier
 treatments, pipeline diagram with each stage's method, principles, output
@@ -509,7 +507,7 @@ layer:
 
 ```bash
 npm test                      # field hints, rule policy, zip, paths, end-to-end pipeline, DICOM
-node scripts/build.mjs 0.8.0  # build a versioned dist/ for a local profile
+node scripts/build.mjs 0.9.0  # build a versioned dist/ for a local profile
 ```
 
 `npm test` uses a deterministic mock model; no network or real data is needed.
