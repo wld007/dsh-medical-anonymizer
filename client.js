@@ -280,6 +280,18 @@ window.__ModuleLoader__.load({
       'wd.strip': '文件带 · 每格 1 个文件',
       'wd.stripGroup': '文件带 · 每格约 {n} 个文件',
       'wd.overview': '批次概览',
+      'wd.aImages': '图片 {n} 张待处理',
+      'wd.aImagesRead': '可用模型识别类别，按建议批量处理',
+      'wd.aImagesBulk': '可在复核页批量移除或保留',
+      'wd.dImages': '嵌入图片 · {n}',
+      'wd.dImagesRead': '模型已识别',
+      'wd.dImagesDone': '已处理',
+      'wd.dImagesNone': '还没识别：在复核页点「用模型识别」，或下次批次结束后自动识别。',
+      'wd.dImagesOpen': '查看待处理的 {n} 张图片',
+      'wd.imgLine': '图片',
+      'wd.imgSeen': '已识别',
+      'wd.imgDone': '已处理',
+      'wd.imgLineHint': '待复核的嵌入图片：总数、模型已识别、建议移除、已处理',
       'wd.version': '版本',
       'wd.runsShort': '记录',
       'wd.peakAt': '峰值 {pct}%',
@@ -330,7 +342,6 @@ window.__ModuleLoader__.load({
       'wd.aMem': '堆内存已用 {pct}%',
       'wd.aMemSub': '超过 70% 时暂停接新文件；可调小每组文件数',
       'wd.aJudge': '需你判断 {n} 项',
-      'wd.aJudgeSub': '另有图片等 {n} 项可批量处理',
       'wd.aOpaque': '待复核 {n} 项',
       'wd.aReviewSub': '点此打开比对与复核',
       'wd.aModelFail': '{role}失败率 {pct}%',
@@ -1158,6 +1169,18 @@ window.__ModuleLoader__.load({
       'wd.strip': 'Files · one cell per file',
       'wd.stripGroup': 'Files · about {n} per cell',
       'wd.overview': 'Batch overview',
+      'wd.aImages': '{n} images to handle',
+      'wd.aImagesRead': 'The model can sort them; act on its suggestions in bulk',
+      'wd.aImagesBulk': 'Remove or keep them in bulk on the review page',
+      'wd.dImages': 'Embedded images · {n}',
+      'wd.dImagesRead': 'Read by the model',
+      'wd.dImagesDone': 'Handled',
+      'wd.dImagesNone': 'Not read yet: start it on the review page, or it runs when the next batch ends.',
+      'wd.dImagesOpen': 'Show the {n} images to handle',
+      'wd.imgLine': 'images',
+      'wd.imgSeen': 'read',
+      'wd.imgDone': 'handled',
+      'wd.imgLineHint': 'Embedded images under review: total, read by the model, suggested for removal, handled',
       'wd.version': 'Version',
       'wd.runsShort': 'Batches',
       'wd.peakAt': 'peak {pct}%',
@@ -1208,7 +1231,6 @@ window.__ModuleLoader__.load({
       'wd.aMem': 'Heap at {pct}%',
       'wd.aMemSub': 'New files pause above 70 %; a smaller chunk size helps',
       'wd.aJudge': '{n} items need your judgement',
-      'wd.aJudgeSub': '{n} more (images …) can be handled in bulk',
       'wd.aOpaque': '{n} items to review',
       'wd.aReviewSub': 'Open comparison and review',
       'wd.aModelFail': '{role} failure rate {pct}%',
@@ -2568,6 +2590,8 @@ window.__ModuleLoader__.load({
       .ws-vis-row .ma-btn{display:inline-flex;align-items:center;gap:4px;align-self:flex-start}
       .ws-vis-sum{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .ma-warn-text{color:var(--dsw-alias-state-warn-primary)!important}
+      .wd-imgline{align-items:center}
+      .wd-imgline .ws-img-glyph{color:var(--wd-ink3)}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -6360,17 +6384,34 @@ window.__ModuleLoader__.load({
       const failOf = (m) => (m?.calls ? Object.values(m.fails ?? {}).reduce((a, b) => a + b, 0) / m.calls : 0)
       const reviewItemsOpen = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision)
       const judgeOpen = reviewItemsOpen.filter((item) => !OPAQUE_REVIEW.has(item.code)).length
+      // Embedded images under review and what the model made of them.
+      const imageItems = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => item.code === 'opaque' && item.image)
+      const imagesOpen = imageItems.filter((item) => !item.decision)
+      const imagesSeen = imageItems.filter((item) => item.vision && !item.vision.error)
+      const imageSuggest = imagesOpen.reduce((map, item) => (item.vision && !item.vision.error ? { ...map, [item.vision.suggestion]: (map[item.vision.suggestion] ?? 0) + 1 } : map), {})
+      const imageCats = imagesSeen.reduce((map, item) => ({ ...map, [item.vision.category]: (map[item.vision.category] ?? 0) + 1 }), {})
+      const openImages = () => {
+        const first = (reviewData?.files ?? []).find((file) => file.items.some((item) => item.code === 'opaque' && item.image && !item.decision))
+        openCompare({ relPath: first?.relPath ?? null, filter: 'review' })
+        setCompareRows('opaque')
+      }
       const alerts = []
       if (current?.status === 'failed') alerts.push({ tone: 'crit', tag: '失败', title: t('wd.aFailed'), sub: current.error ?? '' })
       if (disk?.free !== undefined && disk.free < 20 * GB) alerts.push({ tone: disk.free < 5 * GB ? 'crit' : 'warn', tag: '磁盘', title: t('wd.aDisk', { gb: (disk.free / GB).toFixed(1) }), sub: t('wd.aDiskSub') })
       if (memRatio !== null && memRatio >= 0.7) alerts.push({ tone: memRatio >= 0.85 ? 'crit' : 'warn', tag: '内存', title: t('wd.aMem', { pct: Math.round(memRatio * 100) }), sub: t('wd.aMemSub') })
-      if (reviewOpen > 0) {
-        alerts.push({
-          tone: 'warn', tag: '复核', onClick: () => openCompare({ filter: 'review' }),
-          title: judgeOpen > 0 ? t('wd.aJudge', { n: judgeOpen }) : t('wd.aOpaque', { n: reviewOpen }),
-          sub: judgeOpen > 0 && reviewOpen > judgeOpen ? t('wd.aJudgeSub', { n: reviewOpen - judgeOpen }) : t('wd.aReviewSub'),
-        })
+      if (judgeOpen > 0) {
+        alerts.push({ tone: 'warn', tag: '复核', onClick: () => openCompare({ filter: 'review' }), title: t('wd.aJudge', { n: judgeOpen }), sub: t('wd.aReviewSub') })
       }
+      if (imagesOpen.length > 0) {
+        // Images: how many, and once read by the model, its suggestions.
+        const job = reviewData?.imageCheck
+        const sub = job?.state === 'running' ? t('ws.vis.running', { done: job.done, total: job.total })
+          : imageSuggest.remove || imageSuggest.keep ? [imageSuggest.remove ? `${t('ws.vis.s.remove')} ${imageSuggest.remove}` : null, imageSuggest.keep ? `${t('ws.vis.s.keep')} ${imageSuggest.keep}` : null, imageSuggest.unknown ? `${t('ws.vis.s.unknown')} ${imageSuggest.unknown}` : null].filter(Boolean).join(' · ')
+            : config?.imageCheck ? t('wd.aImagesRead') : t('wd.aImagesBulk')
+        alerts.push({ tone: 'warn', tag: '图片', onClick: openImages, title: t('wd.aImages', { n: imagesOpen.length }), sub })
+      }
+      const otherOpaque = reviewOpen - judgeOpen - imagesOpen.length
+      if (otherOpaque > 0) alerts.push({ tone: 'info', tag: '复核', onClick: () => openCompare({ filter: 'review' }), title: t('wd.aOpaque', { n: otherOpaque }), sub: t('wd.aReviewSub') })
       for (const key of ['detect', 'verify']) {
         const m = totals.models?.[key]
         const rateFail = failOf(m)
@@ -6605,6 +6646,18 @@ window.__ModuleLoader__.load({
             h('div', {}, h('span', {}, t('wd.dBulk')), h('b', {}, String(Math.max(0, reviewOpen - judgeOpen))))))
           parts.push(h('button', { className: 'ma-btn ma-primary', onClick: () => openCompare({ filter: 'review' }) }, `${t('ws.cmp.openReview', { count: reviewOpen })} →`))
         }
+        if (id === 'review' && imageItems.length) {
+          const job = reviewData?.imageCheck
+          const decidedImages = imageItems.length - imagesOpen.length
+          parts.push(section(t('wd.dImages', { n: imageItems.length }), h(React.Fragment, {},
+            h('div', { className: 'wd-kv' },
+              h('div', {}, h('span', {}, t('wd.dImagesRead')), h('b', {}, job?.state === 'running' ? `${job.done}/${job.total}` : `${imagesSeen.length}`)),
+              h('div', {}, h('span', {}, t('wd.dImagesDone')), h('b', {}, `${decidedImages}`))),
+            imagesSeen.length ? rankBars(Object.entries(imageCats).sort((x, y) => y[1] - x[1]).map(([category, n]) => [t(`ws.vis.cat.${category}`), n, ['signature', 'seal', 'face', 'id_document'].includes(category) ? 'var(--dsw-alias-state-error-primary)' : 'var(--ws-accent)'])) : h('p', { className: 'wd-desc', style: { margin: 0 } }, config?.imageCheck ? t('wd.dImagesNone') : t('ws.vis.offHint')),
+            imagesSeen.length ? h('div', { className: 'wd-lg' },
+              ['remove', 'keep', 'unknown'].map((key) => h('span', { key }, t(`ws.vis.s.${key}`), h('b', { style: key === 'remove' && imageSuggest.remove ? { color: 'var(--dsw-alias-state-error-primary)' } : undefined }, String(imageSuggest[key] ?? 0))))) : null)))
+          if (imagesOpen.length) parts.push(h('button', { className: 'ma-btn', onClick: openImages }, `${t('wd.dImagesOpen', { n: imagesOpen.length })} →`))
+        }
         if (id === 'repair' && rounds.length) parts.push(section(t('wd.dRounds'), rankBars(rounds.map(([r, n]) => [t('wd.dRound', { n: r }), n]))))
         if (id === 'repair' || id === 'pack' || id === 'rescan') {
           const fileRounds = {}
@@ -6806,6 +6859,11 @@ window.__ModuleLoader__.load({
                   h('span', {}, t('file.clean'), h('b', {}, String(counts.clean))),
                   h('span', {}, t('file.review'), h('b', { style: counts.review ? { color: 'var(--dsw-alias-state-warn-primary)' } : undefined }, String(counts.review))),
                   null),
+                imageItems.length ? h('div', { className: 'wd-types wd-imgline', title: t('wd.imgLineHint') }, imageGlyph(),
+                  h('span', {}, t('wd.imgLine'), h('b', {}, String(imageItems.length))),
+                  imagesSeen.length ? h('span', {}, t('wd.imgSeen'), h('b', {}, String(imagesSeen.length))) : null,
+                  imageSuggest.remove ? h('span', {}, t('ws.vis.s.remove'), h('b', {}, String(imageSuggest.remove))) : null,
+                  h('span', {}, t('wd.imgDone'), h('b', {}, `${imageItems.length - imagesOpen.length}`))) : null,
                 byType.length ? h('div', { className: 'wd-types', title: t('ws.byType') }, byType.slice(0, 5).map(([type, value]) => h('span', { key: type }, type, h('b', {}, `${Math.round((value / sumType) * 100)}%`)))) : null,
                 !current?.withheld && (current?.output || current?.runDir)
                   ? h('div', { className: 'wd-path' }, h('span', { title: current.output ?? current.runDir }, current.output ?? current.runDir), h('button', { className: 'ma-btn ma-small', onClick: copyPath }, copied ? t('detail.copied') : t('detail.copy')))
