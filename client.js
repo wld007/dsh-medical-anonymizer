@@ -278,6 +278,10 @@ window.__ModuleLoader__.load({
       'wd.strip': '文件带 · 每格 1 个文件',
       'wd.stripGroup': '文件带 · 每格约 {n} 个文件',
       'wd.overview': '批次概览',
+      'wd.secLoad': '送审量',
+      'wd.secModels': '模型表现',
+      'wd.secConc': '并发',
+      'wd.secCross': '交叉核验',
       'wd.models': '模型',
       'wd.backOverview': '概览',
       'wd.progress': '进度',
@@ -1069,6 +1073,10 @@ window.__ModuleLoader__.load({
       'wd.strip': 'Files · one cell per file',
       'wd.stripGroup': 'Files · about {n} per cell',
       'wd.overview': 'Batch overview',
+      'wd.secLoad': 'Workload',
+      'wd.secModels': 'Models',
+      'wd.secConc': 'Concurrency',
+      'wd.secCross': 'Cross-check',
       'wd.models': 'Models',
       'wd.backOverview': 'Overview',
       'wd.progress': 'Progress',
@@ -2498,6 +2506,14 @@ window.__ModuleLoader__.load({
       .wd-sh b{font-size:14px;letter-spacing:1px}
       .wd-sh small{margin-left:auto;font-size:11px;color:var(--wd-ink3)}
       .wd-sep{height:1px;background:var(--dsw-alias-border-l1)}
+      .wd-en{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;font-weight:500;letter-spacing:1.5px;color:var(--wd-ink3);margin-left:8px;text-transform:uppercase}
+      .wd-blk{display:flex;flex-direction:column;gap:6px;padding-top:10px;margin-top:4px;border-top:1px solid var(--dsw-alias-border-l1)}
+      .wd-blk-h{display:flex;align-items:baseline;font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary);padding-left:7px;border-left:2px solid var(--ws-accent);line-height:14px}
+      .wd-blk-h .wd-en{margin-left:6px}
+      .wd-blk>.ws-panel{border:0;padding:0;background:none;gap:5px}
+      .wd-blk .ws-panel-head{display:none}
+      .wd-blk .ws-busy{flex:none;height:58px;margin-top:2px}
+      .wd-blk .ws-m-sum,.wd-blk .ws-splitbox{margin:0}
       .wd-kv{display:grid;grid-template-columns:1fr 1fr;gap:6px}
       .wd-kv div{border:1px solid var(--dsw-alias-border-l1);border-radius:5px;padding:6px 9px}
       .wd-kv span{display:block;font-size:11px;color:var(--wd-ink3)}
@@ -5271,7 +5287,9 @@ window.__ModuleLoader__.load({
         try { window.localStorage.setItem('ma-ws-cross-collapsed', value ? '0' : '1') } catch { /* private mode */ }
         return !value
       })
-      const crossCheckPanel = () => {
+      const crossCheckPanel = ({ open = false } = {}) => {
+        // The side panel hides the fold header, so it always shows the body.
+        const collapsed = !open && crossCollapsed
         const blind = current?.totals?.blind ?? null
         const verifierName = current?.config ? String(current.config.verifyModel ?? '') : String(config?.verifyModel ?? '')
         const parts = [
@@ -5291,14 +5309,14 @@ window.__ModuleLoader__.load({
         const verifierRight = judgedItems.filter((item) => item.decision?.action === 'replace').length
         const detectorRight = judgedItems.filter((item) => item.decision && item.decision.action !== 'replace' && item.decision.action !== 'remove').length
         const waiting = judgedItems.filter((item) => !item.decision).length
-        return h('section', { className: `ws-panel ws-cross${crossCollapsed ? ' ws-collapsed' : ''}` },
+        return h('section', { className: `ws-panel ws-cross${collapsed ? ' ws-collapsed' : ''}` },
           h('div', { className: 'ws-panel-head' },
-            h('button', { type: 'button', className: 'ws-fold', onClick: toggleCross, 'aria-expanded': crossCollapsed ? 'false' : 'true', title: crossCollapsed ? t('ws.expand') : t('ws.collapse') },
+            h('button', { type: 'button', className: 'ws-fold', onClick: toggleCross, 'aria-expanded': collapsed ? 'false' : 'true', title: collapsed ? t('ws.expand') : t('ws.collapse') },
               h('h3', { 'data-code': 'C3' }, t('ws.x.title')),
-              h('span', { className: 'ws-fold-arrow' }, crossCollapsed ? '▸' : '▾')),
-            crossCollapsed && judged >= 5 ? h('span', { className: 'ma-mono ws-res-mini' }, t('ws.x.agreeShort', { pct: Math.round((parts[0][1] / judged) * 100) })) : null),
+              h('span', { className: 'ws-fold-arrow' }, collapsed ? '▸' : '▾')),
+            collapsed && judged >= 5 ? h('span', { className: 'ma-mono ws-res-mini' }, t('ws.x.agreeShort', { pct: Math.round((parts[0][1] / judged) * 100) })) : null),
           // Always the full layout: values are "—" / 0 until a batch has data.
-          crossCollapsed ? null : h(React.Fragment, {},
+          collapsed ? null : h(React.Fragment, {},
             // One header line, the two-tier bar, one line per non-empty branch
             // (zero leaves left out), and rates + pending verdicts in one line.
             h('div', { className: 'ws-x-line', title: t('ws.x.itemsHint') },
@@ -5389,6 +5407,14 @@ window.__ModuleLoader__.load({
         void pending
         return h('div', { className: 'ws-adv-body' }, ...body)
       }
+
+      // Panel titles carry a small English kicker in the Chinese UI.
+      const zhUI = () => services.ctx?.locale?.getLocale?.().active === 'zh'
+      const enKicker = (en) => (zhUI() ? h('em', { className: 'wd-en' }, en) : null)
+      // One titled block of the batch overview.
+      const block = (key, en, ...children) => h('section', { className: 'wd-blk' },
+        h('div', { className: 'wd-blk-h' }, h('span', {}, t(key)), enKicker(en)),
+        ...children)
 
       // Batch overview, models: the former C2 body (inference-server load
       // moved to the Resources readout).
@@ -5645,7 +5671,10 @@ window.__ModuleLoader__.load({
                       empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null,
                     ))
                 })()
-                return h(React.Fragment, {}, splitBar, sumLine, table, verdictBox, busy)
+                return h(React.Fragment, {},
+                  block('wd.secLoad', 'WORKLOAD', splitBar, sumLine),
+                  block('wd.secModels', 'MODELS', table),
+                  block('wd.secConc', 'CONCURRENCY', verdictBox, busy))
       }
 
       // ── Dark layout: station labels, alerts and readouts ──
@@ -6061,15 +6090,13 @@ window.__ModuleLoader__.load({
                 stationSel
                   ? stationDetail(stationSel)
                   : h(React.Fragment, {},
-                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview'))),
-                    h('span', { className: 'wd-sub' }, t('wd.models')),
+                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), enKicker('BATCH OVERVIEW')),
                     modelOverview(),
-                    h('div', { className: 'wd-sep' }),
-                    crossCheckPanel()))),
+                    block('wd.secCross', 'CROSS-CHECK', crossCheckPanel({ open: true }))))),
             h('section', { className: 'wd-bottom' },
               // Progress
               h('div', { className: 'wd-ro' },
-                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.progress')), running ? h('span', { className: 'wd-chip wd-c-ok' }, t('wd.live')) : null),
+                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.progress'), enKicker('PROGRESS')), running ? h('span', { className: 'wd-chip wd-c-ok' }, t('wd.live')) : null),
                 h('div', { className: 'wd-big' },
                   h('div', {}, h('span', {}, t('wd.bFiles')), h('b', {}, `${percent}`, h('small', {}, '%'))),
                   h('div', {}, h('span', {}, t('wd.bRate')), h('b', {}, (running ? recentRate : rate).toFixed(1), h('small', {}, t('wd.perMin')))),
@@ -6080,7 +6107,7 @@ window.__ModuleLoader__.load({
                 spark()),
               // Results
               h('div', { className: 'wd-ro' },
-                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.results')), current?.withheld ? h('span', { className: 'wd-chip wd-c-warn', title: t('ws.withheld') }, t('ws.withheldTag')) : null),
+                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.results'), enKicker('RESULTS')), current?.withheld ? h('span', { className: 'wd-chip wd-c-warn', title: t('ws.withheld') }, t('ws.withheldTag')) : null),
                 h('div', { className: 'wd-big' },
                   h('div', { title: t('ws.m.distinctHint') }, h('span', {}, t('wd.bIds')), h('b', {}, compact(totals.distinctIds ?? totals.newMappings ?? 0))),
                   h('div', { title: t('ws.m.entitiesHint') }, h('span', {}, t('wd.bReplaced')), h('b', {}, compact(totals.entities ?? 0))),
@@ -6098,7 +6125,7 @@ window.__ModuleLoader__.load({
                   : null),
               // Resources: this machine and the inference servers
               h('div', { className: 'wd-ro' },
-                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.resources')), h('span', { className: 'wd-cap' }, t('wd.resScope'))),
+                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.resources'), enKicker('RESOURCES')), h('span', { className: 'wd-cap' }, t('wd.resScope'))),
                 h('div', { className: 'wd-gauges' },
                   gauge(t('wd.heap'), memRatio, mem?.heapLimit ? `${((running ? mem.heapUsed : mem.peakHeap) / GB).toFixed(1)} / ${(mem.heapLimit / GB).toFixed(1)}G` : '—', memRatio >= 0.85 ? 'crit' : memRatio >= 0.7 ? 'warn' : '', t('ws.m.memHint')),
                   gauge(t('wd.disk'), disk?.total ? 1 - disk.free / disk.total : null, disk?.total ? t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }) : '—', disk?.total && disk.free < 5 * GB ? 'crit' : disk?.total && disk.free < 20 * GB ? 'warn' : '', t('wd.diskHint')),
@@ -6106,7 +6133,7 @@ window.__ModuleLoader__.load({
                   verifierName ? srvGauge('verify') : null)),
               // To do and alerts
               h('div', { className: 'wd-ro' },
-                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.alerts')), h('span', { className: 'wd-cap' }, String(alerts.filter((a) => a.tone !== 'ok').length))),
+                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.alerts'), enKicker('ALERTS')), h('span', { className: 'wd-cap' }, String(alerts.filter((a) => a.tone !== 'ok').length))),
                 alerts.slice(0, 3).map((a, index) => h('button', {
                   key: index, type: 'button', className: 'wd-alert', 'data-click': a.onClick ? '1' : undefined, onClick: a.onClick, disabled: !a.onClick,
                 },
