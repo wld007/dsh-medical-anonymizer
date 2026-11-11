@@ -361,6 +361,8 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.compareList(request.runId) }
         case 'compareFile':
           return { ok: true, value: await service.compareFile(request.runId, request.n) }
+        case 'opaquePreview':
+          return { ok: true, value: await service.opaquePreview(request.runId, request.itemId) }
         case 'reviewItems':
           return { ok: true, value: await service.reviewItems(request.runId) }
         case 'reviewBulk':

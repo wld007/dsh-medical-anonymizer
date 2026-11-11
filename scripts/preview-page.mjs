@@ -80,6 +80,7 @@ const handlers = {
   reviewItems: (p) => service.reviewItems(p.runId),
   compareList: (p) => service.compareList(p.runId),
   compareFile: (p) => service.compareFile(p.runId, p.n),
+  opaquePreview: (p) => service.opaquePreview(p.runId, p.itemId),
 }
 
 http.createServer(async (req, res) => {

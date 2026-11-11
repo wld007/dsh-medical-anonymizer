@@ -596,6 +596,11 @@ window.__ModuleLoader__.load({
       'ws.cmp.jumpMissing': '没有第 {n} 行。',
       'ws.cmp.jumpCapped': '第 {n} 行不在比对记录里：文件过大，只记录了前 {shown} 段。',
       'ws.cmp.earlier': '↑ 显示前面的行（前面还有 {n} 行）',
+      'ws.pv.removed': '已移除，交付数据中没有这张图片了。',
+      'ws.pv.none': '交付数据中读不到这部分内容的图片。',
+      'ws.pv.zoom': '点击放大，再点关闭',
+      'ws.pv.alt': '待复核图片 {n}',
+      'ws.pv.skipped': '另有 {n} 项不是可显示的图片（或超过 4 MB）',
       'ws.cmp.mode.all': '全部',
       'ws.cmp.mode.changed': '只看改动',
       'ws.cmp.mode.judge': '待判断',
@@ -1437,6 +1442,11 @@ window.__ModuleLoader__.load({
       'ws.cmp.jumpMissing': 'There is no row {n}.',
       'ws.cmp.jumpCapped': 'Row {n} is not in the comparison: the file is large and only its first {shown} segments were recorded.',
       'ws.cmp.earlier': '↑ Show earlier rows ({n} above)',
+      'ws.pv.removed': 'Removed: the image is no longer in the deliverable.',
+      'ws.pv.none': 'No image for this content could be read from the deliverable.',
+      'ws.pv.zoom': 'Click to enlarge, click again to close',
+      'ws.pv.alt': 'Image under review {n}',
+      'ws.pv.skipped': '{n} more not drawable as an image (or larger than 4 MB)',
       'ws.cmp.mode.all': 'All',
       'ws.cmp.mode.changed': 'Changes',
       'ws.cmp.mode.judge': 'To judge',
@@ -2473,6 +2483,12 @@ window.__ModuleLoader__.load({
       .ws-cmp-same td{color:var(--dsw-alias-label-secondary)}
       .ws-cmp-same td:nth-child(3),.ws-cmp-same td:nth-child(4){background:none!important}
       .ws-cmp-suspect{background:none;color:inherit;text-decoration:underline dotted var(--dsw-alias-state-warn-primary);text-decoration-thickness:2px;text-underline-offset:3px}
+      .ws-pv{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;padding:2px 0}
+      .ws-pv-thumb{padding:4px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:repeating-conic-gradient(#e9eef0 0 25%,#fff 0 50%) 0 0/12px 12px;cursor:zoom-in;line-height:0}
+      .ws-pv-thumb img{display:block;min-height:56px;max-width:260px;max-height:140px;width:auto;object-fit:contain}
+      .ws-pv-note{font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-pv-zoom{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(0,0,0,.6);cursor:zoom-out}
+      .ws-pv-zoom img{max-width:90vw;max-height:88vh;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.4)}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -4000,6 +4016,33 @@ window.__ModuleLoader__.load({
       return -1
     }
 
+    // Thumbnails of an embedded image under review, loaded when the card is
+    // drawn. Read from the deliverable on this machine; never sent to a model.
+    const previewStore = new Map() // `${runId}:${itemId}` -> result
+    function OpaquePreview({ runId, item, removed }) {
+      const t = services.t
+      const key = `${runId}:${item.id}`
+      const [state, setState] = React.useState(() => previewStore.get(key) ?? null)
+      const [zoom, setZoom] = React.useState(null)
+      React.useEffect(() => {
+        if (removed || !runId || previewStore.has(key)) return undefined
+        let live = true
+        call('opaquePreview', { runId, itemId: item.id })
+          .then((value) => { previewStore.set(key, value); if (live) setState(value) })
+          .catch((cause) => { const value = { images: [], error: String(cause?.message ?? cause) }; if (live) setState(value) })
+        return () => { live = false }
+      }, [key, removed])
+      if (removed) return h('div', { className: 'ws-pv ws-pv-note' }, t('ws.pv.removed'))
+      if (!state) return h('div', { className: 'ws-pv ws-pv-note' }, t('detail.loading'))
+      if (state.error) return h('div', { className: 'ws-pv ws-pv-note' }, state.error)
+      if (!state.images.length) return h('div', { className: 'ws-pv ws-pv-note' }, t(state.note === 'removed' ? 'ws.pv.removed' : 'ws.pv.none'))
+      return h('div', { className: 'ws-pv' },
+        state.images.map((src, index) => h('button', { key: index, type: 'button', className: 'ws-pv-thumb', title: t('ws.pv.zoom'), onClick: () => setZoom(src) },
+          h('img', { src, alt: t('ws.pv.alt', { n: index + 1 }), loading: 'lazy' }))),
+        state.skipped ? h('span', { className: 'ws-pv-note' }, t('ws.pv.skipped', { n: state.skipped })) : null,
+        zoom ? h('div', { className: 'ws-pv-zoom', role: 'dialog', onClick: () => setZoom(null) }, h('img', { src: zoom, alt: '' })) : null)
+    }
+
     // Row number of a comparison row: the segment's place in the file. Older
     // records lack it; their rows are in file order up to the 50 000 cap.
     function rowNumber(change, index) {
@@ -5341,6 +5384,7 @@ window.__ModuleLoader__.load({
         item.text
           ? h('div', { className: 'ws-rv-ctx' }, item.before, h('mark', {}, item.text), item.after)
           : h('div', { className: 'ws-rv-ctx ws-rv-plain' }, item.detail),
+        item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove' }) : null,
         reviewActions(file, item))
       // In the comparison: one line per item right under the row holding it.
       const reviewInline = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-inline${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
