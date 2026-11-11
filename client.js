@@ -591,6 +591,11 @@ window.__ModuleLoader__.load({
       'ws.blindSameHint': '核验模型与识别模型同为 {model}，盲区相同，独立性有限。点击打开设置。',
       'ws.cmp.only': '只看改动',
       'ws.cmp.noHint': '段号：这一段在文件中的位置（文本文件即行号）',
+      'ws.cmp.jumpTo': '跳到',
+      'ws.cmp.jumpHint': '输入 # 列的号码，回车跳到该行（切换到「全部」视图）',
+      'ws.cmp.jumpMissing': '没有第 {n} 行。',
+      'ws.cmp.jumpCapped': '第 {n} 行不在比对记录里：文件过大，只记录了前 {shown} 段。',
+      'ws.cmp.earlier': '↑ 显示前面的行（前面还有 {n} 行）',
       'ws.cmp.mode.all': '全部',
       'ws.cmp.mode.changed': '只看改动',
       'ws.cmp.mode.judge': '待判断',
@@ -1427,6 +1432,11 @@ window.__ModuleLoader__.load({
       'ws.blindSameHint': 'Verification and detection both use {model}: same blind spots, limited independence. Click to open settings.',
       'ws.cmp.only': 'Changes only',
       'ws.cmp.noHint': 'Segment number: its place in the file (the line number for text files)',
+      'ws.cmp.jumpTo': 'Go to',
+      'ws.cmp.jumpHint': 'Type a number from the # column and press Enter (switches to All)',
+      'ws.cmp.jumpMissing': 'There is no row {n}.',
+      'ws.cmp.jumpCapped': 'Row {n} is not in the comparison: the file is large and only its first {shown} segments were recorded.',
+      'ws.cmp.earlier': '↑ Show earlier rows ({n} above)',
       'ws.cmp.mode.all': 'All',
       'ws.cmp.mode.changed': 'Changes',
       'ws.cmp.mode.judge': 'To judge',
@@ -2411,7 +2421,8 @@ window.__ModuleLoader__.load({
       .ws-cmp-table th{position:sticky;top:-10px;z-index:1;text-align:left;font-weight:600;font-size:11.5px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l2)}
       .ws-cmp-table th:first-child{width:52px}
       .ws-cmp-table th:nth-child(2){width:150px}
-      .ws-cmp-table td.ws-cmp-no,.ws-cmp-table th.ws-cmp-no{text-align:right;padding-right:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));user-select:none;background:none}
+      .ws-cmp-table td.ws-cmp-no,.ws-cmp-table th.ws-cmp-no{text-align:right;padding-right:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));user-select:none}
+      .ws-cmp-table td.ws-cmp-no{background:none}
       .ws-cmp-table td{padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);vertical-align:top;white-space:pre-wrap;word-break:break-word;line-height:19px}
       .ws-cmp-table td:nth-child(3){background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 3%,transparent)}
       .ws-cmp-table td:nth-child(4){background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 3%,transparent)}
@@ -2466,7 +2477,14 @@ window.__ModuleLoader__.load({
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
       .ws-cmp-mode.ws-on{background:var(--ws-accent-soft,rgba(14,159,152,.12));color:var(--ws-accent);font-weight:600}
-      .ws-cmp-mode i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;padding:0 5px;border-radius:8px;color:#fff;background:var(--dsw-alias-state-error-primary)}
+      .ws-cmp-mode i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;padding:0 5px;border-radius:8px;color:var(--dsw-alias-label-secondary);background:color-mix(in srgb,var(--dsw-alias-label-primary) 8%,transparent)}
+      .ws-cmp-mode i.ws-cnt-hot{color:#fff;background:var(--dsw-alias-state-error-primary)}
+      .ws-cmp-mode:disabled{cursor:default;opacity:.55}
+      .ws-cmp-jump{flex:none;display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--dsw-alias-label-secondary);margin:0}
+      .ws-cmp-jump input{width:64px;height:24px;padding:0 6px;border:1px solid var(--dsw-alias-border-l2);border-radius:5px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+      .ws-cmp-jump input:focus{outline:none;border-color:var(--ws-accent)}
+      .ws-cmp-table tr.ws-cmp-jumped td{background:color-mix(in srgb,var(--ws-accent) 12%,transparent)!important}
+      .ws-cmp-table tr.ws-cmp-jumped td.ws-cmp-no{box-shadow:inset 3px 0 0 var(--ws-accent);color:var(--ws-accent);font-weight:600}
       .ws-cmp-mode-judge.ws-on{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 8%,transparent)}
       .ws-cmp-note{margin:0;padding:6px 14px}
       .ws-cmp-clip{position:relative;max-height:220px;overflow:auto;scrollbar-width:thin}
@@ -3982,6 +4000,12 @@ window.__ModuleLoader__.load({
       return -1
     }
 
+    // Row number of a comparison row: the segment's place in the file. Older
+    // records lack it; their rows are in file order up to the 50 000 cap.
+    function rowNumber(change, index) {
+      return change.i ?? (/^L\d+$/.test(String(change.id)) ? Number(String(change.id).slice(1)) : index < 50000 ? index + 1 : null)
+    }
+
     // Long comparison cells holding a review item are clipped to a window
     // that opens scrolled to the marked text.
     const CLIP_CHARS = 600
@@ -4557,6 +4581,21 @@ window.__ModuleLoader__.load({
       const [compareFilter, setCompareFilter] = React.useState('all')
       const [compareFiles, setCompareFiles] = React.useState({})
       const [compareShow, setCompareShow] = React.useState(300)
+      // Rendered window of the table: rows [compareFrom, compareFrom + compareShow).
+      const [compareFrom, setCompareFrom] = React.useState(0)
+      const [jumpRow, setJumpRow] = React.useState(null)
+      React.useEffect(() => { setCompareFrom(0); setJumpRow(null) }, [compareSel, adviceRunId])
+      React.useEffect(() => {
+        if (jumpRow === null) return undefined
+        let tries = 0
+        const timer = setInterval(() => {
+          const node = document.getElementById(`ws-row-${jumpRow}`)
+          tries += 1
+          if (node) { node.scrollIntoView({ block: 'center' }); clearInterval(timer) }
+          else if (tries > 40) clearInterval(timer)
+        }, 60)
+        return () => clearInterval(timer)
+      }, [jumpRow])
       const [compareRows, setCompareRows] = React.useState('all') // 'all' | 'changed' | 'judge'
       const rowMode = compareRows
       // Comparison rows whose long cells are shown in full.
@@ -5481,12 +5520,13 @@ window.__ModuleLoader__.load({
             h('div', { className: 'ws-cmp-rowbar' },
               h('span', { className: 'ma-hint' }, full ? t('ws.cmp.legend') : t('ws.cmp.legacy')),
               full && adviceRunId ? h('span', { className: 'ma-hint ws-mx-tip' }, t('ws.mx.tip')) : null),
+            compareFrom > 0 && visible.length > 0 ? h('button', { className: 'ma-btn ma-small ws-cmp-more', onClick: () => { const from = Math.max(0, compareFrom - 300); setCompareShow(compareShow + (compareFrom - from)); setCompareFrom(from) } }, t('ws.cmp.earlier', { n: compareFrom })) : null,
             visible.length === 0
               ? h('p', { className: 'ma-empty' }, rows.length === 0 ? t('ws.cmp.empty') : t('ws.cmp.nochange'))
               : h('table', { className: 'ws-cmp-table', onMouseUp: (event) => onCompareSelect(event, selected) },
                 h('thead', {}, h('tr', {}, h('th', { className: 'ws-cmp-no', title: t('ws.cmp.noHint') }, '#'), h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
                 // Rows flagged for review stay listed beyond the page size.
-                h('tbody', {}, visible.filter(({ change, index }, position) => position < compareShow || change.flagged || hosts.has(index)).flatMap(({ change, index: row }) => {
+                h('tbody', {}, visible.filter(({ change, index }, position) => (position >= compareFrom && position < compareFrom + compareShow) || change.flagged || hosts.has(index)).flatMap(({ change, index: row }) => {
                   const after = change.same ? change.before : change.after
                   const here = hosts.get(row) ?? []
                   const flaggedRow = here.some((item) => !item.decision) || (change.flagged && flags.some((flag) => flagAt(after, flag) >= 0))
@@ -5494,7 +5534,7 @@ window.__ModuleLoader__.load({
                   const rowKey = change.id ?? row
                   // Row number: the segment's place in the file. Older records
                   // lack it; their rows are in file order up to the cap.
-                  const number = change.i ?? (/^L\d+$/.test(String(change.id)) ? Number(String(change.id).slice(1)) : row < 50000 ? row + 1 : null)
+                  const number = rowNumber(change, row)
                   const noCell = h('td', { key: 'n', className: 'ws-cmp-no' }, number ?? '—')
                   const longest = Math.max(String(change.before ?? '').length, after.length)
                   const marks = here.length ? judgeFlags : []
@@ -5515,7 +5555,7 @@ window.__ModuleLoader__.load({
                       h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, ops, flags, `${row}-`, onPseudo), longest, rowKey)),
                     ]
                   }
-                  const out = [h('tr', { key: rowKey, className: `${change.same ? 'ws-cmp-same' : ''}${flaggedRow ? ' ws-cmp-flagged' : ''}${here.length ? ' ws-cmp-hosted' : ''}` }, cells)]
+                  const out = [h('tr', { key: rowKey, id: number !== null ? `ws-row-${number}` : undefined, className: `${change.same ? 'ws-cmp-same' : ''}${flaggedRow ? ' ws-cmp-flagged' : ''}${here.length ? ' ws-cmp-hosted' : ''}${jumpRow !== null && number === jumpRow ? ' ws-cmp-jumped' : ''}` }, cells)]
                   if (here.length) {
                     out.push(h('tr', { key: `${rowKey}-rv`, className: 'ws-cmp-actrow' },
                       h('td', { className: 'ws-cmp-no' }),
@@ -5525,7 +5565,7 @@ window.__ModuleLoader__.load({
                   }
                   return out
                 }))),
-            visible.length > compareShow ? h('button', { className: 'ma-btn ma-small ws-cmp-more', onClick: () => setCompareShow(compareShow + 300) }, t('ws.cmp.more', { shown: compareShow, total: visible.length })) : null,
+            visible.length > compareFrom + compareShow ? h('button', { className: 'ma-btn ma-small ws-cmp-more', onClick: () => setCompareShow(compareShow + 300) }, t('ws.cmp.more', { shown: compareFrom + compareShow, total: visible.length })) : null,
             selected.truncated ? h('p', { className: 'ma-hint' }, t('ws.cmp.truncated', { shown: selected.truncated, total: selected.total })) : null)
         }
         return h('div', { className: 'ws-cmp', tabIndex: 0, onKeyDown: (event) => {
@@ -5589,13 +5629,35 @@ window.__ModuleLoader__.load({
               (() => {
                 const openJudge = (reviewFile?.items ?? []).filter((item) => !item.decision && !isOpaque(item)).length
                 const current = compareRows === 'judge' && openJudge === 0 ? 'all' : compareRows
-                return h('div', { className: 'ws-cmp-modes', role: 'radiogroup' }, ['all', 'changed', 'judge'].map((id) => (id === 'judge' && openJudge === 0 ? null : h('button', {
+                const count = { changed: Number(selected?.changed ?? 0), judge: openJudge }
+                return h('div', { className: 'ws-cmp-modes', role: 'radiogroup' }, ['all', 'changed', 'judge'].map((id) => h('button', {
                   key: id, type: 'button', role: 'radio', 'aria-checked': current === id ? 'true' : 'false',
                   className: `ws-cmp-mode${current === id ? ' ws-on' : ''}${id === 'judge' ? ' ws-cmp-mode-judge' : ''}`,
                   title: id === 'changed' ? t('ws.cmp.onlyHint') : undefined,
-                  onClick: () => { setCompareRows(id); setCompareShow(300) },
-                }, t(`ws.cmp.mode.${id}`), id === 'judge' ? h('i', {}, String(openJudge)) : null))))
+                  disabled: id === 'judge' && openJudge === 0,
+                  onClick: () => { setCompareRows(id); setCompareShow(300); setCompareFrom(0); setJumpRow(null) },
+                }, t(`ws.cmp.mode.${id}`), id in count ? h('i', { className: id === 'judge' && count.judge > 0 ? 'ws-cnt-hot' : '' }, String(count[id])) : null)))
               })(),
+              // Jump to a row number (the # column): shown in the full view.
+              h('form', {
+                className: 'ws-cmp-jump', title: t('ws.cmp.jumpHint'),
+                onSubmit: (event) => {
+                  event.preventDefault()
+                  const input = event.currentTarget.elements.row
+                  const n = Number(String(input.value).trim())
+                  const rows = data?.changes ?? []
+                  if (!Number.isInteger(n) || n < 1 || rows.length === 0) return
+                  const index = rows.findIndex((change, i) => rowNumber(change, i) === n)
+                  if (index < 0) { setReviewNote({ ok: false, text: selected?.truncated && n <= Number(selected.total ?? 0) ? t('ws.cmp.jumpCapped', { n, shown: selected.truncated }) : t('ws.cmp.jumpMissing', { n }) }); return }
+                  setReviewNote(null)
+                  setCompareRows('all')
+                  setCompareFrom(Math.max(0, index - 100))
+                  setCompareShow(300)
+                  setJumpRow(n)
+                },
+              },
+                h('span', {}, t('ws.cmp.jumpTo')),
+                h('input', { name: 'row', type: 'text', inputMode: 'numeric', autoComplete: 'off', placeholder: '#', disabled: !data?.changes?.length })),
               h('span', { className: 'ma-mono' }, shown.length ? `${position < 0 ? '—' : position + 1} / ${shown.length}` : ''),
               h('button', { className: 'ma-btn ma-small', disabled: position <= 0, onClick: () => go(-1) }, `↑ ${t('ws.cmp.prev')}`),
               h('button', { className: 'ma-btn ma-small', disabled: position < 0 || position >= shown.length - 1, onClick: () => go(1) }, `↓ ${t('ws.cmp.next')}`)),
