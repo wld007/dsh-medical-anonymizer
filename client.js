@@ -2586,7 +2586,17 @@ window.__ModuleLoader__.load({
       .wd-icon:hover{color:var(--ws-accent);border-color:var(--ws-accent)}
       .wd-act{position:relative}
       .wd-act .ma-btn{height:30px;padding:0 14px;white-space:nowrap}
-      .wd-new{border-color:rgba(34,199,192,.6)!important;color:var(--wd-acc2)!important}
+      .wd-new{border-color:var(--ws-accent)!important;background:var(--ws-accent)!important;color:#fff!important;font-weight:600}
+      .wd-new:hover:not(:disabled){filter:brightness(1.06)}
+      .ws-dark .wd-new:not(:disabled){color:#04211f!important}
+      .wd-new:disabled{background:transparent!important;color:var(--dsw-alias-label-secondary)!important;border-color:var(--dsw-alias-border-l2)!important;font-weight:400}
+      .wd-act .ma-btn,.wd-hicon{height:34px;border-radius:7px;border-width:1px}
+      .wd-act .ma-btn{display:inline-flex;align-items:center;gap:6px;padding:0 14px}
+      .wd-hbtn{background:var(--dsw-alias-bg-layer-1)!important;border-color:var(--dsw-alias-border-l2)!important;color:var(--dsw-alias-label-primary)!important}
+      .wd-hbtn:hover,.wd-hbtn[aria-expanded="true"]{border-color:var(--ws-accent)!important;color:var(--ws-accent)!important}
+      .wd-hicon{width:34px;background:var(--dsw-alias-bg-layer-1);border-color:var(--dsw-alias-border-l2);font-size:15px;color:var(--dsw-alias-label-secondary)}
+      .wd-caret{font-size:9px;opacity:.7;margin-left:-1px}
+      .wd-hcount{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:16px;padding:0 6px;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 8%,transparent);color:var(--dsw-alias-label-secondary)}
       .wd-pop{position:absolute;right:0;top:38px;z-index:950;width:440px;padding:14px 16px;border:1px solid rgba(34,199,192,.5);border-radius:8px;background:var(--wd-pop-bg);box-shadow:0 20px 60px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:10px}
       .wd-pop .ma-field{gap:4px}
       .wd-shade{position:fixed;inset:0;z-index:940;background:rgba(0,0,0,.35)}
@@ -6224,7 +6234,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'wd-act' },
             running
               ? h('button', { className: 'ma-btn ws-start ws-stop', onClick: cancelRun, disabled: cancelling }, cancelling ? t('run.cancelling') : t('ws.stop'))
-              : h('button', { className: 'ma-btn wd-new', onClick: () => setNewOpen(!newOpen), disabled: anyRunning }, anyRunning ? t('ws.lineBusy') : `＋ ${t('wd.newRun')} ▾`),
+              : h('button', { className: 'ma-btn wd-new', onClick: () => setNewOpen(!newOpen), disabled: anyRunning }, anyRunning ? t('ws.lineBusy') : h(React.Fragment, {}, `＋ ${t('wd.newRun')}`, h('span', { className: 'wd-caret' }, '▾'))),
             !running && newOpen ? h('div', { className: 'wd-shade', onMouseDown: () => setNewOpen(false) }) : null,
             !running && newOpen ? h('div', { className: 'wd-pop', role: 'dialog' },
               h('div', { className: 'wd-roh' }, h('b', { style: { color: 'var(--wd-acc2)' } }, t('wd.newRun'))),
@@ -6250,10 +6260,10 @@ window.__ModuleLoader__.load({
                 current?.resumable && !anyRunning ? h('button', { className: 'ma-btn ws-resume', onClick: async () => { await resumeRun(); setNewOpen(false) }, disabled: busy, title: t('ws.resumeHint') }, `↻ ${t('ws.resume')}`) : null))
               : null),
           h('div', { className: 'wd-act wd-runs-act' },
-            h('button', { type: 'button', className: 'ma-btn', onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false' }, `${t('runs.title')} ${runs.length}`),
+            h('button', { type: 'button', className: 'ma-btn wd-hbtn', onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false' }, t('runs.title'), runs.length ? h('i', { className: 'wd-hcount' }, String(runs.length)) : null, h('span', { className: 'wd-caret' }, '▾')),
             runsOpen ? h('div', { className: 'wd-shade', onMouseDown: () => setRunsOpen(false) }) : null,
             runsOpen ? runsPopover() : null),
-          h('button', { type: 'button', className: 'wd-icon', title: t('settings.title'), onClick: () => setModal('settings') }, '⚙')),
+          h('button', { type: 'button', className: 'wd-icon wd-hicon', title: t('settings.title'), 'aria-label': t('settings.title'), onClick: () => setModal('settings') }, '⚙')),
         error ? h('div', { className: 'ma-banner' }, `${t('error.title')}: ${error}`, h('button', { className: 'ma-link', style: { marginLeft: 8 }, onClick: () => setError('') }, '×')) : null,
         // ── Tabs ──
         h('nav', { className: 'wd-tabs', role: 'tablist' }, TABS.map(([id, label, count, hot, group]) => h(React.Fragment, { key: id },
