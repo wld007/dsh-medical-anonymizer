@@ -604,6 +604,8 @@ window.__ModuleLoader__.load({
       'ws.pv.zoom': '点击放大，再点关闭',
       'ws.pv.alt': '待复核图片 {n}',
       'ws.pv.skipped': '另有 {n} 项不是可显示的图片（或超过 4 MB）',
+      'ws.cmp.mode.opaque': '图片等',
+      'ws.rv.opaqueUnlocated': '无法检查的内容（图片等）· 表格中定位不到的 {n} 项',
       'ws.cmp.mode.all': '全部',
       'ws.cmp.mode.changed': '只看改动',
       'ws.cmp.mode.judge': '待判断',
@@ -1453,6 +1455,8 @@ window.__ModuleLoader__.load({
       'ws.pv.zoom': 'Click to enlarge, click again to close',
       'ws.pv.alt': 'Image under review {n}',
       'ws.pv.skipped': '{n} more not drawable as an image (or larger than 4 MB)',
+      'ws.cmp.mode.opaque': 'Images',
+      'ws.rv.opaqueUnlocated': 'Content that cannot be checked (images …) · {n} not found in the table',
       'ws.cmp.mode.all': 'All',
       'ws.cmp.mode.changed': 'Changes',
       'ws.cmp.mode.judge': 'To judge',
@@ -2495,6 +2499,13 @@ window.__ModuleLoader__.load({
       .ws-pv-note{font-size:11.5px;color:var(--dsw-alias-label-secondary)}
       .ws-pv-zoom{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(0,0,0,.6);cursor:zoom-out}
       .ws-pv-zoom img{max-width:90vw;max-height:88vh;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+      .ws-img-glyph{flex:none;vertical-align:-1px;margin-right:2px}
+      .ws-count-op{display:inline-flex;align-items:center;gap:2px}
+      .ws-cmp-opbulk{flex:none;margin:0;gap:6px}
+      .ws-rv-ops{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+      .ws-rv-inline.ws-rv-inline-op{flex-direction:column;align-items:flex-start;gap:6px;border-left-color:var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 7%,transparent);margin-top:0}
+      .ws-rv-op-meta{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-rv-op-kind{color:var(--dsw-alias-label-primary)}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -4032,6 +4043,14 @@ window.__ModuleLoader__.load({
       return -1
     }
 
+    // Small picture icon marking images / unreadable content.
+    function imageGlyph() {
+      return h('svg', { className: 'ws-img-glyph', viewBox: '0 0 16 16', width: 11, height: 11, 'aria-hidden': 'true', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinejoin: 'round' },
+        h('rect', { x: 1.5, y: 2.5, width: 13, height: 11, rx: 2 }),
+        h('circle', { cx: 5.5, cy: 6.5, r: 1.3 }),
+        h('path', { d: 'M2 12l4-4 3 3 2-2 3.5 3.5' }))
+    }
+
     // Thumbnails of an embedded image under review, loaded when the card is
     // drawn. Read from the deliverable on this machine; never sent to a model.
     const previewStore = new Map() // `${runId}:${itemId}` -> result
@@ -5402,6 +5421,15 @@ window.__ModuleLoader__.load({
           : h('div', { className: 'ws-rv-ctx ws-rv-plain' }, item.detail),
         item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove' }) : null,
         reviewActions(file, item))
+      // In the comparison: an image (or other unreadable content) under the
+      // row of the record that embeds it, with its thumbnail and decision.
+      const opaqueInline = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-inline ws-rv-inline-op${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
+        h('div', { className: 'ws-rv-op-meta' },
+          h('span', { className: 'ws-rv-code ws-rv-code-op' }, codeLabel(item)),
+          h('span', { className: 'ws-rv-op-kind' }, item.kind ?? item.detail ?? ''),
+          item.field ? h('span', { className: 'ma-mono' }, item.field) : null),
+        item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove' }) : h('div', { className: 'ws-pv-note' }, item.detail),
+        reviewActions(file, item))
       // In the comparison: one line per item right under the row holding it.
       const reviewInline = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-inline${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
         h('span', { className: 'ws-rv-code' }, codeLabel(item)),
@@ -5413,9 +5441,11 @@ window.__ModuleLoader__.load({
       // One file's review items: what needs a human judgement first, then the
       // content that cannot be checked (images …) folded into one bar.
       const isOpaque = (item) => OPAQUE_REVIEW.has(item.code)
-      const reviewBlocks = (file, judgeShown = null) => {
+      // judgeShown / opaqueShown: only these items (the ones the table cannot
+      // place); null = every item of the file (no table to place them in).
+      const reviewBlocks = (file, judgeShown = null, opaqueShown = null) => {
         const judge = judgeShown ?? file.items.filter((item) => !isOpaque(item))
-        const opaque = file.items.filter(isOpaque)
+        const opaque = opaqueShown ?? file.items.filter(isOpaque)
         const opaqueLeft = opaque.filter((item) => !item.decision)
         const unfolded = opaqueOpen[file.relPath] === true
         return h(React.Fragment, {},
@@ -5424,8 +5454,8 @@ window.__ModuleLoader__.load({
             judge.map((item) => reviewCard(file, item))) : null,
           opaque.length ? h('div', { className: 'ws-cmp-review ws-rv-opaque' },
             h('div', { className: 'ws-rv-head' },
-              h('button', { type: 'button', className: 'ma-link', onClick: () => setOpaqueOpen({ ...opaqueOpen, [file.relPath]: !unfolded }) }, `${unfolded ? '▾' : '▸'} ${t('ws.rv.opaqueHead', { n: opaqueLeft.length, total: opaque.length })}`),
-              opaqueLeft.length ? h('span', { className: 'ma-actions' },
+              h('button', { type: 'button', className: 'ma-link', onClick: () => setOpaqueOpen({ ...opaqueOpen, [file.relPath]: !unfolded }) }, `${unfolded ? '▾' : '▸'} ${opaqueShown ? t('ws.rv.opaqueUnlocated', { n: opaqueLeft.length }) : t('ws.rv.opaqueHead', { n: opaqueLeft.length, total: opaque.length })}`),
+              opaqueLeft.length && !opaqueShown ? h('span', { className: 'ma-actions' },
                 opaqueLeft.some((item) => item.code === 'opaque') ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || !file.editable, title: file.editable ? t('ws.rv.removeHint') : file.reason, onClick: () => bulkReview('remove', [file]) }, t('ws.rv.fileRemove')) : null,
                 h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => bulkReview('accept', [file]) }, t('ws.rv.fileKeep'))) : null),
             unfolded ? opaque.map((item) => reviewCard(file, item)) : null) : null)
@@ -5562,21 +5592,41 @@ window.__ModuleLoader__.load({
             if (at < 0) { unlocated.push(item); continue }
             hosts.set(at, [...(hosts.get(at) ?? []), item])
           }
+          // Images and other unreadable content sit under the first row of
+          // the record (base segment) that embeds them.
+          const opaqueItems = (reviewFile?.items ?? []).filter(isOpaque)
+          const opHosts = new Map() // row index -> items
+          const opUnlocated = []
+          if (opaqueItems.length) {
+            const firstRow = new Map()
+            rows.forEach((change, index) => {
+              const id = String(change.id ?? '')
+              const base = id.includes('#') ? id.slice(0, id.indexOf('#')) : id
+              if (!firstRow.has(base)) firstRow.set(base, index)
+            })
+            for (const item of opaqueItems) {
+              const at = item.baseId ? firstRow.get(item.baseId) : undefined
+              if (at === undefined) { opUnlocated.push(item); continue }
+              opHosts.set(at, [...(opHosts.get(at) ?? []), item])
+            }
+          }
           const openHere = judgeItems.filter((item) => !item.decision)
-          const mode = rowMode === 'judge' && openHere.length === 0 ? 'all' : rowMode
+          const openOpaque = opaqueItems.filter((item) => !item.decision)
+          const mode = (rowMode === 'judge' && openHere.length === 0) || (rowMode === 'opaque' && openOpaque.length === 0) ? 'all' : rowMode
           const indexed = rows.map((change, index) => ({ change, index }))
           const visible = mode === 'judge'
             ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => !item.decision))
-            : mode === 'changed' ? indexed.filter(({ change, index }) => !change.same || change.flagged || hosts.has(index)) : indexed
+            : mode === 'opaque' ? indexed.filter(({ index }) => (opHosts.get(index) ?? []).some((item) => !item.decision))
+              : mode === 'changed' ? indexed.filter(({ change, index }) => !change.same || change.flagged || hosts.has(index)) : indexed
           const judgeFlags = openHere.filter((item) => item.text).map((item) => item.text)
           // Only rows holding a review item are clipped (they carry the expand link).
-          const clipped = new Set([...hosts.keys()].map((index) => rows[index].id ?? index))
+          const clipped = new Set([...hosts.keys(), ...(mode === 'opaque' ? opHosts.keys() : [])].map((index) => rows[index].id ?? index))
           // A long cell holding an item is shown as a window scrolled to it.
           const clip = (content, length, rowKey) => (clipped.has(rowKey) && length > CLIP_CHARS && !expanded[rowKey]
             ? h('div', { key: `${selected.n}:${rowKey}`, className: 'ws-cmp-clip', ref: scrollToFlag }, content)
             : content)
           return h(React.Fragment, {},
-            reviewFile ? reviewBlocks(reviewFile, unlocated) : null,
+            reviewFile ? reviewBlocks(reviewFile, unlocated, opUnlocated) : null,
             h('div', { className: 'ws-cmp-rowbar' },
               h('span', { className: 'ma-hint' }, full ? t('ws.cmp.legend') : t('ws.cmp.legacy')),
               full && adviceRunId ? h('span', { className: 'ma-hint ws-mx-tip' }, t('ws.mx.tip')) : null),
@@ -5586,9 +5636,11 @@ window.__ModuleLoader__.load({
               : h('table', { className: 'ws-cmp-table', onMouseUp: (event) => onCompareSelect(event, selected) },
                 h('thead', {}, h('tr', {}, h('th', { className: 'ws-cmp-no', title: t('ws.cmp.noHint') }, '#'), h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
                 // Rows flagged for review stay listed beyond the page size.
-                h('tbody', {}, visible.filter(({ change, index }, position) => (position >= compareFrom && position < compareFrom + compareShow) || change.flagged || hosts.has(index)).flatMap(({ change, index: row }) => {
+                h('tbody', {}, visible.filter(({ change, index }, position) => (position >= compareFrom && position < compareFrom + compareShow) || change.flagged || hosts.has(index) || (mode === 'opaque' && opHosts.has(index))).flatMap(({ change, index: row }) => {
                   const after = change.same ? change.before : change.after
                   const here = hosts.get(row) ?? []
+                  // Images are listed under their row in the full and image views.
+                  const opHere = mode === 'all' || mode === 'opaque' ? (opHosts.get(row) ?? []) : []
                   const flaggedRow = here.some((item) => !item.decision) || (change.flagged && flags.some((flag) => flagAt(after, flag) >= 0))
                   const onPseudo = (event, token) => openManual(event, { kind: 'revert', text: token, relPath: selected.relPath, n: selected.n })
                   const rowKey = change.id ?? row
@@ -5616,12 +5668,13 @@ window.__ModuleLoader__.load({
                     ]
                   }
                   const out = [h('tr', { key: rowKey, id: number !== null ? `ws-row-${number}` : undefined, className: `${change.same ? 'ws-cmp-same' : ''}${flaggedRow ? ' ws-cmp-flagged' : ''}${here.length ? ' ws-cmp-hosted' : ''}${jumpRow !== null && number === jumpRow ? ' ws-cmp-jumped' : ''}` }, cells)]
-                  if (here.length) {
+                  if (here.length || opHere.length) {
                     out.push(h('tr', { key: `${rowKey}-rv`, className: 'ws-cmp-actrow' },
                       h('td', { className: 'ws-cmp-no' }),
                       h('td', { colSpan: 3 },
                         here.map((item) => reviewInline(reviewFile, item)),
-                        longest > CLIP_CHARS ? h('button', { type: 'button', className: 'ma-link ws-cmp-expand', onClick: () => setExpanded({ ...expanded, [rowKey]: !expanded[rowKey] }) }, expanded[rowKey] ? t('ws.cmp.collapse') : t('ws.cmp.expand')) : null)))
+                        opHere.length ? h('div', { className: 'ws-rv-ops' }, opHere.map((item) => opaqueInline(reviewFile, item))) : null,
+                        clipped.has(rowKey) && longest > CLIP_CHARS ? h('button', { type: 'button', className: 'ma-link ws-cmp-expand', onClick: () => setExpanded({ ...expanded, [rowKey]: !expanded[rowKey] }) }, expanded[rowKey] ? t('ws.cmp.collapse') : t('ws.cmp.expand')) : null)))
                   }
                   return out
                 }))),
@@ -5678,7 +5731,7 @@ window.__ModuleLoader__.load({
                 open > 0
                   ? h('span', { className: 'ws-cmp-counts' },
                     judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-bad', title: t('ws.rv.judgeBadge') }, String(judgeOf(entry.relPath))) : null,
-                    open - judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-muted', title: t('ws.rv.opaqueBadge') }, String(open - judgeOf(entry.relPath))) : null)
+                    open - judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-muted ws-count-op', title: t('ws.rv.opaqueBadge') }, imageGlyph(), String(open - judgeOf(entry.relPath))) : null)
                   : h('span', { className: 'ma-mono ws-cmp-n' }, String(entry.changed)))
             }))),
           h('section', { className: 'ws-cmp-main' },
@@ -5688,15 +5741,20 @@ window.__ModuleLoader__.load({
               // Stays in the fixed bar, so it is reachable however far the table is scrolled.
               (() => {
                 const openJudge = (reviewFile?.items ?? []).filter((item) => !item.decision && !isOpaque(item)).length
-                const current = compareRows === 'judge' && openJudge === 0 ? 'all' : compareRows
-                const count = { changed: Number(selected?.changed ?? 0), judge: openJudge }
-                return h('div', { className: 'ws-cmp-modes', role: 'radiogroup' }, ['all', 'changed', 'judge'].map((id) => h('button', {
-                  key: id, type: 'button', role: 'radio', 'aria-checked': current === id ? 'true' : 'false',
-                  className: `ws-cmp-mode${current === id ? ' ws-on' : ''}${id === 'judge' ? ' ws-cmp-mode-judge' : ''}`,
-                  title: id === 'changed' ? t('ws.cmp.onlyHint') : undefined,
-                  disabled: id === 'judge' && openJudge === 0,
-                  onClick: () => { setCompareRows(id); setCompareShow(300); setCompareFrom(0); setJumpRow(null) },
-                }, t(`ws.cmp.mode.${id}`), id in count ? h('i', { className: id === 'judge' && count.judge > 0 ? 'ws-cnt-hot' : '' }, String(count[id])) : null)))
+                const openOpaque = (reviewFile?.items ?? []).filter((item) => !item.decision && isOpaque(item))
+                const current = (compareRows === 'judge' && openJudge === 0) || (compareRows === 'opaque' && openOpaque.length === 0) ? 'all' : compareRows
+                const count = { changed: Number(selected?.changed ?? 0), judge: openJudge, opaque: openOpaque.length }
+                return h(React.Fragment, {},
+                  h('div', { className: 'ws-cmp-modes', role: 'radiogroup' }, ['all', 'changed', 'judge', 'opaque'].map((id) => h('button', {
+                    key: id, type: 'button', role: 'radio', 'aria-checked': current === id ? 'true' : 'false',
+                    className: `ws-cmp-mode${current === id ? ' ws-on' : ''}${id === 'judge' ? ' ws-cmp-mode-judge' : ''}`,
+                    title: id === 'changed' ? t('ws.cmp.onlyHint') : id === 'opaque' ? t('ws.rv.bulkHint') : undefined,
+                    disabled: (id === 'judge' && openJudge === 0) || (id === 'opaque' && openOpaque.length === 0),
+                    onClick: () => { setCompareRows(id); setCompareShow(300); setCompareFrom(0); setJumpRow(null) },
+                  }, id === 'opaque' ? imageGlyph() : null, t(`ws.cmp.mode.${id}`), id in count ? h('i', { className: id === 'judge' && count.judge > 0 ? 'ws-cnt-hot' : '' }, String(count[id])) : null))),
+                  current === 'opaque' && openOpaque.length ? h('span', { className: 'ma-actions ws-cmp-opbulk' },
+                    openOpaque.some((item) => item.code === 'opaque') ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !reviewFile.editable, title: reviewFile.editable ? t('ws.rv.removeHint') : reviewFile.reason, onClick: () => bulkReview('remove', [reviewFile]) }, t('ws.rv.fileRemove')) : null,
+                    h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => bulkReview('accept', [reviewFile]) }, t('ws.rv.fileKeep'))) : null)
               })(),
               // Jump to a row number (the # column): shown in the full view.
               h('form', {
