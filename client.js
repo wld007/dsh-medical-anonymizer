@@ -226,6 +226,10 @@ window.__ModuleLoader__.load({
       'wd.bFiles': '完成',
       'wd.bRate': '速率',
       'wd.bEta': '预计剩余',
+      'wd.bPerFile': '平均每份',
+      'wd.bPerFileHint': '总用时 ÷ 已完成文件数',
+      'wd.bDone': '文件',
+      'wd.bData': '数据量',
       'wd.bIds': '标识符',
       'wd.bReplaced': '替换次数',
       'wd.bFailed': '失败文件',
@@ -1071,6 +1075,10 @@ window.__ModuleLoader__.load({
       'wd.bFiles': 'Done',
       'wd.bRate': 'Rate',
       'wd.bEta': 'Remaining',
+      'wd.bPerFile': 'Per file',
+      'wd.bPerFileHint': 'Total time ÷ finished files',
+      'wd.bDone': 'Files',
+      'wd.bData': 'Data',
       'wd.bIds': 'Identifiers',
       'wd.bReplaced': 'Replacements',
       'wd.bFailed': 'Failed files',
@@ -2850,6 +2858,9 @@ window.__ModuleLoader__.load({
       .wd-ro .ws-spark{gap:2px}
       .wd-side .wd-ovr{grid-template-columns:minmax(0,1fr) 40px 40px}
       .wd-ro .ws-spark-head{display:none}
+      .wd-big.wd-big-prog{display:grid;grid-template-columns:repeat(3,max-content);column-gap:22px;row-gap:4px}
+      .wd-big div.wd-big-sub b{font-size:20px}
+      .wd-big div.wd-big-sub b small{font-size:11px}
       .wd-line{font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .wd-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-weight:500}
       .wd-gauges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;align-items:start}
@@ -6595,13 +6606,15 @@ window.__ModuleLoader__.load({
               // Progress
               h('div', { className: 'wd-ro' },
                 h('div', { className: 'wd-roh' }, h('b', {}, t('wd.progress'), enKicker('PROGRESS')), running ? h('span', { className: 'wd-chip wd-c-ok' }, t('wd.live')) : null),
-                h('div', { className: 'wd-big' },
+                h('div', { className: 'wd-big wd-big-prog' },
                   h('div', {}, h('span', {}, t('wd.bFiles')), h('b', {}, `${percent}`, h('small', {}, '%'))),
                   h('div', {}, h('span', {}, t('wd.bRate')), h('b', {}, (running ? recentRate : rate).toFixed(1), h('small', {}, t('wd.perMin')))),
-                  h('div', {}, h('span', {}, t('wd.bEta')), h('b', { style: { color: 'var(--dsw-alias-label-secondary)' } }, etaMin === null ? '—' : fmtEta(etaMin), h('small', {}, etaMin !== null && etaMin >= 60 ? 'h' : etaMin !== null ? t('wd.min') : '')))),
-                h('div', { className: 'wd-line' },
-                  h('b', {}, `${done} / ${planned || '—'}`), ` ${t('ws.unitFiles')}`,
-                  plannedBytes ? h(React.Fragment, {}, ' · ', h('b', {}, `${fmtBytes(Math.min(processedBytes, plannedBytes))} / ${fmtBytes(plannedBytes)}`)) : null),
+                  // Running: time left; finished: average time per file.
+                  running || !current
+                    ? h('div', {}, h('span', {}, t('wd.bEta')), h('b', { style: { color: 'var(--dsw-alias-label-secondary)' } }, etaMin === null ? '—' : fmtEta(etaMin), h('small', {}, etaMin !== null && etaMin >= 60 ? 'h' : etaMin !== null ? t('wd.min') : '')))
+                    : h('div', { title: t('wd.bPerFileHint') }, h('span', {}, t('wd.bPerFile')), h('b', { style: { color: 'var(--dsw-alias-label-secondary)' } }, done > 0 ? (elapsed / done / 1000).toFixed(elapsed / done < 10000 ? 1 : 0) : '—', h('small', {}, 's'))),
+                  h('div', { className: 'wd-big-sub' }, h('span', {}, t('wd.bDone')), h('b', {}, String(done), h('small', {}, ` / ${planned || '—'}`))),
+                  plannedBytes ? h('div', { className: 'wd-big-sub' }, h('span', {}, t('wd.bData')), h('b', {}, fmtBytes(Math.min(processedBytes, plannedBytes)), processedBytes < plannedBytes ? h('small', {}, ` / ${fmtBytes(plannedBytes)}`) : null)) : null),
                 spark()),
               // Results
               h('div', { className: 'wd-ro' },
