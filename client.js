@@ -2524,8 +2524,8 @@ window.__ModuleLoader__.load({
       .wd-sh small{margin-left:auto;font-size:11px;color:var(--wd-ink3)}
       .wd-sep{height:1px;background:var(--dsw-alias-border-l1)}
       .wd-en{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;font-weight:500;letter-spacing:1.5px;color:var(--wd-ink3);margin-left:8px;text-transform:uppercase}
-      .wd-blk{display:flex;flex-direction:column;gap:6px;padding-top:10px;margin-top:4px;border-top:1px solid var(--dsw-alias-border-l1)}
-      .wd-blk-h{display:flex;align-items:baseline;font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary);padding-left:7px;border-left:2px solid var(--ws-accent);line-height:14px}
+      .wd-blk{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+      .wd-blk-h{display:flex;align-items:baseline;font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary);padding:5px 8px;border-left:3px solid var(--ws-accent);border-radius:2px 4px 4px 2px;background:color-mix(in srgb,var(--ws-accent) 13%,transparent);line-height:14px}
       .wd-blk-h .wd-en{margin-left:6px}
       .wd-blk>.ws-panel{border:0;padding:0;background:none;gap:5px}
       .wd-blk .ws-panel-head{display:none}
