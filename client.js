@@ -389,7 +389,8 @@ window.__ModuleLoader__.load({
       'ws.m.lgQ': '排队',
       'ws.m.cUp': '↑ 满载，加并发',
       'ws.m.cFlat': '↩ 吞吐不升，退回',
-      'ws.m.cServer': '↓ 服务器排队 / KV 将满',
+      'ws.m.cServer': '↓ 服务器满，试降',
+      'ws.m.cBack': '↑ 降后吞吐下降，回升',
       'ws.m.cErrors': '↓ 超时或连接错误',
       'ws.m.cHold': '保持',
       'ws.m.cLimit': '并发',
@@ -403,10 +404,11 @@ window.__ModuleLoader__.load({
       'ws.m.aCeil': '；上限 {n}',
       'ws.m.aUp': '满载，加并发',
       'ws.m.aFlat': '吞吐不再上升，退回',
-      'ws.m.aServer': '服务器排队或 KV 将满，降低',
+      'ws.m.aServer': '服务器排队或 KV 将满，试降一档',
+      'ws.m.aBack': '降低后吞吐下降，回升',
       'ws.m.aErrors': '出现超时或连接错误，降低',
       'ws.m.aThr': '吞吐 {n} tok/s',
-      'ws.m.aHint': '自动调并发：每 30 秒按吞吐量（每秒处理的输入 + 输出 token）调整一次。悬停每行看调整记录。',
+      'ws.m.aHint': '自动调并发：每 30 秒看一次吞吐（每秒完成的输入 + 输出 token），只在名额跑满的窗口下结论；加并发吞吐涨 5% 才保留，服务器满时试降一档、吞吐不变才保留，出错降低。悬停看调整记录。',
       'run.concurrencyDetect': '识别并发',
       'run.concurrencyVerify': '核验并发',
       'ws.ps.concurrency2': '并发 {d}/{v}',
@@ -1205,7 +1207,8 @@ window.__ModuleLoader__.load({
       'ws.m.lgQ': 'queued',
       'ws.m.cUp': '↑ saturated, step up',
       'ws.m.cFlat': '↩ no gain, back',
-      'ws.m.cServer': '↓ server queue / KV full',
+      'ws.m.cServer': '↓ server full, trying lower',
+      'ws.m.cBack': '↑ lower lost throughput, back',
       'ws.m.cErrors': '↓ timeouts or errors',
       'ws.m.cHold': 'holding',
       'ws.m.cLimit': 'concurrency',
@@ -1219,10 +1222,11 @@ window.__ModuleLoader__.load({
       'ws.m.aCeil': '; ceiling {n}',
       'ws.m.aUp': 'saturated, step up',
       'ws.m.aFlat': 'no gain, back',
-      'ws.m.aServer': 'server queueing or KV nearly full, lower',
+      'ws.m.aServer': 'server queueing or KV nearly full, try one step down',
+      'ws.m.aBack': 'throughput fell after stepping down, back up',
       'ws.m.aErrors': 'timeouts or connection errors, lower',
       'ws.m.aThr': '{n} tok/s',
-      'ws.m.aHint': 'Automatic concurrency: adjusted every 30 s by throughput (input + output tokens per second). Hover a line for its history.',
+      'ws.m.aHint': 'Automatic concurrency: every 30 s, by throughput (input + output tokens per second of completed calls), judged only on windows with the slots full; a step up is kept on a 5 % gain, a full server triggers a step down kept only if throughput holds, errors lower it. Hover for the history.',
       'run.concurrencyDetect': 'Detector concurrency',
       'run.concurrencyVerify': 'Verifier concurrency',
       'ws.ps.concurrency2': 'conc {d}/{v}',
@@ -5623,10 +5627,6 @@ window.__ModuleLoader__.load({
                   for (let i = k; i < doneSeries.length; i += 1) best = Math.max(best, ((doneAt(doneSeries[i], key)[0] - doneAt(doneSeries[i - k], key)[0]) / ((k * stepMs) / 1000)) * 60)
                   return best
                 }
-                const thruCell = (key) => {
-                  const now = throughput(key, running ? 30000 : 0)
-                  return now ? now.perMin.toFixed(now.perMin >= 10 ? 0 : 1) : '—'
-                }
                 const thruHint = (key) => {
                   const now = throughput(key, 30000)
                   const all = throughput(key, 0)
@@ -5661,7 +5661,7 @@ window.__ModuleLoader__.load({
                   return { tone: 'up', text: t(queuedShare > 0.5 ? 'ws.m.vTry' : 'ws.m.vTryLite', { next: Math.min(64, limit * 2) }) }
                 }
                 // Automatic concurrency: the tuner's path and its last reason.
-                const AUTO_REASON = { up: t('ws.m.aUp'), flat: t('ws.m.aFlat'), server: t('ws.m.aServer'), errors: t('ws.m.aErrors') }
+                const AUTO_REASON = { up: t('ws.m.aUp'), flat: t('ws.m.aFlat'), server: t('ws.m.aServer'), back: t('ws.m.aBack'), errors: t('ws.m.aErrors') }
                 const autoLine = (key) => {
                   const state = current?.autoTune?.[key]
                   if (!state) return null
@@ -5707,7 +5707,6 @@ window.__ModuleLoader__.load({
                   // One row: average output tokens / average time per call.
                   [t('ws.m.perCall'), (key) => (models[key]?.okN ? `${models[key].outSum ? kTok(models[key].outSum / models[key].okN) : '—'} / ${(models[key].msSum / models[key].okN / 1000).toFixed(1)}s` : '—'),
                     (key) => `${t('ws.m.outPerHint')}\n${t('ws.m.msPerHint')}\n${t('ws.m.speed')} ${fmtSpeed(speedOf(key))}\n${speedHint(key)}`],
-                  [t('ws.m.thru'), (key) => thruCell(key), (key) => thruHint(key)],
                 ]
                 const table = h('div', { className: `ws-mtable${separate ? '' : ' ws-mtable-one'}` },
                   h('span', { className: 'ws-mt-head' }),
@@ -5733,7 +5732,7 @@ window.__ModuleLoader__.load({
                 // line is throughput (input + output tokens per second, 30 s
                 // window, own scale on the right), which the tuner climbs on;
                 // requests queued in the plugin hang below the axis.
-                const CHIP = { up: t('ws.m.cUp'), flat: t('ws.m.cFlat'), server: t('ws.m.cServer'), errors: t('ws.m.cErrors') }
+                const CHIP = { up: t('ws.m.cUp'), flat: t('ws.m.cFlat'), server: t('ws.m.cServer'), back: t('ws.m.cBack'), errors: t('ws.m.cErrors') }
                 const fmtTok = (value) => (value >= 1000 ? `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k` : String(Math.round(value)))
                 const concPanel = (key) => {
                   const slot = key === 'verify' ? 1 : 0
@@ -5787,7 +5786,7 @@ window.__ModuleLoader__.load({
                     h('div', { className: 'wd-conc-h' },
                       h('b', {}, role),
                       h('span', {}, t('ws.m.cLimit'), h('em', {}, String(nowLimit))),
-                      thr.length ? h('span', { className: 'wd-conc-thr' }, `${thrLabel} `, h('em', {}, fmtTok(running ? thrNow : thrPeak)), running ? '' : ` ${t('ws.m.cPeakShort')}`) : null,
+                      thr.length ? h('span', { className: 'wd-conc-thr', title: thruHint(key) }, `${thrLabel} `, h('em', {}, fmtTok(running ? thrNow : thrPeak)), running ? '' : ` ${t('ws.m.cPeakShort')}`) : null,
                       chip ? h('span', { className: `wd-conc-chip wd-conc-${tone}` }, chip) : null),
                     h('div', { className: 'ws-busy-plot wd-conc-plot' },
                       h('div', { className: 'ws-busy-gutter', 'aria-hidden': 'true' },

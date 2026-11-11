@@ -1025,14 +1025,14 @@ async function main() {
     assert.deepEqual(parseServerMetrics(text, 'a'), { running: 3, waiting: 2, kv: 0.42, generated: 1500000 })
     assert.equal(parseServerMetrics('ollama_up 1', 'a'), null)
   })
-  await check('自动调并发：满载加、吞吐不涨退回并记上限、报错或服务器排队降低', () => {
+  await check('自动调并发：按吞吐找最高点；不满载的窗口不下结论；服务器排队时试降、吞吐不变才保留', () => {
     let clock = 0
     const run = { totals: { models: { detect: { okN: 0, ioTokens: 0, fails: {} } } } }
     const stats = { active: 4, queued: 10, limit: 4 }
     const limiter = { setLimit(n) { stats.limit = n } }
     const tune = createConcurrencyTuner({ run, key: 'detect', limiter, stats, windowMs: 1000, now: () => clock })
     const m = run.totals.models.detect
-    // One window: `calls` completed, `tokens` processed, all slots busy.
+    // One window: `calls` completed, `tokens` processed; busy = every slot in use with a queue.
     const window = (calls, tokens, busy = true) => {
       m.okN += calls
       m.ioTokens += tokens
@@ -1043,16 +1043,18 @@ async function main() {
         tune()
       }
     }
-    window(10, 1000) // first window: baseline, busy → up
+    window(10, 1000) // baseline, busy → up
     assert.equal(stats.limit, 6)
-    window(15, 1500) // +50 % → up again
+    window(15, 1500) // +50 % → keep, still busy → up again
     assert.equal(stats.limit, 9)
     window(15, 1520) // +1 % → back, ceiling 9
     assert.equal(stats.limit, 6)
     assert.equal(run.autoTune.detect.ceiling, 9)
-    window(15, 1500) // busy but capped below the ceiling
+    window(15, 1500) // busy, capped below the ceiling
     assert.equal(stats.limit, 8)
-    window(10, 1000, false) // gain < 5 % after the step up → back to 6
+    window(5, 500, false) // slots not full: the step is not judged on this window
+    assert.equal(stats.limit, 8)
+    window(15, 1500) // full again, no gain → back to 6
     assert.equal(stats.limit, 6)
     window(3, 300, false) // not busy: hold
     assert.equal(stats.limit, 6)
@@ -1060,9 +1062,15 @@ async function main() {
     window(10, 1000) // errors ≥ 5 % → down by a quarter
     assert.equal(stats.limit, 4)
     run.server = { detect: { available: true, samples: [[4, 3, 0.5, 0]] } }
-    window(10, 1000) // server queueing → down
+    window(10, 1000) // server queueing → try one step down
     assert.equal(stats.limit, 3)
-    assert.deepEqual(run.autoTune.detect.history.map((step) => step.reason), ['up', 'up', 'flat', 'up', 'flat', 'errors', 'server'])
+    window(10, 700) // throughput fell → back up
+    assert.equal(stats.limit, 4)
+    window(10, 1000) // server still full → try again
+    assert.equal(stats.limit, 3)
+    window(10, 990) // throughput held → keep the lower level
+    assert.equal(stats.limit, 3)
+    assert.deepEqual(run.autoTune.detect.history.map((step) => step.reason), ['up', 'up', 'flat', 'up', 'flat', 'errors', 'server', 'back', 'server'])
   })
   await check('自动调并发：调低后不再放出名额，调高后立即放出排队的请求', async () => {
     const gate = []
