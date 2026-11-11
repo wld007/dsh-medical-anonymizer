@@ -277,6 +277,7 @@ window.__ModuleLoader__.load({
       'wd.strip': '文件带 · 每格 1 个文件',
       'wd.stripGroup': '文件带 · 每格约 {n} 个文件',
       'wd.overview': '批次概览',
+      'wd.peakAt': '峰值 {pct}%',
       'wd.secLoad': '送审用量',
       'wd.secModels': '模型表现',
       'wd.secConc': '并发调度',
@@ -1084,6 +1085,7 @@ window.__ModuleLoader__.load({
       'wd.strip': 'Files · one cell per file',
       'wd.stripGroup': 'Files · about {n} per cell',
       'wd.overview': 'Batch overview',
+      'wd.peakAt': 'peak {pct}%',
       'wd.secLoad': 'Workload',
       'wd.secModels': 'Models',
       'wd.secConc': 'Concurrency',
@@ -2675,6 +2677,7 @@ window.__ModuleLoader__.load({
       .wd-gauge{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;text-align:center}
       .wd-gauge svg{width:68px;height:68px}
       .wd-gauge .wd-g-track{fill:none;stroke:var(--wd-track);stroke-width:6}
+      .wd-gauge .wd-g-peak{fill:var(--dsw-alias-label-secondary);stroke:var(--ws-paper);stroke-width:1.2}
       .wd-gauge .wd-g-arc{fill:none;stroke-width:6;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
       .wd-gauge text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:600;fill:var(--dsw-alias-label-primary)}
       .wd-gauge span{font-size:11px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
@@ -5847,15 +5850,19 @@ window.__ModuleLoader__.load({
       }
       const etaMin = running && rate > 0 && planned > done ? (planned - done) / rate : null
       const fmtEta = (min) => (min >= 60 ? `${Math.floor(min / 60)}:${String(Math.round(min % 60)).padStart(2, '0')}` : `${Math.max(1, Math.round(min))}`)
-      const gauge = (label, ratio, detail, tone = '', title = '') => {
+      // Ring gauge; `peak` (0..1) puts a gray dot where the highest value so far sits.
+      const gauge = (label, ratio, detail, tone = '', title = '', peak = null) => {
         const r = 23
         const len = 2 * Math.PI * r
         const v = ratio === null || ratio === undefined || !Number.isFinite(ratio) ? null : Math.max(0, Math.min(1, ratio))
+        const pk = peak === null || peak === undefined || !Number.isFinite(peak) || v === null ? null : Math.max(v, Math.min(1, peak))
+        const angle = pk === null ? 0 : pk * 2 * Math.PI - Math.PI / 2
         const color = tone === 'crit' ? 'var(--dsw-alias-state-error-primary)' : tone === 'warn' ? 'var(--dsw-alias-state-warn-primary)' : 'var(--ws-accent)'
         return h('div', { className: 'wd-gauge', title },
           h('svg', { viewBox: '0 0 58 58' },
             h('circle', { className: 'wd-g-track', cx: 29, cy: 29, r }),
             v === null ? null : h('circle', { className: 'wd-g-arc', cx: 29, cy: 29, r, stroke: color, strokeDasharray: `${(len * v).toFixed(1)} ${len.toFixed(1)}` }),
+            pk !== null && pk > 0 ? h('circle', { className: 'wd-g-peak', cx: (29 + r * Math.cos(angle)).toFixed(2), cy: (29 + r * Math.sin(angle)).toFixed(2), r: 3.4 }, h('title', {}, t('wd.peakAt', { pct: Math.round(pk * 100) }))) : null,
             h('text', { x: 29, y: 33, textAnchor: 'middle' }, v === null ? '—' : `${Math.round(v * 100)}%`)),
           h('span', {}, label),
           h('small', {}, detail))
@@ -5867,7 +5874,7 @@ window.__ModuleLoader__.load({
         if (v.available === false) return gauge(name, null, t('ws.m.srvNa'), '', t('ws.m.srvNaHint'))
         const kv = (running ? v.kv : v.peakKv) ?? 0
         const waiting = running ? (v.waiting ?? 0) : (v.peakWaiting ?? 0)
-        return gauge(name, kv, t('wd.srvWait', { n: waiting }), kv >= 0.9 || waiting > 0 ? 'warn' : '', t('ws.m.srvHint'))
+        return gauge(name, kv, t('wd.srvWait', { n: waiting }), kv >= 0.9 || waiting > 0 ? 'warn' : '', t('ws.m.srvHint'), v.peakKv ?? null)
       }
       // Batch switcher: the header status card opens the list of all batches.
       const runsPopover = () => h('div', { className: 'wd-pop wd-runs-pop', role: 'dialog' },
@@ -6237,8 +6244,8 @@ window.__ModuleLoader__.load({
               h('div', { className: 'wd-ro' },
                 h('div', { className: 'wd-roh' }, h('b', {}, t('wd.resources'), enKicker('RESOURCES')), h('span', { className: 'wd-cap' }, t('wd.resScope'))),
                 h('div', { className: 'wd-gauges' },
-                  gauge(t('wd.heap'), memRatio, mem?.heapLimit ? `${((running ? mem.heapUsed : mem.peakHeap) / GB).toFixed(1)} / ${(mem.heapLimit / GB).toFixed(1)}G` : '—', memRatio >= 0.85 ? 'crit' : memRatio >= 0.7 ? 'warn' : '', t('ws.m.memHint')),
-                  gauge(t('wd.disk'), disk?.total ? 1 - disk.free / disk.total : null, disk?.total ? t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }) : '—', disk?.total && disk.free < 5 * GB ? 'crit' : disk?.total && disk.free < 20 * GB ? 'warn' : '', t('wd.diskHint')),
+                  gauge(t('wd.heap'), memRatio, mem?.heapLimit ? `${((running ? mem.heapUsed : mem.peakHeap) / GB).toFixed(1)} / ${(mem.heapLimit / GB).toFixed(1)}G` : '—', memRatio >= 0.85 ? 'crit' : memRatio >= 0.7 ? 'warn' : '', t('ws.m.memHint'), mem?.heapLimit && mem.peakHeap ? mem.peakHeap / mem.heapLimit : null),
+                  gauge(t('wd.disk'), disk?.total ? 1 - disk.free / disk.total : null, disk?.total ? t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }) : '—', disk?.total && disk.free < 5 * GB ? 'crit' : disk?.total && disk.free < 20 * GB ? 'warn' : '', t('wd.diskHint'), disk?.total && Number.isFinite(disk.minFree) ? 1 - disk.minFree / disk.total : null),
                   srvGauge('detect'),
                   verifierName ? srvGauge('verify') : null)))),
               h('aside', { className: 'wd-side' },
