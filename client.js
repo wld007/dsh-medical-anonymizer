@@ -2507,6 +2507,8 @@ window.__ModuleLoader__.load({
       .wd-ovr i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--wd-acc2)}
       .wd-ovr b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;text-align:right;color:var(--dsw-alias-label-primary)}
       .wd-strip{flex:none;padding:0 12px 9px;display:flex;flex-direction:column;gap:4px}
+      .wd-strip-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+      .wd-hint{color:var(--wd-acc2)}
       .wd-strip .ws-pieces{max-height:none;min-height:11px;padding:0;border:0;background:none;gap:2px;flex-wrap:nowrap;overflow:hidden}
       .wd-strip .ws-piece{flex:1;min-width:2px;width:auto;height:11px;border-radius:1px;border:0;background:var(--wd-empty)}
       .wd-strip .ws-piece.ws-p-clean{background:rgba(70,209,127,.72)}
@@ -6153,7 +6155,10 @@ window.__ModuleLoader__.load({
                 !current ? h('div', { className: 'wd-ov', style: { left: '50%', top: '42%', transform: 'translate(-50%,-50%)', textAlign: 'center' } }, h('span', {}, t('wd.empty'))) : null,
                 alertOverlay(),
                 h('div', { className: 'wd-strip' },
-                  h('span', { className: 'wd-cap' }, planned > 240 ? t('wd.stripGroup', { n: Math.ceil(planned / 240) }) : t('wd.strip')),
+                  // Strip caption on the left; the station hint sits bottom-right of the line.
+                  h('div', { className: 'wd-strip-h' },
+                    h('span', { className: 'wd-cap' }, planned > 240 ? t('wd.stripGroup', { n: Math.ceil(planned / 240) }) : t('wd.strip')),
+                    h('span', { className: 'wd-cap wd-hint' }, `◈ ${t('wd.clickStation')}`)),
                   h('div', { className: 'ws-pieces', ref: piecesRef }, workpieces()))),
             h('section', { className: 'wd-bottom' },
               // Progress
@@ -6197,7 +6202,7 @@ window.__ModuleLoader__.load({
                 stationSel
                   ? stationDetail(stationSel)
                   : h(React.Fragment, {},
-                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), enKicker('BATCH OVERVIEW'), h('small', {}, t('wd.clickStation'))),
+                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), enKicker('BATCH OVERVIEW')),
                     modelOverview(),
                     block('wd.secCross', 'CROSS-CHECK', crossCheckPanel({ open: true })))))) : null,
           compareOpen ? h('section', { className: 'wd-full wd-cmp-page' },
