@@ -230,6 +230,8 @@ window.__ModuleLoader__.load({
       'wd.bReplaced': '替换次数',
       'wd.bFailed': '失败文件',
       'wd.median': '中位',
+      'wd.recent': '最近完成 · 共 {n}',
+      'wd.recentCols': '替换 · 用时',
       'wd.decided': '已决定 {n} / {total}',
       'wd.loading': '加载中…',
       'wd.dCalls': '本环节的模型调用',
@@ -1018,6 +1020,8 @@ window.__ModuleLoader__.load({
       'wd.bReplaced': 'Replacements',
       'wd.bFailed': 'Failed files',
       'wd.median': 'median',
+      'wd.recent': 'Recently finished · {n} total',
+      'wd.recentCols': 'replaced · time',
       'wd.decided': '{n} / {total} decided',
       'wd.loading': 'Loading…',
       'wd.dCalls': 'Model calls of this step',
@@ -2469,6 +2473,8 @@ window.__ModuleLoader__.load({
       .wd-ovh{display:flex;justify-content:space-between;gap:8px;margin-bottom:2px}
       .wd-ovr{display:grid;grid-template-columns:minmax(0,1fr) 72px 40px;gap:8px;font-size:11px;color:var(--dsw-alias-label-secondary);align-items:center}
       .wd-ovr span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .wd-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+      .wd-ovr-done i{text-align:right}
       .wd-ovr i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--wd-acc2)}
       .wd-ovr b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;text-align:right;color:var(--dsw-alias-label-primary)}
       .wd-strip{flex:none;padding:0 12px 9px;display:flex;flex-direction:column;gap:4px}
@@ -6014,15 +6020,27 @@ window.__ModuleLoader__.load({
                   dicom: dicomBypass, loopLabel: t('wd.loop', { rounds: Number(current?.config?.maxRounds ?? config?.maxRounds ?? 3) }),
                   selected: stationSel, onStation: (id) => setStationSel(stationSel === id ? null : id), dark: hostDark, t,
                 }),
-                running && inflight.length
-                  ? h('div', { className: 'wd-ov wd-ov-bl' },
-                    h('div', { className: 'wd-ovh' }, h('span', { className: 'wd-cap', style: { color: 'var(--wd-acc2)' } }, `● ${t('wd.inflight')} · ${inflight.length}`), h('span', { className: 'wd-cap' }, t('wd.inflightCols'))),
-                    inflight.slice(0, 4).map((state) => h('div', { key: state.file, className: 'wd-ovr', title: state.file },
-                      h('span', { className: 'wd-mono' }, shortPath(state.file)),
-                      h('i', {}, `S${String(atIndex(state) + 1).padStart(2, '0')} · R${state.round || 1}`),
-                      h('b', {}, `${Math.round(Math.min(1, Number(state.fraction) || 0) * 100)}%`))),
-                    inflight.length > 4 ? h('div', { className: 'wd-ovr' }, h('span', { style: { color: 'var(--wd-ink3)' } }, t('wd.inflightMore', { n: inflight.length - 4 }))) : null)
-                  : null,
+                // Bottom-left: files in progress (while running), then the most
+                // recently finished ones; always shown once a batch has files.
+                current && (inflight.length || files.length) ? (() => {
+                  const live = running ? inflight.slice(0, 4) : []
+                  const recent = [...files].filter((f) => Number.isFinite(Number(f.doneMs))).sort((x, y) => Number(y.doneMs) - Number(x.doneMs)).slice(0, Math.max(0, (running ? 6 : 5) - live.length))
+                  const TONE = { clean: 'var(--dsw-alias-state-success-primary)', review: 'var(--dsw-alias-state-warn-primary)', failed: 'var(--dsw-alias-state-error-primary)', cancelled: 'var(--dsw-alias-state-error-primary)' }
+                  return h('div', { className: 'wd-ov wd-ov-bl' },
+                    live.length ? h(React.Fragment, {},
+                      h('div', { className: 'wd-ovh' }, h('span', { className: 'wd-cap', style: { color: 'var(--wd-acc2)' } }, `● ${t('wd.inflight')} · ${inflight.length}`), h('span', { className: 'wd-cap' }, t('wd.inflightCols'))),
+                      live.map((state) => h('div', { key: `l${state.file}`, className: 'wd-ovr', title: state.file },
+                        h('span', { className: 'wd-mono' }, shortPath(state.file)),
+                        h('i', {}, `S${String(atIndex(state) + 1).padStart(2, '0')} · R${state.round || 1}`),
+                        h('b', {}, `${Math.round(Math.min(1, Number(state.fraction) || 0) * 100)}%`))),
+                      inflight.length > live.length ? h('div', { className: 'wd-ovr' }, h('span', { style: { color: 'var(--wd-ink3)' } }, t('wd.inflightMore', { n: inflight.length - live.length }))) : null) : null,
+                    recent.length ? h(React.Fragment, {},
+                      h('div', { className: 'wd-ovh', style: live.length ? { marginTop: 4 } : undefined }, h('span', { className: 'wd-cap', style: { color: 'var(--dsw-alias-label-secondary)' } }, t('wd.recent', { n: files.length })), h('span', { className: 'wd-cap' }, t('wd.recentCols'))),
+                      recent.map((f) => h('div', { key: `d${f.relPath}`, className: 'wd-ovr wd-ovr-done', title: `${f.relPath} · ${t(`file.${f.status}`)}` },
+                        h('span', { className: 'wd-mono' }, h('i', { className: 'wd-dot', style: { background: TONE[f.status] ?? 'var(--wd-ink3)' } }), shortPath(f.relPath)),
+                        h('i', { style: { color: 'var(--dsw-alias-label-secondary)' } }, compact(fileEntities(f))),
+                        h('b', {}, `${((f.durationMs ?? 0) / 1000).toFixed(f.durationMs < 10000 ? 1 : 0)}s`)))) : null)
+                })() : null,
                 !current ? h('div', { className: 'wd-ov', style: { left: '50%', top: '42%', transform: 'translate(-50%,-50%)', textAlign: 'center' } }, h('span', {}, t('wd.empty'))) : null,
                 h('div', { className: 'wd-strip' },
                   h('span', { className: 'wd-cap' }, planned > 240 ? t('wd.stripGroup', { n: Math.ceil(planned / 240) }) : t('wd.strip')),
