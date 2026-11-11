@@ -221,7 +221,6 @@ window.__ModuleLoader__.load({
       'ws.tab.parts': '文件',
       'wd.tab.line': '产线',
       'wd.tab.review': '复核',
-      'wd.tab.reviewHint': '在弹出窗口中打开结果比对与复核',
       'wd.tab.runs': '记录',
       'wd.live': '实时',
       'wd.bFiles': '完成',
@@ -1016,7 +1015,6 @@ window.__ModuleLoader__.load({
       'ws.tab.parts': 'Files',
       'wd.tab.line': 'Line',
       'wd.tab.review': 'Review',
-      'wd.tab.reviewHint': 'Opens the comparison and review in a dialog',
       'wd.tab.runs': 'Runs',
       'wd.live': 'live',
       'wd.bFiles': 'Done',
@@ -2206,8 +2204,6 @@ window.__ModuleLoader__.load({
       .ws-rv-plain{font-family:inherit;color:var(--dsw-alias-label-secondary)}
       .ws-rv-result{font-size:12px;color:var(--dsw-alias-state-success-primary)}
       .ws-more-hot{color:var(--dsw-alias-state-error-primary)!important;font-weight:600}
-      .ws-modal-compare{width:min(1500px,100%);height:calc(100vh - 48px)}
-      .ws-modal-compare .ws-modal-body{padding:0;display:flex;min-height:0}
       .ws-cmp-keys{margin-right:8px}
       .ws-cmp{flex:1;min-height:0;display:grid;grid-template-columns:280px minmax(0,1fr);outline:none}
       .ws-cmp-side{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
@@ -2469,7 +2465,6 @@ window.__ModuleLoader__.load({
       .wd-tab i.hot{color:var(--dsw-alias-state-warn-primary)}
       .wd-tab-sep{flex:none;align-self:center;width:1px;height:20px;margin:0 10px;background:var(--dsw-alias-label-tertiary,var(--dsw-alias-border-l2));opacity:.55}
       .wd-tab.wd-tab-gap{margin-left:14px}
-      .wd-tab-pop{font-size:10.5px;color:var(--wd-ink3);margin-left:-3px}
       .wd-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
       .wd-main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:8px}
       .wd-stage{position:relative;min-height:0;overflow:hidden;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:radial-gradient(ellipse at 45% 55%,rgba(34,199,192,.08),transparent 62%),var(--ws-paper);display:flex;flex-direction:column}
@@ -2572,6 +2567,11 @@ window.__ModuleLoader__.load({
       .wd-c-ok{color:var(--dsw-alias-state-success-primary);border-color:rgba(70,209,127,.55)}
       .wd-full{flex:1;min-height:0;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);padding:10px 14px;display:flex;flex-direction:column}
       .wd-full .ws-drawer-body{flex:1;min-height:0;overflow:auto}
+      .wd-cmp-page{padding:0;overflow:hidden}
+      .wd-cmp-head{flex:none;display:flex;align-items:baseline;gap:10px;padding:9px 14px;border-bottom:1px solid var(--dsw-alias-border-l2)}
+      .wd-cmp-head b{font-size:13px}
+      .wd-cmp-head .ma-hint{margin-left:auto}
+      .wd-cmp-run{font-size:11px;color:var(--wd-ink3)}
       .wd-runs{display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:min(60vh,520px);scrollbar-width:thin}
       .wd-runs-act .wd-runs-pop{right:0;width:440px}
       .wd-runs .ws-run{margin:0}
@@ -4360,11 +4360,14 @@ window.__ModuleLoader__.load({
           }
         }
         if (compareByRun[adviceRunId] === undefined) loadCompareList(adviceRunId)
-        setModal('compare')
+        // Opens as a tab page, like Files and Model calls.
+        setDrawer('review')
+        setView('drawer')
       }
+      const compareOpen = view === 'drawer' && drawer === 'review'
       React.useEffect(() => {
-        if (modal === 'compare' && adviceRunId && typeof compareSel === 'number') loadCompareFile(adviceRunId, compareSel)
-      }, [modal, adviceRunId, compareSel])
+        if (compareOpen && adviceRunId && typeof compareSel === 'number') loadCompareFile(adviceRunId, compareSel)
+      }, [compareOpen, adviceRunId, compareSel])
       React.useEffect(() => {
         if (adviceRunId && compareByRun[adviceRunId] === undefined) loadCompareList(adviceRunId)
       }, [adviceRunId, recordsRetry])
@@ -5798,7 +5801,7 @@ window.__ModuleLoader__.load({
         ['advice', t('ws.tab.advice'), adviceCount],
         ['report', t('ws.tab.report')],
       ]
-      const tabOn = (id) => (id === 'line' ? view === 'line' : id === 'review' ? modal === 'compare' : view === 'drawer' && drawer === id)
+      const tabOn = (id) => (id === 'line' ? view === 'line' : view === 'drawer' && drawer === id)
       const openTab = (id) => {
         if (id === 'line') { setView(id); return }
         if (id === 'review') { if (adviceRunId) openCompare({ filter: reviewOpen > 0 ? 'review' : null }); return }
@@ -6041,8 +6044,7 @@ window.__ModuleLoader__.load({
           group === 'sep' ? h('span', { className: 'wd-tab-sep', 'aria-hidden': 'true' }) : null,
           h('button', {
             type: 'button', role: 'tab', className: `wd-tab${tabOn(id) ? ' on' : ''}${group === 'gap' ? ' wd-tab-gap' : ''}`, 'aria-selected': tabOn(id) ? 'true' : 'false', onClick: () => openTab(id),
-            title: id === 'review' ? t('wd.tab.reviewHint') : undefined,
-          }, id === 'line' ? `◈ ${label}` : label, id === 'review' ? h('span', { className: 'wd-tab-pop', 'aria-hidden': 'true' }, '↗') : null, count ? h('i', { className: hot ? 'hot' : '' }, String(count)) : null)))),
+          }, id === 'line' ? `◈ ${label}` : label, count ? h('i', { className: hot ? 'hot' : '' }, String(count)) : null)))),
         h('div', { className: 'wd-body' },
           view === 'line' ? h(React.Fragment, {},
             h('div', { className: 'wd-main' },
@@ -6140,7 +6142,12 @@ window.__ModuleLoader__.load({
                   h('i', { style: { background: a.tone === 'crit' ? 'var(--dsw-alias-state-error-primary)' : a.tone === 'warn' ? 'var(--dsw-alias-state-warn-primary)' : a.tone === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--wd-ink3)' } }),
                   h('div', { style: { minWidth: 0 } }, h('b', {}, a.title), a.sub ? h('small', { style: { display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, a.sub) : null),
                   h('span', { className: `wd-chip wd-c-${a.tone}` }, a.tag)))))) : null,
-          view === 'drawer' ? h('section', { className: 'wd-full' },
+          compareOpen ? h('section', { className: 'wd-full wd-cmp-page' },
+            h('div', { className: 'wd-cmp-head' },
+              h('b', {}, t('ws.cmp.title')), h('span', { className: 'ma-mono wd-cmp-run' }, current?.id ?? ''),
+              h('span', { className: 'ma-hint' }, t('ws.cmp.keys'))),
+            compareBody()) : null,
+          view === 'drawer' && !compareOpen ? h('section', { className: 'wd-full' },
             h('div', { className: 'ws-drawer-wrap', style: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } },
               h('div', { className: 'ws-drawer-body', ref: drawerRef, onScroll: onDrawerScroll }, drawerBody()),
               (drawer === 'log' || drawer === 'calls') && logPinned
@@ -6165,10 +6172,9 @@ window.__ModuleLoader__.load({
                 h('button', { className: 'ma-btn ws-del-go', disabled: deleting.busy, onClick: confirmDelete }, deleting.busy ? t('ws.del.busy') : deleting.all ? t('ws.del.clearGo') : t('ws.del.go'))))))
           : null,
         modal ? h('div', { className: 'ws-modal-back', onMouseDown: (event) => { if (event.target === event.currentTarget) closeModal() } },
-          h('div', { className: `ws-modal ws-modal-${modal}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : modal === 'compare' ? t('ws.cmp.title') : t('settings.title')) },
+          h('div', { className: `ws-modal ws-modal-${modal}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : t('settings.title')) },
             h('div', { className: 'ws-modal-head' },
-              h('h3', {}, (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : modal === 'compare' ? `${t('ws.cmp.title')} · ${current?.id ?? ''}` : t('settings.title'))),
-              modal === 'compare' ? h('span', { className: 'ma-hint ws-cmp-keys' }, t('ws.cmp.keys')) : null,
+              h('h3', {}, (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : t('settings.title'))),
               modal === 'report' && reportText ? h('button', { className: 'ma-btn ma-small', onClick: () => copyText(reportText) }, t('ws.report.copy')) : null,
               h('button', { className: 'ma-btn ma-small', onClick: closeModal, 'aria-label': t('detail.close') }, '✕')),
             h('div', { className: 'ws-modal-body' },
@@ -6176,8 +6182,7 @@ window.__ModuleLoader__.load({
                 ? h(HelpBody, { config })
                 : (modal === 'settings' && anyRunning ? h('div', { className: 'ma-banner' }, t('ws.paramsLocked')) : null),
               modal === 'settings' ? h(SettingsSection) : null,
-              modal === 'report' ? (reportText ? h(MarkdownView, { text: reportText }) : h('p', { className: 'ma-empty' }, t('detail.noReport'))) : null,
-              modal === 'compare' ? compareBody() : null)))
+              modal === 'report' ? (reportText ? h(MarkdownView, { text: reportText }) : h('p', { className: 'ma-empty' }, t('detail.noReport'))) : null)))
           : null)
     }
 
