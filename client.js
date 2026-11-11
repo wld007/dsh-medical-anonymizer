@@ -1873,7 +1873,8 @@ window.__ModuleLoader__.load({
       .ws-clock{display:flex;flex-direction:column;align-items:flex-end;line-height:16px;padding:0 4px}
       .ws-clock span{font-size:10px;color:var(--dsw-alias-label-secondary);letter-spacing:1px}
       .ws-clock b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:18px;font-weight:600;letter-spacing:1px;line-height:22px}
-      .ws-clock.wd-ver{padding-right:14px;margin-right:6px;border-right:1px solid var(--dsw-alias-border-l1)}
+      .ws-clock.wd-clk{padding-right:14px;margin-right:6px;border-right:1px solid var(--dsw-alias-border-l1)}
+      .ws-clock.wd-ver{margin-right:6px}
       .ws-clock.wd-ver b{font-size:12.5px;font-weight:500;letter-spacing:0;color:var(--dsw-alias-label-secondary)}
       .ws-clock.wd-pct{padding-right:14px;margin-right:6px;border-right:1px solid var(--dsw-alias-border-l1)}
       .ws-clock.wd-pct b{color:var(--ws-accent)}
@@ -6262,13 +6263,13 @@ window.__ModuleLoader__.load({
                 ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
                 : (current?.source ? sourceLabel(current.source) : null))),
           h('span', { className: 'wd-sp' }),
-          // Plugin version, then completion and the clock: a row of readouts.
-          config?.version ? h('div', { className: 'ws-clock wd-ver' }, h('span', {}, t('wd.version')), h('b', {}, `v${config.version}`)) : null,
+          h('div', { className: 'ws-clock wd-clk' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           // Completion beside the clock: visible on every tab.
           current ? h('div', { className: 'ws-clock wd-pct', title: `${done} / ${planned || '—'} ${t('ws.unitFiles')}` },
             h('span', {}, running && etaMin !== null ? t('wd.pctEta', { eta: fmtEta(etaMin), unit: etaMin >= 60 ? 'h' : t('wd.min') }) : t('wd.bFiles')),
             h('b', {}, String(percent), h('small', {}, '%'))) : null,
-          h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
+          // Plugin version after the readouts.
+          config?.version ? h('div', { className: 'ws-clock wd-ver' }, h('span', {}, t('wd.version')), h('b', {}, `v${config.version}`)) : null,
           h('div', { className: 'wd-act' },
             running
               ? h('button', { className: 'ma-btn ws-start ws-stop', onClick: cancelRun, disabled: cancelling }, cancelling ? t('run.cancelling') : t('ws.stop'))
