@@ -278,6 +278,10 @@ window.__ModuleLoader__.load({
       'wd.stripGroup': '文件带 · 每格约 {n} 个文件',
       'wd.overview': '批次概览',
       'wd.peakAt': '峰值 {pct}%',
+      'wd.rss': '进程常驻',
+      'wd.rssPeak': '峰值 {gb}G',
+      'wd.peakWord': '峰值',
+      'wd.rssHint': '插件进程实际占用的物理内存（RSS），含堆外的缓冲区；堆内存只是其中一部分。',
       'wd.secLoad': '送审用量',
       'wd.secModels': '模型表现',
       'wd.secConc': '并发调度',
@@ -1100,6 +1104,10 @@ window.__ModuleLoader__.load({
       'wd.stripGroup': 'Files · about {n} per cell',
       'wd.overview': 'Batch overview',
       'wd.peakAt': 'peak {pct}%',
+      'wd.rss': 'process RSS',
+      'wd.rssPeak': 'peak {gb}G',
+      'wd.peakWord': 'peak',
+      'wd.rssHint': 'Physical memory used by the plugin process (RSS), including buffers outside the heap; the heap is only part of it.',
       'wd.secLoad': 'Workload',
       'wd.secModels': 'Models',
       'wd.secConc': 'Concurrency',
@@ -2656,7 +2664,7 @@ window.__ModuleLoader__.load({
       .wd-rank>div>i{display:block;height:100%;border-radius:2px}
       .wd-rank>b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:var(--dsw-alias-label-primary);text-align:right}
       .wd-ovr-list{display:flex;flex-direction:column;gap:3px}
-      .wd-bottom{flex:none;display:grid;grid-template-columns:1fr 1.1fr 1.1fr;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);min-height:150px}
+      .wd-bottom{flex:none;display:grid;grid-template-columns:1.15fr 1.3fr .8fr;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);min-height:150px}
       .wd-ro{padding:10px 14px 12px;border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;justify-content:space-between;gap:7px;min-width:0}
       .wd-ro>.wd-roh{flex:none}
       .wd-ro>.wd-gauges{flex:1;align-items:center}
@@ -2725,6 +2733,9 @@ window.__ModuleLoader__.load({
       .wd-ro .wd-gauges{grid-template-columns:repeat(2,minmax(0,1fr))}
       .wd-gauge{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;text-align:center}
       .wd-gauge svg{width:68px;height:68px}
+      .wd-res-line{display:flex;justify-content:center;align-items:baseline;gap:6px;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .wd-res-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;color:var(--dsw-alias-label-primary)}
+      .wd-res-line span{color:var(--wd-ink3)}
       .wd-gauge .wd-g-track{fill:none;stroke:var(--wd-track);stroke-width:6}
       .wd-gauge .wd-g-peak{fill:var(--dsw-alias-label-secondary);stroke:var(--ws-paper);stroke-width:1.2}
       .wd-gauge .wd-g-arc{fill:none;stroke-width:6;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
@@ -6321,7 +6332,8 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'wd-roh' }, h('b', {}, t('wd.resources'), enKicker('RESOURCES')), h('span', { className: 'wd-cap' }, t('wd.resScope'))),
                 h('div', { className: 'wd-gauges' },
                   gauge(t('wd.heap'), memRatio, mem?.heapLimit ? `${((running ? mem.heapUsed : mem.peakHeap) / GB).toFixed(1)} / ${(mem.heapLimit / GB).toFixed(1)}G` : '—', memRatio >= 0.85 ? 'crit' : memRatio >= 0.7 ? 'warn' : '', t('ws.m.memHint'), mem?.heapLimit && mem.peakHeap ? mem.peakHeap / mem.heapLimit : null),
-                  gauge(t('wd.disk'), disk?.total ? 1 - disk.free / disk.total : null, disk?.total ? t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }) : '—', disk?.total && disk.free < 5 * GB ? 'crit' : disk?.total && disk.free < 20 * GB ? 'warn' : '', t('wd.diskHint'), disk?.total && Number.isFinite(disk.minFree) ? 1 - disk.minFree / disk.total : null))))),
+                  gauge(t('wd.disk'), disk?.total ? 1 - disk.free / disk.total : null, disk?.total ? t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }) : '—', disk?.total && disk.free < 5 * GB ? 'crit' : disk?.total && disk.free < 20 * GB ? 'warn' : '', t('wd.diskHint'), disk?.total && Number.isFinite(disk.minFree) ? 1 - disk.minFree / disk.total : null)),
+                mem?.peakRss ? h('div', { className: 'wd-res-line', title: t('wd.rssHint') }, t('wd.rss'), h('b', {}, `${((running ? mem.rss ?? mem.peakRss : mem.peakRss) / GB).toFixed(1)}G`), running ? h('span', {}, t('wd.rssPeak', { gb: (mem.peakRss / GB).toFixed(1) })) : h('span', {}, t('wd.peakWord'))) : null))),
               h('aside', { className: 'wd-side' },
                 stationSel
                   ? stationDetail(stationSel)
