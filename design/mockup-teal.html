@@ -112,7 +112,7 @@
   <div class="frame top">
     <div class="logo">✚</div>
     <div class="brand"><b>医疗数据匿名化处理流水线</b><span>MEDICAL DATA DE-IDENTIFICATION · v0.9.0</span></div>
-    <div class="live"><span class="dot"></span><span style="font-size:12px;color:var(--amber2)">运行中</span><span class="num">RUN-0bc4fe</span><span class="num" style="color:var(--ink3)">sample-8531 · 8531 文件</span></div>
+    <div class="live"><span class="dot"></span><span style="font-size:12px;color:var(--amber2)">运行中</span><span class="num">RUN-0bc4fe</span><span class="num" style="color:var(--ink3)">sample-8531</span></div>
     <div class="sp"></div>
     <div class="cap">已用时</div><div class="clock">08:33:37</div>
     <div class="btn stop">■ 停止批次</div>
@@ -122,11 +122,11 @@
   <!-- tabs -->
   <div class="frame tabs">
     <div class="tab on">◈ 产线</div>
-    <div class="tab">文件 <span class="num">8531</span></div>
+    <div class="tab">文件</div>
     <div class="tab hot">复核 <span class="num">214</span></div>
-    <div class="tab">模型 <span class="num">2</span></div>
+    <div class="tab">模型</div>
     <div class="tab">日志</div>
-    <div class="tab">记录 <span class="num">12</span></div>
+    <div class="tab">记录</div>
     <div class="tab">报告</div>
     <div class="sp"></div>
     <div class="search">⌕ 搜索文件、字段、假名…</div>
@@ -138,7 +138,6 @@
       <svg id="iso" viewBox="0 0 1240 520" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="corner">
         <span class="cap" style="color:var(--ink)">产线 · LINE</span>
-        <span class="cap" style="color:var(--ink3)">① 准备 → ② 逐文件并行 → ③ 收尾 → ④ 交付</span>
         <div class="legend"><span><i style="background:var(--amber)"></i>处理中</span><span><i style="background:var(--ok)"></i>已完成</span><span><i style="background:var(--warn)"></i>待复核</span><span><i style="background:#3a3632"></i>未开始</span></div>
       </div>
       <div class="ov ov-tl">
@@ -151,22 +150,22 @@
       </div>
       <div class="ov ov-br">
         <div class="ovh"><span class="cap" style="color:var(--warn)">▲ 瓶颈 · 10 分钟</span><span style="display:flex;gap:6px"><span class="btn" style="height:20px;font-size:10.5px;padding:0 8px;border-color:rgba(34,199,192,.6);color:var(--amber2)">核验并发 4 → 8</span><span class="btn" style="height:20px;font-size:10.5px;padding:0 8px">调用 →</span></span></div>
-        <div style="font-size:12.5px;font-weight:600">S05 独立盲审 · 排队 146</div>
-        <div class="sub" style="font-size:10.5px;line-height:15px;white-space:nowrap">核验 3/4 占满 · 格式错误 3.1% 触发重试 · 识别侧空闲</div>
+        <div style="font-size:12.5px;font-weight:600">S05 独立盲审</div>
+        <div class="sub" style="font-size:10.5px;line-height:15px;white-space:nowrap">核验并发已满，部分请求格式出错重试；识别侧空闲</div>
       </div>
       <div class="strip">
-        <div class="row"><span class="cap">文件带 · 每格 36 个文件</span><span class="num" style="font-size:11px;color:var(--ink2)">6107 / 8531</span></div>
+        <div class="row"><span class="cap">文件带 · 每格 36 个文件</span></div>
         <div class="cells" id="cells"></div>
       </div>
     </div>
 
     <div class="frame drawer">
       <div class="dh"><b>S05 · 独立盲审</b><span class="chip run">RUNNING</span><span class="sp"></span><span style="color:var(--ink3)">✕</span></div>
-      <div class="sub">核验模型 <span class="num" style="color:var(--ink)">gemma-4-26b</span> · 不告知识别结果，重新找人<br>请求占用 <span class="num" style="color:var(--amber2)">3/4</span> · 排队 <span class="num">+146</span></div>
+      <div class="sub">核验模型 <span class="num" style="color:var(--ink)">gemma-4-26b</span> · 不告知识别结果，重新找人<br>模型请求 <span class="num" style="color:var(--amber2)">3/4</span> 并发 · <span class="num">146</span> 个请求排队</div>
       <div class="kv">
         <div><span>CALLS</span><b>14.6k</b></div>
-        <div><span>FAIL RATE</span><b style="color:var(--warn)">3.1<small>%</small></b></div>
-        <div><span>AVG / CALL</span><b>3.1<small>s</small></b></div>
+        <div><span>FLAGGED</span><b>1770<small>次</small></b></div>
+        <div><span>PER CALL</span><b>3.1<small>s</small></b></div>
         <div><span>CONTEXT</span><b>2.7k<small>/ 9.1k</small></b></div>
       </div>
       <div class="sep"></div>
@@ -197,14 +196,14 @@
     <div class="bp">
       <div class="bh"><span class="cap" style="color:var(--ink)">进度</span><span class="cap" style="color:var(--amber2)">∿ LIVE</span></div>
       <div class="big"><div><span>FILES</span><b>72<small>%</small></b></div><div><span>RATE</span><b>16.6<small>件/分</small></b></div><div><span>ETA</span><b style="color:var(--ink2)">2:27<small>h</small></b></div></div>
-      <div class="bar"><span>文件</span><div class="track"><div class="ticks" style="--w:72%"></div></div><span class="num">6107</span></div>
+      <div class="bar"><span>字节</span><div class="track"><div class="ticks" style="--w:68%"></div></div><span class="num">0.93G</span></div>
       <div class="bar"><span>内存</span><div class="track"><div class="ticks" style="--w:73%;--fill:var(--warn)"></div></div><span class="num">3.0G</span></div>
     </div>
     <div class="bp">
-      <div class="bh"><span class="cap" style="color:var(--ink)">处理结果</span><span class="num" style="font-size:11px;color:var(--amber2)">比对与复核 →</span></div>
+      <div class="bh"><span class="cap" style="color:var(--ink)">处理结果</span></div>
       <div class="big"><div><span>IDENTIFIERS</span><b>1.0<small>M</small></b></div><div><span>REPLACED</span><b>12.7<small>M</small></b></div><div><span>FAILED</span><b style="color:var(--ink2)">0</b></div></div>
-      <div style="display:flex;height:10px;gap:1px;border-radius:2px;overflow:hidden"><i style="flex:5181;background:var(--ok)"></i><i style="flex:926;background:var(--warn)"></i></div>
-      <div style="display:flex;gap:12px;font-size:11.5px;color:var(--ink2);white-space:nowrap"><span>通过 <b class="num" style="color:var(--ink)">5181</b></span><span>待复核 <b class="num" style="color:var(--warn)">926</b></span><span style="margin-left:auto;color:var(--ink3)">病历号 29% · 医院 20% · 医生 13%</span></div>
+      <div style="display:flex;height:10px;gap:1px;border-radius:2px;overflow:hidden"><i style="flex:5952;background:var(--ok)"></i><i style="flex:155;background:var(--warn)"></i></div>
+      <div style="display:flex;gap:12px;font-size:11.5px;color:var(--ink2);white-space:nowrap"><span>通过 <b class="num" style="color:var(--ink)">5952</b></span><span>待复核 <b class="num" style="color:var(--warn)">155</b></span><span style="margin-left:auto;color:var(--ink3)">病历号 29% · 医院 20% · 医生 13%</span></div>
     </div>
     <div class="bp">
       <div class="bh"><span class="cap" style="color:var(--ink)">模型负载</span><span class="num" style="font-size:11px;color:var(--ink3)">发送 1% · 免送 99%</span></div>
@@ -213,9 +212,9 @@
       <div class="big"><div><span>CALLS</span><b>27.2<small>k</small></b></div><div><span>REUSED</span><b style="color:var(--ink2)">40</b></div><div><span>TOKENS</span><b>53.9<small>M</small></b></div></div>
     </div>
     <div class="bp">
-      <div class="bh"><span class="cap" style="color:var(--ink)">待办 · 告警</span><span class="num" style="font-size:11px;color:var(--ink3)">2 待处理</span></div>
-      <div class="alert"><i class="rail" style="background:var(--warn)"></i><span class="t">08:31</span><div><b>待复核 214 项</b><small>需你判断 54 · 图片等 160</small></div><span class="chip warn">REVIEW</span></div>
-      <div class="alert"><i class="rail" style="background:var(--warn)"></i><span class="t">07:52</span><div><b>核验模型格式错误 3.1%</b><small>已自动拆小重试</small></div><span class="chip warn">WARN</span></div>
+      <div class="bh"><span class="cap" style="color:var(--ink)">待办 · 告警</span><span class="num" style="font-size:11px;color:var(--ink3)">2</span></div>
+      <div class="alert"><i class="rail" style="background:var(--warn)"></i><span class="t">08:31</span><div><b>需你判断 54 项</b><small>另有图片等 160 项可批量处理</small></div><span class="chip warn">REVIEW</span></div>
+      <div class="alert"><i class="rail" style="background:var(--warn)"></i><span class="t">00:03</span><div><b>跳过 3 个文件</b><small>不支持的格式：.pdf ×2 · .docx ×1</small></div><span class="chip warn">SKIP</span></div>
     </div>
   </div>
 </div>
@@ -258,9 +257,9 @@ box(-60, -60, -14, 1140, 290, 14, '#14262d', { stroke: 'rgba(160,230,235,.07)' }
 
 const ST = [
   // [code, name, state, line 1: passed / total (or the station's own unit), line 2: avg time · queue (running only)]
-  ['S01', '预扫描', 'done', '8531 / 8531', ''], ['S02', '解析·拆层', 'done', '8531 / 8531', ''], ['S03', '识别·替换', 'active', '6107 / 8531', '18s · 排队 12'],
-  ['S04', '规则核验', 'active', '6102 / 8531', '0.4s · 排队 0'], ['S05', '独立盲审', 'active', '6094 / 8531', '3.1s · 排队 146'], ['S06', '复判修正', 'done', 'R2 1683 · R3 40', ''],
-  ['S07', '批次复扫', 'idle', '第 42 / 43 组', ''], ['S08', '比对·打包', 'active', '6090 / 8531', '0.2s · 排队 0'], ['S09', '人工复核', 'warn', '214 项待处理', ''], ['S10', '交付', 'idle', '暂扣', ''],
+  ['S01', '预扫描', 'done', '8531 / 8531', ''], ['S02', '解析·拆层', 'done', '8531 / 8531', ''], ['S03', '识别·替换', 'active', '6107 / 8531', '每件 18s · 等 12'],
+  ['S04', '规则核验', 'active', '6102 / 8531', '每件 0.4s'], ['S05', '独立盲审', 'active', '6094 / 8531', '每件 6.2s · 等 38'], ['S06', '复判修正', 'done', 'R2 1683 · R3 40', ''],
+  ['S07', '批次复扫', 'idle', '第 42 / 43 组', ''], ['S08', '比对·打包', 'active', '6090 / 8531', '每件 0.2s'], ['S09', '人工复核', 'warn', '155 文件 · 214 项', ''], ['S10', '交付', 'idle', '暂扣', ''],
 ]
 const STEP = 108
 const pools = el('g', {})
@@ -274,7 +273,7 @@ for (let x = -30; x < 1070; x += 22) { const a = P(x, 104, 7.2), b = P(x, 126, 7
   const a = P(10, 205, 0), b = P(STEP * 7 + 30, 205, 0)
   el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#a58bff', 'stroke-width': 1.2, 'stroke-dasharray': '5 5', opacity: .75 })
   const m = P(STEP * 3.4, 226, 0)
-  el('text', { x: m[0], y: m[1], fill: '#a58bff', 'font-size': 11, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle', opacity: .85 }).textContent = '旁路 · DICOM 只处理元数据，不经模型 · 1 240'
+  el('text', { x: m[0], y: m[1], fill: '#a58bff', 'font-size': 11, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle', opacity: .85 }).textContent = 'DICOM 旁路 · 只改元数据 · 1240'
 })()
 
 const COLORS = { done: '#2c4049', active: '#2f4750', warn: '#3a3f3c', idle: '#1f3036' }
@@ -317,19 +316,17 @@ ST.forEach(([code, name, state, stat, line2], i) => {
   el('text', { x: lx, y: top + 4, fill: '#58717a', 'font-size': 9.5, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle', 'letter-spacing': 1 }).textContent = code
   el('text', { x: lx, y: top + 19, fill: state === 'idle' ? '#6f8a92' : '#e2eef0', 'font-size': 12.5, 'font-weight': 600, 'text-anchor': 'middle' }).textContent = name
   el('text', { x: lx, y: top + 32, fill: state === 'warn' ? '#f5a524' : state === 'active' ? '#7fe9e2' : '#8ba5ad', 'font-size': 10.5, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle' }).textContent = stat
-  if (line2) el('text', { x: lx, y: top + 44, fill: line2.includes('排队 146') ? '#f5a524' : '#8ba5ad', 'font-size': 9.5, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle' }).textContent = line2
+  if (line2) el('text', { x: lx, y: top + 44, fill: line2.includes('等 38') ? '#f5a524' : '#8ba5ad', 'font-size': 9.5, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle' }).textContent = line2
 })
 
 // waiting files piled in front of each station: height = queue length
-const piles = [[2, 12, 'q'], [4, 146, 'q'], [8, 214, 'w']]
+const piles = [[2, 12, 'q'], [4, 38, 'q'], [8, 155, 'w']]
 piles.forEach(([i, n, kind]) => {
   const levels = Math.min(6, Math.ceil(n / 30)), x0 = i * STEP + 14, y0 = 136
   for (let lv = 0; lv < levels; lv++) for (let a = 0; a < 3; a++) for (let b = 0; b < 2; b++) {
     if (lv === levels - 1 && (a + b) % 2 && n < 200) continue
     box(x0 + a * 13, y0 + b * 12, lv * 9, 11, 10, 8, kind === 'w' ? '#b8781a' : '#178d89', { top: kind === 'w' ? '#f5a524' : '#4fd3cb', stroke: 'rgba(0,0,0,.35)' })
   }
-  const t = P(x0 + 20, y0 + 26, 0)
-  el('text', { x: t[0] + 26, y: t[1] + 8, fill: kind === 'w' ? '#f5a524' : '#7fe9e2', 'font-size': 11, 'font-family': 'SF Mono, Menlo, monospace' }).textContent = kind === 'w' ? `待复核 ${n}` : `排队 ${n}`
 })
 
 // files on the belt
@@ -347,7 +344,7 @@ for (let k = 0; k < 34; k++) {
   const mx = (a[0] + b[0]) / 2, my = Math.min(a[1], b[1]) - 46
   el('path', { d: `M${a[0]},${a[1]} Q${mx},${my} ${b[0]},${b[1]}`, fill: 'none', stroke: '#22c7c0', 'stroke-width': 1.3, 'stroke-dasharray': '6 5', opacity: .9 })
   el('path', { d: `M${b[0] + 9},${b[1] - 9} L${b[0]},${b[1]} L${b[0] + 12},${b[1] + 1}`, fill: 'none', stroke: '#22c7c0', 'stroke-width': 1.3 })
-  el('text', { x: mx, y: my + 12, fill: '#7fe9e2', 'font-size': 11, 'text-anchor': 'middle', 'font-family': 'SF Mono, Menlo, monospace' }).textContent = '复判修正 → 规则核验 · 最多 3 轮 · R2 1683'
+  el('text', { x: mx, y: my + 12, fill: '#7fe9e2', 'font-size': 11, 'text-anchor': 'middle', 'font-family': 'SF Mono, Menlo, monospace' }).textContent = '确认的问题回到规则核验 · 最多 3 轮'
 })()
 
 
