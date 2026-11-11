@@ -222,14 +222,54 @@ window.__ModuleLoader__.load({
       'wd.tab.line': '产线',
       'wd.tab.review': '复核',
       'wd.tab.runs': '记录',
+      'wd.live': '实时',
+      'wd.bFiles': '完成',
+      'wd.bRate': '速率',
+      'wd.bEta': '预计剩余',
+      'wd.bIds': '标识符',
+      'wd.bReplaced': '替换次数',
+      'wd.bFailed': '失败文件',
+      'wd.median': '中位',
+      'wd.decided': '已决定 {n} / {total}',
+      'wd.loading': '加载中…',
+      'wd.dCalls': '本环节的模型调用',
+      'wd.dOk': '成功',
+      'wd.dCached': '复用',
+      'wd.dFailed': '失败',
+      'wd.dTimes': '次',
+      'wd.dLatency': '每次调用耗时',
+      'wd.dInput': '每次输入 token',
+      'wd.dTypes': '文件类型',
+      'wd.dSkipped': '跳过的文件',
+      'wd.dOverLimit': '超出大小',
+      'wd.dZipFailed': '压缩包失败',
+      'wd.dNone': '无',
+      'wd.dRenamed': '有 {n} 个文件名或目录名含标识符，已在输出中替换。',
+      'wd.dCoverage': '内容覆盖（按字节）',
+      'wd.dPlain': '直接可读',
+      'wd.dDecoded': '解码内层',
+      'wd.dOpaque': '无法解码',
+      'wd.dStructure': '结构与标记',
+      'wd.dSizes': '文件大小分布',
+      'wd.dFindings': '核验发现（按原因）',
+      'wd.dReviewWhy': '待复核原因',
+      'wd.dJudge': '需你判断',
+      'wd.dBulk': '可批量处理',
+      'wd.dRounds': '当前在各轮的文件',
+      'wd.dRound': '第 {n} 轮',
+      'wd.dFileRounds': '文件用了几轮',
+      'wd.dOutcome': '文件结果',
+      'wd.dFileTime': '每个文件耗时',
+      'wd.dChunks': '共 {n} 组，{files} 个文件；跨组复扫用整批字典再查一遍。',
+      'wd.dSlow': '最慢的文件',
       'wd.switchHint': '切换批次：查看、删除历史批次',
       'wd.newRun': '新批次',
-      'wd.newRunCap': '新批次 · NEW RUN',
-      'wd.clickStation': '点工位看详情',
+      'wd.newRunCap': '新批次',
+      'wd.clickStation': '点环节看详情',
       'wd.kReview': '待复核',
       'wd.loop': '确认的问题回到规则核验 · 最多 {rounds} 轮',
       'wd.inflight': '正在处理',
-      'wd.inflightCols': '工位 · 轮次 · 进度',
+      'wd.inflightCols': '环节 · 轮次 · 进度',
       'wd.inflightMore': '另 {n} 个文件在处理中',
       'wd.empty': '还没有批次。点右上角「＋ 新批次」选择数据开始。',
       'wd.strip': '文件带 · 每格 1 个文件',
@@ -261,7 +301,7 @@ window.__ModuleLoader__.load({
       'wd.state.idle': '未开始',
       'wd.state.warn': '待处理',
       'wd.kPassed': '已通过',
-      'wd.kHere': '在此工位',
+      'wd.kHere': '在此环节',
       'wd.kQueue': '请求排队',
       'wd.kNote': '计数',
       'wd.aFailed': '批次失败',
@@ -970,10 +1010,50 @@ window.__ModuleLoader__.load({
       'wd.tab.line': 'Line',
       'wd.tab.review': 'Review',
       'wd.tab.runs': 'Runs',
+      'wd.live': 'live',
+      'wd.bFiles': 'Done',
+      'wd.bRate': 'Rate',
+      'wd.bEta': 'Remaining',
+      'wd.bIds': 'Identifiers',
+      'wd.bReplaced': 'Replacements',
+      'wd.bFailed': 'Failed files',
+      'wd.median': 'median',
+      'wd.decided': '{n} / {total} decided',
+      'wd.loading': 'Loading…',
+      'wd.dCalls': 'Model calls of this step',
+      'wd.dOk': 'ok',
+      'wd.dCached': 'reused',
+      'wd.dFailed': 'failed',
+      'wd.dTimes': 'calls',
+      'wd.dLatency': 'Time per call',
+      'wd.dInput': 'Input tokens per call',
+      'wd.dTypes': 'File types',
+      'wd.dSkipped': 'Skipped files',
+      'wd.dOverLimit': 'too large',
+      'wd.dZipFailed': 'zip failed',
+      'wd.dNone': 'None',
+      'wd.dRenamed': '{n} file or folder names held identifiers and were replaced in the output.',
+      'wd.dCoverage': 'Content coverage (bytes)',
+      'wd.dPlain': 'plain',
+      'wd.dDecoded': 'decoded layers',
+      'wd.dOpaque': 'opaque',
+      'wd.dStructure': 'structure/markup',
+      'wd.dSizes': 'File sizes',
+      'wd.dFindings': 'Findings by reason',
+      'wd.dReviewWhy': 'Why files need review',
+      'wd.dJudge': 'Need your judgement',
+      'wd.dBulk': 'Bulk-handled',
+      'wd.dRounds': 'Files in each round now',
+      'wd.dRound': 'round {n}',
+      'wd.dFileRounds': 'Rounds per file',
+      'wd.dOutcome': 'File outcomes',
+      'wd.dFileTime': 'Time per file',
+      'wd.dChunks': '{n} chunks, {files} files; the cross-chunk rescan checks again with the batch dictionary.',
+      'wd.dSlow': 'Slowest files',
       'wd.switchHint': 'Switch batch: view or delete past batches',
       'wd.newRun': 'New run',
       'wd.newRunCap': 'New run',
-      'wd.clickStation': 'Click a station for details',
+      'wd.clickStation': 'Click a step for details',
       'wd.kReview': 'Review',
       'wd.loop': 'Confirmed findings go back to the rule check · up to {rounds} rounds',
       'wd.inflight': 'In progress',
@@ -1009,7 +1089,7 @@ window.__ModuleLoader__.load({
       'wd.state.idle': 'idle',
       'wd.state.warn': 'to do',
       'wd.kPassed': 'Passed',
-      'wd.kHere': 'Here now',
+      'wd.kHere': 'At this step',
       'wd.kQueue': 'Requests queued',
       'wd.kNote': 'Count',
       'wd.aFailed': 'Batch failed',
@@ -2408,9 +2488,28 @@ window.__ModuleLoader__.load({
       .wd-sep{height:1px;background:var(--dsw-alias-border-l1)}
       .wd-kv{display:grid;grid-template-columns:1fr 1fr;gap:6px}
       .wd-kv div{border:1px solid var(--dsw-alias-border-l1);border-radius:5px;padding:6px 9px}
-      .wd-kv span{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;letter-spacing:1px;color:var(--wd-ink3)}
+      .wd-kv span{display:block;font-size:11px;color:var(--wd-ink3)}
       .wd-kv b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:17px}
       .wd-desc{font-size:11.5px;line-height:18px;color:var(--dsw-alias-label-secondary)}
+      .wd-sec{display:flex;flex-direction:column;gap:5px;padding-top:7px;border-top:1px solid var(--dsw-alias-border-l1)}
+      .wd-sec-h{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary)}
+      .wd-head2{display:flex;gap:12px;align-items:center}
+      .wd-ring{display:flex;flex-direction:column;align-items:center;gap:2px}
+      .wd-ring svg{width:76px;height:76px}
+      .wd-ring .wd-g-track{fill:none;stroke:var(--wd-track)}
+      .wd-ring .wd-g-arc{fill:none;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+      .wd-ring text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;font-weight:600;fill:var(--dsw-alias-label-primary)}
+      .wd-ring small{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--wd-ink3)}
+      .wd-hist{display:flex;flex-direction:column;gap:3px}
+      .wd-hist-bars{display:flex;align-items:flex-end;gap:2px;height:46px;border-bottom:1px solid var(--dsw-alias-border-l2)}
+      .wd-hist-bars i{flex:1;border-radius:2px 2px 0 0;min-height:0;opacity:.85}
+      .wd-hist-axis{display:flex;justify-content:space-between;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--wd-ink3)}
+      .wd-rank{display:grid;grid-template-columns:minmax(0,max-content) minmax(40px,1fr) auto;gap:4px 8px;align-items:center;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+      .wd-rank>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+      .wd-rank>div{height:8px;border-radius:2px;background:var(--wd-empty);overflow:hidden}
+      .wd-rank>div>i{display:block;height:100%;border-radius:2px}
+      .wd-rank>b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:var(--dsw-alias-label-primary);text-align:right}
+      .wd-ovr-list{display:flex;flex-direction:column;gap:3px}
       .wd-bottom{flex:none;display:grid;grid-template-columns:1fr 1.1fr 1.1fr 1.2fr;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);min-height:150px}
       .wd-ro{padding:10px 14px 12px;border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;justify-content:space-between;gap:7px;min-width:0}
       .wd-ro>.wd-roh{flex:none}
@@ -2421,7 +2520,8 @@ window.__ModuleLoader__.load({
       .wd-roh{display:flex;justify-content:space-between;align-items:center;gap:8px}
       .wd-roh b{font-size:12px;letter-spacing:2px;font-weight:600}
       .wd-big{display:flex;gap:18px;flex-wrap:wrap}
-      .wd-big div span{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;letter-spacing:1.3px;color:var(--wd-ink3)}
+      .wd-big div span{display:block;font-size:11px;color:var(--wd-ink3)}
+      .wd-sub{font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary)}
       .wd-big div b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:24px;font-weight:600;letter-spacing:.5px;line-height:28px;white-space:nowrap}
       .wd-big div b small{font-size:11px;color:var(--wd-ink3);font-weight:400;margin-left:2px}
       .wd-track{height:9px;position:relative;background:repeating-linear-gradient(90deg,var(--wd-track) 0 2px,transparent 2px 5px)}
@@ -2437,7 +2537,7 @@ window.__ModuleLoader__.load({
       .wd-alert i{height:26px;border-radius:2px}
       .wd-alert b{display:block;font-size:12px;font-weight:600}
       .wd-alert small{font-size:10.5px;color:var(--wd-ink3)}
-      .wd-chip{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;padding:0 5px;border-radius:3px;border:1px solid;letter-spacing:.5px;white-space:nowrap}
+      .wd-chip{font-size:10.5px;padding:0 6px;border-radius:3px;border:1px solid;letter-spacing:.5px;white-space:nowrap}
       .wd-c-crit{color:var(--wd-crit);border-color:rgba(240,82,82,.6)}
       .wd-c-warn{color:var(--dsw-alias-state-warn-primary);border-color:rgba(245,165,36,.6)}
       .wd-c-info{color:var(--dsw-alias-label-secondary);border-color:var(--dsw-alias-border-l2)}
@@ -2445,13 +2545,11 @@ window.__ModuleLoader__.load({
       .wd-full{flex:1;min-height:0;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);padding:10px 14px;display:flex;flex-direction:column}
       .wd-full .ws-drawer-body{flex:1;min-height:0;overflow:auto}
       .wd-runs{display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:min(60vh,520px);scrollbar-width:thin}
-      .wd-runs-act .wd-runs-pop{left:0;right:auto;width:420px}
-      .wd-switch{font:inherit;color:inherit;text-align:left;cursor:pointer;background:transparent}
-      .wd-switch:hover{border-color:var(--ws-accent)}
-      .wd-switch-n{margin-left:8px;align-self:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--wd-ink3);white-space:nowrap}
+      .wd-runs-act .wd-runs-pop{right:0;width:440px}
       .wd-runs .ws-run{margin:0}
       @media (max-width:1100px){.wd-main{grid-template-columns:minmax(0,1fr)}.wd-bottom{grid-template-columns:1fr 1fr}.wd-ro:nth-child(2){border-right:0}}
       .wd-ro .ws-spark{gap:2px}
+      .wd-side .wd-ovr{grid-template-columns:minmax(0,1fr) 40px 40px}
       .wd-ro .ws-spark-head{display:none}
       .wd-line{font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .wd-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-weight:500}
@@ -3288,6 +3386,15 @@ window.__ModuleLoader__.load({
      * its detail on the right.
      */
     // 2.5D colours for the dark and the light host theme.
+    // Model-call stages behind each step of the line.
+    const CALL_STAGES = { discover: ['字段画像', '识别·替换'], blind: ['盲审'], repair: ['复判修正'] }
+    // Issue codes in plain words (step details).
+    const ISSUE_ZH = {
+      opaque: '内容无法解码（图片等）', 'opaque-token': '疑似编码片段', unreadable: '无法读取', implausible: '模型报出值不像该类型',
+      'over-match': '替换范围过大', 'verify-dismissed': '核验判为误报', unlocated: '报出值在原文中找不到', 'model-unlocated': '模型报出值找不到',
+      disputed: '识别与核验分歧', 'not-removed': '原值未清除', 'model-residual': '盲审仍报出', residual: '仍有残留', embedded: '假名嵌在长串中',
+      partial: '数字被部分替换', 'key-identifier': '字段名含标识符', 'model-unchecked': '未经模型核验', structure: '结构变化', pipeline: '处理出错',
+    }
     const ISO_DARK = { grid: '#132229', slab: '#14262d', belt: '#21363e', roller: '#2f4952', bDone: '#2c4049', bActive: '#2f4750', bWarn: '#3a3f3c', bIdle: '#1f3036', ok: '#46d17f', acc: '#22c7c0', warn: '#f5a524', vent: '#0b171c', activeTop: '#1f5a5c', warnTop: '#5a4a2a', acc2: '#7fe9e2', cross: '#3d5a64', feeder: '#1b2d33', pileWarn: '#b8781a', pile: '#178d89', pileTop: '#4fd3cb', code: '#58717a', idleText: '#6f8a92', name: '#e2eef0', line: '#8ba5ad', file: '#1aa39d', vio: '#a58bff', stroke: 'rgba(160,230,235,.10)' }
     const ISO_LIGHT = { grid: '#c9d8dc', slab: '#cddcdf', belt: '#b2c6cb', roller: '#93acb2', bDone: '#b4c9ce', bActive: '#9fd6d0', bWarn: '#ebcf96', bIdle: '#c6d5d9', ok: '#1f9d55', acc: '#0e9f98', warn: '#d98a00', vent: '#55717a', activeTop: '#7fd8d0', warnTop: '#f3bd57', acc2: '#08857f', cross: '#86a1a8', feeder: '#a1b9bf', pileWarn: '#e0a23a', pile: '#1bb0a7', pileTop: '#7fe3dc', code: '#7d9298', idleText: '#8aa0a6', name: '#17323a', line: '#4c6870', file: '#18b3aa', vio: '#7b5cf0', stroke: 'rgba(20,60,70,.14)' }
 
@@ -4121,24 +4228,6 @@ window.__ModuleLoader__.load({
       } : null
       // A1 header button: opens the full settings; the values the next batch
       // uses (or the running batch's) are its tooltip.
-      const paramsBlock = () => {
-        if (!draft) return null
-        const shown = runParams ?? draft
-        const summaryText = [
-          t('ws.ps.rounds', { n: shown.maxRounds }),
-          `${(running ? current?.config?.verifyModel : config?.verifyModel) ? t('ws.ps.concurrency2', { d: shown.concurrency, v: shown.verifyConcurrency }) : t('ws.ps.concurrency', { n: shown.concurrency })}${shown.autoConcurrency ? t('ws.ps.auto') : ''}`,
-          t('ws.ps.chunk', { n: shown.maxFiles }),
-          `${shown.timeoutSec}s`,
-          t('ws.ps.temp', { n: Number(shown.temperature).toFixed(1) }),
-          shown.disableThinking ? t('ws.ps.noThink') : t('ws.ps.think'),
-          shown.quasiIdentifiers ? t('ws.ps.quasi') : null,
-        ].filter(Boolean).join(' · ')
-        return h('div', { className: 'ws-params' },
-          h('button', { type: 'button', className: 'ws-params-head', onClick: () => setModal('settings'),
-            title: `${running ? `${t('ws.paramsLocked')}\n` : ''}${summaryText}` },
-            h('span', { className: 'ws-params-title' }, '⚙ ', t('ws.paramsShort')),
-            h('span', { className: 'ws-fold-arrow' }, running ? '🔒' : '›')))
-      }
 
       // Review items, comparison and advice come from the batch's records,
       // which exist once the host no longer runs it (its status turns final
@@ -4466,7 +4555,7 @@ window.__ModuleLoader__.load({
 
       // Model-call log: fetched incrementally while its tab is open.
       React.useEffect(() => {
-        if (drawer !== 'calls' || !current?.id) return undefined
+        if (!(drawer === 'calls' || CALL_STAGES[stationSel]) || !current?.id) return undefined
         const id = current.id
         let alive = true
         let pulling = false
@@ -4487,7 +4576,7 @@ window.__ModuleLoader__.load({
         pull()
         const timer = running ? setInterval(pull, 2000) : null
         return () => { alive = false; if (timer) clearInterval(timer) }
-      }, [drawer, current?.id, running])
+      }, [drawer, stationSel, current?.id, running])
 
       // ── Derived line state ──
       const files = Array.isArray(current?.files) ? current.files : []
@@ -5580,12 +5669,12 @@ window.__ModuleLoader__.load({
       const reviewItemsOpen = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision)
       const judgeOpen = reviewItemsOpen.filter((item) => !OPAQUE_REVIEW.has(item.code)).length
       const alerts = []
-      if (current?.status === 'failed') alerts.push({ tone: 'crit', tag: 'FAIL', title: t('wd.aFailed'), sub: current.error ?? '' })
-      if (disk?.free !== undefined && disk.free < 20 * GB) alerts.push({ tone: disk.free < 5 * GB ? 'crit' : 'warn', tag: 'DISK', title: t('wd.aDisk', { gb: (disk.free / GB).toFixed(1) }), sub: t('wd.aDiskSub') })
-      if (memRatio !== null && memRatio >= 0.7) alerts.push({ tone: memRatio >= 0.85 ? 'crit' : 'warn', tag: 'MEM', title: t('wd.aMem', { pct: Math.round(memRatio * 100) }), sub: t('wd.aMemSub') })
+      if (current?.status === 'failed') alerts.push({ tone: 'crit', tag: '失败', title: t('wd.aFailed'), sub: current.error ?? '' })
+      if (disk?.free !== undefined && disk.free < 20 * GB) alerts.push({ tone: disk.free < 5 * GB ? 'crit' : 'warn', tag: '磁盘', title: t('wd.aDisk', { gb: (disk.free / GB).toFixed(1) }), sub: t('wd.aDiskSub') })
+      if (memRatio !== null && memRatio >= 0.7) alerts.push({ tone: memRatio >= 0.85 ? 'crit' : 'warn', tag: '内存', title: t('wd.aMem', { pct: Math.round(memRatio * 100) }), sub: t('wd.aMemSub') })
       if (reviewOpen > 0) {
         alerts.push({
-          tone: 'warn', tag: 'REVIEW', onClick: () => openCompare({ filter: 'review' }),
+          tone: 'warn', tag: '复核', onClick: () => openCompare({ filter: 'review' }),
           title: judgeOpen > 0 ? t('wd.aJudge', { n: judgeOpen }) : t('wd.aOpaque', { n: reviewOpen }),
           sub: judgeOpen > 0 && reviewOpen > judgeOpen ? t('wd.aJudgeSub', { n: reviewOpen - judgeOpen }) : t('wd.aReviewSub'),
         })
@@ -5593,13 +5682,13 @@ window.__ModuleLoader__.load({
       for (const key of ['detect', 'verify']) {
         const m = totals.models?.[key]
         const rateFail = failOf(m)
-        if (m?.calls >= 20 && rateFail > 0.02) alerts.push({ tone: 'warn', tag: 'MODEL', title: t('wd.aModelFail', { role: key === 'verify' ? t('ws.verifyModel') : t('ws.model'), pct: (rateFail * 100).toFixed(1) }), sub: t('wd.aModelFailSub', { n: m.retries ?? 0 }) })
+        if (m?.calls >= 20 && rateFail > 0.02) alerts.push({ tone: 'warn', tag: '模型', title: t('wd.aModelFail', { role: key === 'verify' ? t('ws.verifyModel') : t('ws.model'), pct: (rateFail * 100).toFixed(1) }), sub: t('wd.aModelFailSub', { n: m.retries ?? 0 }) })
       }
-      if ((current?.warnings?.length ?? 0) > 0) alerts.push({ tone: 'info', tag: 'NOTE', title: t('wd.aNotes', { n: current.warnings.length }), sub: current.warnings[0].slice(0, 60), onClick: () => { setView('drawer'); setDrawer('warn') } })
-      if (!running && current?.resumable && !anyRunning) alerts.push({ tone: 'info', tag: 'RESUME', title: t('wd.aResume'), sub: t('ws.resumeHint'), onClick: resumeRun })
+      if ((current?.warnings?.length ?? 0) > 0) alerts.push({ tone: 'info', tag: '提示', title: t('wd.aNotes', { n: current.warnings.length }), sub: current.warnings[0].slice(0, 60), onClick: () => { setView('drawer'); setDrawer('warn') } })
+      if (!running && current?.resumable && !anyRunning) alerts.push({ tone: 'info', tag: '续跑', title: t('wd.aResume'), sub: t('ws.resumeHint'), onClick: resumeRun })
       const RANK = { crit: 0, warn: 1, info: 2, ok: 3 }
       alerts.sort((a, b) => RANK[a.tone] - RANK[b.tone])
-      if (alerts.length === 0) alerts.push({ tone: 'ok', tag: 'OK', title: current ? t('wd.aNone') : t('wd.aIdle'), sub: '' })
+      if (alerts.length === 0) alerts.push({ tone: 'ok', tag: '正常', title: current ? t('wd.aNone') : t('wd.aIdle'), sub: '' })
       const etaMin = running && rate > 0 && planned > done ? (planned - done) / rate : null
       const fmtEta = (min) => (min >= 60 ? `${Math.floor(min / 60)}:${String(Math.round(min % 60)).padStart(2, '0')}` : `${Math.max(1, Math.round(min))}`)
       const gauge = (label, ratio, detail, tone = '', title = '') => {
@@ -5683,12 +5772,143 @@ window.__ModuleLoader__.load({
           h('div', {}, h('span', {}, 'FAIL'), h('b', { style: failOf(m) > 0.02 ? { color: 'var(--dsw-alias-state-warn-primary)' } : undefined }, `${(failOf(m) * 100).toFixed(1)}%`)),
           h('div', {}, h('span', {}, 'PER CALL'), h('b', {}, m?.okN ? `${(m.msSum / m.okN / 1000).toFixed(1)}s` : '—')))
       }
+      // Small charts for the step details.
+      const histo = (values, { bins = 12, fmt = (v) => String(Math.round(v)), color = 'var(--ws-accent)', unit = '' } = {}) => {
+        const list = values.filter((v) => Number.isFinite(v) && v >= 0)
+        if (list.length < 2) return h('p', { className: 'wd-desc', style: { margin: 0 } }, '—')
+        const sorted = [...list].sort((x, y) => x - y)
+        const hi = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.98))] || sorted[sorted.length - 1] || 1
+        const counts = new Array(bins).fill(0)
+        for (const v of list) counts[Math.min(bins - 1, Math.floor((v / (hi || 1)) * bins))] += 1
+        const max = Math.max(1, ...counts)
+        const med = sorted[Math.floor(sorted.length / 2)]
+        return h('div', { className: 'wd-hist' },
+          h('div', { className: 'wd-hist-bars' }, counts.map((n, i) => h('i', { key: i, title: `${fmt((hi / bins) * i)}–${fmt((hi / bins) * (i + 1))}${unit}：${n}`, style: { height: `${Math.max(n ? 6 : 0, (n / max) * 100)}%`, background: color } }))),
+          h('div', { className: 'wd-hist-axis' }, h('span', {}, `0`), h('span', {}, `${t('wd.median')} ${fmt(med)}${unit}`), h('span', {}, `${fmt(hi)}${unit}`)))
+      }
+      const rankBars = (rows, color = 'var(--ws-accent)') => {
+        const max = Math.max(1, ...rows.map(([, n]) => n))
+        return h('div', { className: 'wd-rank' }, rows.map(([label, n, tone]) => h(React.Fragment, { key: label },
+          h('span', { title: label }, label),
+          h('div', {}, h('i', { style: { width: `${(n / max) * 100}%`, background: tone ?? color } })),
+          h('b', {}, compact(n)))))
+      }
+      const ring = (ratio, center, sub) => {
+        const r = 30
+        const len = 2 * Math.PI * r
+        const v = Math.max(0, Math.min(1, ratio || 0))
+        return h('div', { className: 'wd-ring' },
+          h('svg', { viewBox: '0 0 76 76' },
+            h('circle', { className: 'wd-g-track', cx: 38, cy: 38, r, style: { strokeWidth: 7 } }),
+            h('circle', { className: 'wd-g-arc', cx: 38, cy: 38, r, stroke: 'var(--ws-accent)', style: { strokeWidth: 7 }, strokeDasharray: `${(len * v).toFixed(1)} ${len.toFixed(1)}` }),
+            h('text', { x: 38, y: 42, textAnchor: 'middle' }, center)),
+          sub ? h('small', {}, sub) : null)
+      }
+      const section = (title, body, extra = null) => h('div', { className: 'wd-sec' }, h('div', { className: 'wd-sec-h' }, h('span', {}, title), extra), body)
+      const stepCalls = (id) => {
+        const stages = CALL_STAGES[id]
+        if (!stages || callLog.id !== current?.id) return null
+        return callLog.entries.filter((entry) => stages.includes(entry.stage))
+      }
       const stationDetail = (id) => {
         const index = STATIONS.indexOf(id)
         const st = stationStates[id]
         const note = stationNotes[id] ?? {}
         const here = inflight.filter((state) => stationOf(state) === id)
         const row = helpRows?.[id] ?? ['', '']
+        const passed = current ? passedAt(index) : 0
+        const calls = stepCalls(id)
+        const parts = []
+        // Model steps: outcomes, latency and token use of this step's calls.
+        if (CALL_STAGES[id]) {
+          if (!calls) parts.push(section(t('wd.dCalls'), h('p', { className: 'wd-desc', style: { margin: 0 } }, t('wd.loading'))))
+          else {
+            const ok = calls.filter((c) => c.result === 'ok').length
+            const cached = calls.filter((c) => c.result === 'cached').length
+            const failed = calls.length - ok - cached
+            const byResult = {}
+            for (const c of calls) if (c.result !== 'ok' && c.result !== 'cached') byResult[c.result] = (byResult[c.result] ?? 0) + 1
+            parts.push(section(t('wd.dCalls'), h(React.Fragment, {},
+              h('div', { className: 'wd-stack', style: { height: 10 } },
+                ok ? h('i', { style: { flex: ok, background: 'var(--dsw-alias-state-success-primary)' } }) : null,
+                cached ? h('i', { style: { flex: cached, background: 'var(--wd-ink3)' } }) : null,
+                failed ? h('i', { style: { flex: failed, background: 'var(--dsw-alias-state-warn-primary)' } }) : null),
+              h('div', { className: 'wd-lg' },
+                h('span', {}, t('wd.dOk'), h('b', {}, compact(ok))),
+                cached ? h('span', {}, t('wd.dCached'), h('b', {}, compact(cached))) : null,
+                h('span', {}, t('wd.dFailed'), h('b', { style: failed ? { color: 'var(--dsw-alias-state-warn-primary)' } : undefined }, compact(failed))),
+                Object.keys(byResult).length ? h('span', { style: { color: 'var(--wd-ink3)' } }, Object.entries(byResult).map(([k, n]) => `${callResultLabel(t, k)} ${n}`).join(' · ')) : null)),
+              h('span', { className: 'wd-cap' }, `${compact(calls.length)} ${t('wd.dTimes')}`)))
+            parts.push(section(t('wd.dLatency'), histo(calls.filter((c) => c.result === 'ok').map((c) => c.ms / 1000), { fmt: (v) => (v < 10 ? v.toFixed(1) : String(Math.round(v))), unit: 's' })))
+            parts.push(section(t('wd.dInput'), histo(calls.filter((c) => c.result === 'ok').map((c) => c.in ?? 0), { fmt: (v) => compact(Math.round(v)), color: 'var(--wd-vio)' })))
+          }
+        }
+        if (id === 'prescan') {
+          const byExt = {}
+          for (const f of files) { const ext = (String(f.relPath).match(/\.([a-z0-9]+)$/i)?.[1] ?? '—').toLowerCase(); byExt[ext] = (byExt[ext] ?? 0) + 1 }
+          parts.push(section(t('wd.dTypes'), rankBars(Object.entries(byExt).sort((x, y) => y[1] - x[1]).slice(0, 6))))
+          const sk = current?.skipped ?? {}
+          const skipped = Object.entries(sk.unsupportedByExt ?? {})
+          parts.push(section(t('wd.dSkipped'), skipped.length || sk.overLimit || sk.zipFailed
+            ? rankBars([...skipped.map(([ext, n]) => [ext, n, 'var(--wd-ink3)']), ...(sk.overLimit ? [[t('wd.dOverLimit'), sk.overLimit, 'var(--dsw-alias-state-warn-primary)']] : []), ...(sk.zipFailed ? [[t('wd.dZipFailed'), sk.zipFailed, 'var(--dsw-alias-state-error-primary)']] : [])])
+            : h('p', { className: 'wd-desc', style: { margin: 0 } }, t('wd.dNone'))))
+          if (current?.paths?.renamed) parts.push(h('p', { className: 'wd-desc', style: { margin: 0 } }, t('wd.dRenamed', { n: current.paths.renamed })))
+        }
+        if (id === 'read') {
+          const cov = totals.coverage
+          if (cov?.total) {
+            const plain = Math.max(0, cov.inspected - cov.decoded)
+            parts.push(section(t('wd.dCoverage'), h(React.Fragment, {},
+              h('div', { className: 'wd-stack', style: { height: 10 } },
+                h('i', { style: { flex: plain, background: 'var(--ws-accent)' } }),
+                h('i', { style: { flex: cov.decoded, background: 'var(--wd-vio)' } }),
+                h('i', { style: { flex: cov.opaqueBytes || 0, background: 'var(--dsw-alias-state-warn-primary)' } }),
+                h('i', { style: { flex: Math.max(0, cov.total - cov.inspected - (cov.opaqueBytes || 0)), background: 'var(--wd-empty)' } })),
+              h('div', { className: 'wd-lg', style: { flexWrap: 'wrap' } },
+                h('span', {}, t('wd.dPlain'), h('b', {}, fmtBytes(plain))),
+                h('span', {}, t('wd.dDecoded'), h('b', {}, fmtBytes(cov.decoded))),
+                h('span', {}, t('wd.dOpaque'), h('b', {}, `${fmtBytes(cov.opaqueBytes || 0)} · ${cov.opaque}`)),
+                h('span', {}, t('wd.dStructure'), h('b', {}, fmtBytes(Math.max(0, cov.total - cov.inspected - (cov.opaqueBytes || 0)))))))))
+          }
+          parts.push(section(t('wd.dSizes'), histo(files.map((f) => (f.bytes ?? 0) / 1024), { fmt: (v) => (v >= 1024 ? `${(v / 1024).toFixed(1)}M` : `${Math.round(v)}K`) })))
+        }
+        if (id === 'discover') parts.push(section(t('ws.byType'), rankBars(byType.slice(0, 8))))
+        if (id === 'rules' || id === 'review') {
+          const codes = {}
+          for (const f of files) for (const issue of f.issues ?? []) if (issue.severity === 'error' || id === 'rules') codes[issue.code] = (codes[issue.code] ?? 0) + 1
+          const rows = Object.entries(codes).sort((x, y) => y[1] - x[1]).slice(0, 8).map(([code, n]) => [ISSUE_ZH[code] ?? code, n, OPAQUE_REVIEW.has(code) ? 'var(--wd-ink3)' : 'var(--dsw-alias-state-warn-primary)'])
+          parts.push(section(id === 'rules' ? t('wd.dFindings') : t('wd.dReviewWhy'), rows.length ? rankBars(rows) : h('p', { className: 'wd-desc', style: { margin: 0 } }, t('wd.dNone'))))
+        }
+        if (id === 'review' && reviewOpen > 0) {
+          parts.push(h('div', { className: 'wd-kv' },
+            h('div', {}, h('span', {}, t('wd.dJudge')), h('b', { style: { color: 'var(--dsw-alias-state-warn-primary)' } }, String(judgeOpen))),
+            h('div', {}, h('span', {}, t('wd.dBulk')), h('b', {}, String(Math.max(0, reviewOpen - judgeOpen))))))
+          parts.push(h('button', { className: 'ma-btn ma-primary', onClick: () => openCompare({ filter: 'review' }) }, `${t('ws.cmp.openReview', { count: reviewOpen })} →`))
+        }
+        if (id === 'repair' && rounds.length) parts.push(section(t('wd.dRounds'), rankBars(rounds.map(([r, n]) => [t('wd.dRound', { n: r }), n]))))
+        if (id === 'repair' || id === 'pack' || id === 'rescan') {
+          const fileRounds = {}
+          for (const f of files) fileRounds[f.rounds ?? 1] = (fileRounds[f.rounds ?? 1] ?? 0) + 1
+          if (id === 'repair') parts.push(section(t('wd.dFileRounds'), rankBars(Object.entries(fileRounds).sort((x, y) => x[0] - y[0]).map(([r, n]) => [t('wd.dRound', { n: r }), n]))))
+        }
+        if (id === 'pack' || id === 'deliver') {
+          parts.push(section(t('wd.dOutcome'), h(React.Fragment, {},
+            h('div', { className: 'wd-stack', style: { height: 10 } }, ['clean', 'review', 'failed'].map((key) => counts[key] ? h('i', { key, style: { flex: counts[key], background: key === 'clean' ? 'var(--dsw-alias-state-success-primary)' : key === 'review' ? 'var(--dsw-alias-state-warn-primary)' : 'var(--dsw-alias-state-error-primary)' } }) : null)),
+            h('div', { className: 'wd-lg' }, h('span', {}, t('file.clean'), h('b', {}, String(counts.clean))), h('span', {}, t('file.review'), h('b', {}, String(counts.review))), h('span', {}, t('file.failed'), h('b', {}, String(counts.failed)))))))
+        }
+        if (id === 'pack' || id === 'rescan') parts.push(section(t('wd.dFileTime'), histo(files.map((f) => (f.durationMs ?? 0) / 1000), { fmt: (v) => (v < 10 ? v.toFixed(1) : String(Math.round(v))), unit: 's' })))
+        if (id === 'rescan') parts.push(h('p', { className: 'wd-desc', style: { margin: 0 } }, t('wd.dChunks', { n: current?.chunks ?? 1, files: files.length })))
+        if (id === 'deliver') {
+          parts.push(h('p', { className: 'wd-desc', style: { margin: 0 } }, current?.withheld ? t('ws.withheld') : current?.output ? t('ws.delivered') : '—'))
+          if (current?.output || current?.runDir) parts.push(h('div', { className: 'wd-path' }, h('span', { title: current.output ?? current.runDir }, current.output ?? current.runDir), h('button', { className: 'ma-btn ma-small', onClick: copyPath }, copied ? t('detail.copied') : t('detail.copy'))))
+        }
+        if (id === 'blind') parts.push(crossCheckPanel())
+        // Slowest files at this step (by whole-file time), for model steps and packing.
+        if (['discover', 'blind', 'repair', 'pack'].includes(id) && files.length > 3) {
+          const slow = [...files].sort((x, y) => (y.durationMs ?? 0) - (x.durationMs ?? 0)).slice(0, 5)
+          parts.push(section(t('wd.dSlow'), h('div', { className: 'wd-ovr-list' }, slow.map((f) => h('div', { key: f.relPath, className: 'wd-ovr', style: { gridTemplateColumns: 'minmax(0,1fr) 54px' }, title: f.relPath },
+            h('span', {}, shortPath(f.relPath)), h('b', {}, `${((f.durationMs ?? 0) / 1000).toFixed(1)}s`))))))
+        }
         return h(React.Fragment, {},
           h('div', { className: 'wd-sh' },
             h('span', { className: 'wd-cap' }, `S${String(index + 1).padStart(2, '0')}`),
@@ -5696,22 +5916,25 @@ window.__ModuleLoader__.load({
             h('span', { className: `wd-chip ${st === 'active' ? 'wd-c-ok' : st === 'warn' ? 'wd-c-warn' : 'wd-c-info'}` }, t(`wd.state.${st}`)),
             h('small', {}, h('button', { type: 'button', className: 'ma-link', onClick: () => setStationSel(null) }, `← ${t('wd.backOverview')}`))),
           h('p', { className: 'wd-desc', style: { margin: 0 } }, row[0], h('br'), h('span', { style: { color: 'var(--wd-ink3)' } }, `→ ${row[1]}`)),
-          h('div', { className: 'wd-kv' },
-            h('div', {}, h('span', {}, t('wd.kPassed')), h('b', {}, current ? `${passedAt(index)}` : '—', h('small', { style: { fontSize: 10, color: 'var(--wd-ink3)' } }, ` / ${lineTotal || '—'}`))),
-            h('div', {}, h('span', {}, t('wd.kHere')), h('b', {}, String(load[id] ?? 0))),
-            h('div', {}, h('span', {}, t('wd.kQueue')), h('b', { style: note.queue >= 20 ? { color: 'var(--dsw-alias-state-warn-primary)' } : undefined }, String(note.queue ?? 0))),
-            stationLabels[id][0] !== `${passedAt(index)} / ${lineTotal || '—'}` ? h('div', {}, h('span', {}, t('wd.kNote')), h('b', { style: { fontSize: 12 } }, stationLabels[id][0])) : null),
-          id === 'discover' || id === 'repair' ? modelRow('detect') : null,
-          id === 'blind' ? modelRow(verifierName ? 'verify' : 'detect') : null,
-          id === 'blind' ? crossCheckPanel() : null,
-          id === 'review' && adviceRunId ? h('button', { className: 'ma-btn', onClick: () => openCompare({ filter: 'review' }) }, `${t('ws.cmp.openReview', { count: reviewOpen })} →`) : null,
-          id === 'deliver' && (current?.output || current?.runDir)
-            ? h('div', { className: 'wd-path' }, h('span', { title: current.output ?? current.runDir }, current.output ?? current.runDir), h('button', { className: 'ma-btn ma-small', onClick: copyPath }, copied ? t('detail.copied') : t('detail.copy')))
-            : null,
+          h('div', { className: 'wd-head2' },
+            (() => {
+              // Manual review: items decided out of all items; elsewhere files passed.
+              if (id === 'review') {
+                const all = (reviewData?.files ?? []).flatMap((file) => file.items)
+                const decided = all.filter((item) => item.decision).length
+                return all.length ? ring(decided / all.length, `${Math.round((decided / all.length) * 100)}%`, t('wd.decided', { n: decided, total: all.length })) : ring(1, '—', t('wd.dNone'))
+              }
+              return ring(lineTotal ? passed / lineTotal : 0, lineTotal ? `${Math.round((passed / lineTotal) * 100)}%` : '—', `${passed} / ${lineTotal || '—'}`)
+            })(),
+            h('div', { className: 'wd-kv', style: { flex: 1 } },
+              h('div', {}, h('span', {}, t('wd.kHere')), h('b', {}, String(load[id] ?? 0))),
+              h('div', {}, h('span', {}, t('wd.kQueue')), h('b', { style: note.queue >= 20 ? { color: 'var(--dsw-alias-state-warn-primary)' } : undefined }, String(note.queue ?? 0))),
+              id === 'discover' || id === 'repair' ? h('div', { style: { gridColumn: '1 / -1' } }, h('span', {}, t('ws.model')), h('b', { style: { fontSize: 12 } }, detectorName || '—')) : null,
+              id === 'blind' ? h('div', { style: { gridColumn: '1 / -1' } }, h('span', {}, t('ws.verifyModel')), h('b', { style: { fontSize: 12 } }, verifierName || detectorName || '—')) : null)),
+          ...parts.map((part, i) => h(React.Fragment, { key: i }, part)),
           here.length
-            ? h('div', { className: 'wd-ovr', style: { gridTemplateColumns: 'minmax(0,1fr) 40px' } }, here.slice(0, 12).flatMap((state) => [
-              h('span', { key: `f${state.file}`, title: state.file }, shortPath(state.file)),
-              h('i', { key: `r${state.file}` }, `R${state.round || 1}`)]))
+            ? section(`${t('wd.inflight')} · ${here.length}`, h('div', { className: 'wd-ovr-list' }, here.slice(0, 8).map((state) => h('div', { key: state.file, className: 'wd-ovr', style: { gridTemplateColumns: 'minmax(0,1fr) 40px 40px' }, title: state.file },
+              h('span', {}, shortPath(state.file)), h('i', {}, `R${state.round || 1}`), h('b', {}, `${Math.round(Math.min(1, Number(state.fraction) || 0) * 100)}%`)))))
             : null)
       }
 
@@ -5725,18 +5948,14 @@ window.__ModuleLoader__.load({
               h('h2', {}, h('button', { type: 'button', className: 'ws-brand-title', onClick: () => setModal('help'), title: t('ws.helpHint') },
                 t('ws.title'), h('span', { className: 'ws-brand-info', 'aria-hidden': 'true' }, 'i'))),
               h('span', {}, t('ws.subtitle'), config?.version ? h('em', { className: 'ws-version' }, `v${config.version}`) : null))),
-          h('div', { className: 'wd-act wd-runs-act' },
-          h('button', { type: 'button', className: `ws-status ws-s-${lineStatus} wd-switch`, onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false' },
+          h('div', { className: `ws-status ws-s-${lineStatus}` },
             h('span', { className: 'ws-lamp' }),
             h('div', {},
               h('b', {}, lineStatus === 'idle' ? t('ws.idle') : t(`status.${lineStatus}`)),
               h('span', { className: 'ma-mono' }, current?.id ?? '—'),
               current?.resumedFrom
                 ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
-                : (current?.source ? sourceLabel(current.source) : null)),
-            h('span', { className: 'wd-switch-n' }, `${runs.length} ▾`)),
-          runsOpen ? h('div', { className: 'wd-shade', onMouseDown: () => setRunsOpen(false) }) : null,
-          runsOpen ? runsPopover() : null),
+                : (current?.source ? sourceLabel(current.source) : null))),
           h('span', { className: 'wd-sp' }),
           h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           h('div', { className: 'wd-act' },
@@ -5745,7 +5964,7 @@ window.__ModuleLoader__.load({
               : h('button', { className: 'ma-btn wd-new', onClick: () => setNewOpen(!newOpen), disabled: anyRunning }, anyRunning ? t('ws.lineBusy') : `＋ ${t('wd.newRun')} ▾`),
             !running && newOpen ? h('div', { className: 'wd-shade', onMouseDown: () => setNewOpen(false) }) : null,
             !running && newOpen ? h('div', { className: 'wd-pop', role: 'dialog' },
-              h('div', { className: 'wd-roh' }, h('span', { className: 'wd-cap', style: { color: 'var(--wd-acc2)' } }, t('wd.newRunCap')), paramsBlock()),
+              h('div', { className: 'wd-roh' }, h('b', { style: { color: 'var(--wd-acc2)' } }, t('wd.newRun'))),
               h('label', { className: 'ma-field' }, t('form.input'),
                 pickedInputs.length > 0
                   ? h('div', { className: 'ws-picked', title: pickedInputs.join('\n') },
@@ -5767,8 +5986,11 @@ window.__ModuleLoader__.load({
                   busy ? t('form.starting') : `▶ ${t('form.start')}`),
                 current?.resumable && !anyRunning ? h('button', { className: 'ma-btn ws-resume', onClick: async () => { await resumeRun(); setNewOpen(false) }, disabled: busy, title: t('ws.resumeHint') }, `↻ ${t('ws.resume')}`) : null))
               : null),
-          h('button', { type: 'button', className: 'wd-icon', title: t('settings.title'), onClick: () => setModal('settings') }, '⚙'),
-          h('button', { type: 'button', className: 'wd-icon', title: t('ws.helpHint'), onClick: () => setModal('help') }, '?')),
+          h('div', { className: 'wd-act wd-runs-act' },
+            h('button', { type: 'button', className: 'ma-btn', onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false' }, `${t('runs.title')} ${runs.length}`),
+            runsOpen ? h('div', { className: 'wd-shade', onMouseDown: () => setRunsOpen(false) }) : null,
+            runsOpen ? runsPopover() : null),
+          h('button', { type: 'button', className: 'wd-icon', title: t('settings.title'), onClick: () => setModal('settings') }, '⚙')),
         error ? h('div', { className: 'ma-banner' }, `${t('error.title')}: ${error}`, h('button', { className: 'ma-link', style: { marginLeft: 8 }, onClick: () => setError('') }, '×')) : null,
         // ── Tabs ──
         h('nav', { className: 'wd-tabs', role: 'tablist' }, TABS.map(([id, label, count, hot]) => h('button', {
@@ -5779,7 +6001,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'wd-main' },
               h('section', { className: 'wd-stage' },
                 h('div', { className: 'wd-stage-head' },
-                  h('span', { className: 'wd-cap', style: { color: 'var(--dsw-alias-label-primary)' } }, `${t('ws.line')} · LINE`),
+                  h('b', { style: { fontSize: 12.5 } }, t('ws.line')),
                   h('span', { className: 'wd-legend' },
                     h('span', {}, h('i', { style: { background: 'var(--ws-accent)' } }), t('ws.kActive')),
                     h('span', {}, h('i', { style: { background: 'var(--dsw-alias-state-success-primary)' } }), t('ws.kDone')),
@@ -5809,19 +6031,19 @@ window.__ModuleLoader__.load({
                 stationSel
                   ? stationDetail(stationSel)
                   : h(React.Fragment, {},
-                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), h('span', { className: 'wd-cap' }, 'OVERVIEW'), h('small', {}, t('wd.clickStation'))),
-                    h('span', { className: 'wd-cap', style: { color: 'var(--dsw-alias-label-primary)' } }, `${t('wd.models')} · MODELS`),
+                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), h('small', {}, t('wd.clickStation'))),
+                    h('span', { className: 'wd-sub' }, t('wd.models')),
                     modelOverview(),
                     h('div', { className: 'wd-sep' }),
                     crossCheckPanel()))),
             h('section', { className: 'wd-bottom' },
               // Progress
               h('div', { className: 'wd-ro' },
-                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.progress')), running ? h('span', { className: 'wd-chip wd-c-ok' }, 'LIVE') : null),
+                h('div', { className: 'wd-roh' }, h('b', {}, t('wd.progress')), running ? h('span', { className: 'wd-chip wd-c-ok' }, t('wd.live')) : null),
                 h('div', { className: 'wd-big' },
-                  h('div', {}, h('span', {}, 'FILES'), h('b', {}, `${percent}`, h('small', {}, '%'))),
-                  h('div', {}, h('span', {}, 'RATE'), h('b', {}, (running ? recentRate : rate).toFixed(1), h('small', {}, t('wd.perMin')))),
-                  h('div', {}, h('span', {}, 'ETA'), h('b', { style: { color: 'var(--dsw-alias-label-secondary)' } }, etaMin === null ? '—' : fmtEta(etaMin), h('small', {}, etaMin !== null && etaMin >= 60 ? 'h' : etaMin !== null ? t('wd.min') : '')))),
+                  h('div', {}, h('span', {}, t('wd.bFiles')), h('b', {}, `${percent}`, h('small', {}, '%'))),
+                  h('div', {}, h('span', {}, t('wd.bRate')), h('b', {}, (running ? recentRate : rate).toFixed(1), h('small', {}, t('wd.perMin')))),
+                  h('div', {}, h('span', {}, t('wd.bEta')), h('b', { style: { color: 'var(--dsw-alias-label-secondary)' } }, etaMin === null ? '—' : fmtEta(etaMin), h('small', {}, etaMin !== null && etaMin >= 60 ? 'h' : etaMin !== null ? t('wd.min') : '')))),
                 h('div', { className: 'wd-line' },
                   h('b', {}, `${done} / ${planned || '—'}`), ` ${t('ws.unitFiles')}`,
                   plannedBytes ? h(React.Fragment, {}, ' · ', h('b', {}, `${fmtBytes(Math.min(processedBytes, plannedBytes))} / ${fmtBytes(plannedBytes)}`)) : null),
@@ -5830,9 +6052,9 @@ window.__ModuleLoader__.load({
               h('div', { className: 'wd-ro' },
                 h('div', { className: 'wd-roh' }, h('b', {}, t('wd.results')), current?.withheld ? h('span', { className: 'wd-chip wd-c-warn', title: t('ws.withheld') }, t('ws.withheldTag')) : null),
                 h('div', { className: 'wd-big' },
-                  h('div', { title: t('ws.m.distinctHint') }, h('span', {}, 'IDENTIFIERS'), h('b', {}, compact(totals.distinctIds ?? totals.newMappings ?? 0))),
-                  h('div', { title: t('ws.m.entitiesHint') }, h('span', {}, 'REPLACED'), h('b', {}, compact(totals.entities ?? 0))),
-                  h('div', {}, h('span', {}, 'FAILED'), h('b', { style: { color: (totals.filesFailed ?? 0) > 0 ? 'var(--wd-crit)' : 'var(--dsw-alias-label-secondary)' } }, String(totals.filesFailed ?? 0)))),
+                  h('div', { title: t('ws.m.distinctHint') }, h('span', {}, t('wd.bIds')), h('b', {}, compact(totals.distinctIds ?? totals.newMappings ?? 0))),
+                  h('div', { title: t('ws.m.entitiesHint') }, h('span', {}, t('wd.bReplaced')), h('b', {}, compact(totals.entities ?? 0))),
+                  h('div', {}, h('span', {}, t('wd.bFailed')), h('b', { style: { color: (totals.filesFailed ?? 0) > 0 ? 'var(--wd-crit)' : 'var(--dsw-alias-label-secondary)' } }, String(totals.filesFailed ?? 0)))),
                 h('div', { className: 'wd-stack' }, ['clean', 'review', 'failed'].map((key) => counts[key] > 0
                   ? h('i', { key, style: { flex: counts[key], background: key === 'clean' ? 'var(--dsw-alias-state-success-primary)' : key === 'review' ? 'var(--dsw-alias-state-warn-primary)' : 'var(--dsw-alias-state-error-primary)' } })
                   : null)),
