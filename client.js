@@ -2615,7 +2615,7 @@ window.__ModuleLoader__.load({
       .wd-strip .ws-piece.ws-p-review{background:var(--dsw-alias-state-warn-primary)}
       .wd-strip .ws-piece.ws-p-failed,.wd-strip .ws-piece.ws-p-cancelled{background:var(--dsw-alias-state-error-primary)}
       .wd-strip .ws-piece.ws-p-running{background:var(--ws-accent);box-shadow:0 0 6px var(--ws-accent)}
-      .wd-side{min-height:0;overflow:auto;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);padding:10px 10px 12px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin}
+      .wd-side{min-height:0;overflow:auto;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);padding:10px 10px 12px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin}
       .wd-side>.ws-panel{border:0;padding:0;background:none;gap:5px}
       .wd-side .ws-busy{flex:none;height:58px;margin-top:2px}
       .wd-side .ws-panel-head{display:none}
@@ -2624,7 +2624,7 @@ window.__ModuleLoader__.load({
       .wd-sh small{margin-left:auto;font-size:11px;color:var(--wd-ink3)}
       .wd-sep{height:1px;background:var(--dsw-alias-border-l1)}
       .wd-en{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;font-weight:500;letter-spacing:1.5px;color:var(--wd-ink3);margin-left:8px;text-transform:uppercase}
-      .wd-blk{display:flex;flex-direction:column;gap:6px;margin-top:4px;padding:0 10px 10px;border:1px solid color-mix(in srgb,var(--ws-accent) 22%,var(--dsw-alias-border-l1));border-radius:7px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden}
+      .wd-blk{flex:none;display:flex;flex-direction:column;gap:6px;margin-top:0;padding:0 10px 10px;border:1px solid color-mix(in srgb,var(--ws-accent) 22%,var(--dsw-alias-border-l1));border-radius:7px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden}
       .ws-dark .wd-blk{background:var(--dsw-alias-bg-layer-2);box-shadow:none}
       .wd-blk-h{display:flex;align-items:baseline;font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary);margin:0 -10px 2px;padding:7px 10px;border-left:3px solid var(--ws-accent);border-bottom:1px solid color-mix(in srgb,var(--ws-accent) 18%,transparent);background:color-mix(in srgb,var(--ws-accent) 13%,transparent);line-height:14px}
       .wd-blk-h .wd-en{margin-left:6px}
