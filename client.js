@@ -2594,7 +2594,7 @@ window.__ModuleLoader__.load({
       .wd-new:disabled{background:transparent!important;color:var(--dsw-alias-label-secondary)!important;border-color:var(--dsw-alias-border-l2)!important;font-weight:400}
       .wd-act .ma-btn,.wd-hicon{height:34px;border-radius:7px;border-width:1px}
       .wd-act .ma-btn{display:inline-flex;align-items:center;gap:6px;padding:0 14px}
-      .wd-act .ma-btn.wd-hbtn{padding:0 9px 0 11px;gap:4px}
+      .wd-act .ma-btn.wd-hbtn{padding:0 10px 0 11px;gap:5px}
       .wd-hbtn{background:var(--dsw-alias-bg-layer-1)!important;border-color:var(--dsw-alias-border-l2)!important;color:var(--dsw-alias-label-primary)!important}
       .wd-hbtn:hover,.wd-hbtn[aria-expanded="true"]{border-color:var(--ws-accent)!important;color:var(--ws-accent)!important}
       .wd-hicon{width:34px;background:var(--dsw-alias-bg-layer-1);border-color:var(--dsw-alias-border-l2);font-size:15px;color:var(--dsw-alias-label-secondary)}
@@ -6263,7 +6263,7 @@ window.__ModuleLoader__.load({
                 current?.resumable && !anyRunning ? h('button', { className: 'ma-btn ws-resume', onClick: async () => { await resumeRun(); setNewOpen(false) }, disabled: busy, title: t('ws.resumeHint') }, `↻ ${t('ws.resume')}`) : null))
               : null),
           h('div', { className: 'wd-act wd-runs-act' },
-            h('button', { type: 'button', className: 'ma-btn wd-hbtn', onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false', 'aria-label': t('runs.title') }, t('wd.runsShort'), runs.length ? h('i', { className: 'wd-hcount' }, String(runs.length)) : null, h('span', { className: 'wd-caret' }, '▾')),
+            h('button', { type: 'button', className: 'ma-btn wd-hbtn', onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false', 'aria-label': t('runs.title') }, t('wd.runsShort'), runs.length ? h('i', { className: 'wd-hcount' }, String(runs.length)) : null),
             runsOpen ? h('div', { className: 'wd-shade', onMouseDown: () => setRunsOpen(false) }) : null,
             runsOpen ? runsPopover() : null),
           h('button', { type: 'button', className: 'wd-icon wd-hicon', title: t('settings.title'), 'aria-label': t('settings.title'), onClick: () => setModal('settings') }, '⚙')),
