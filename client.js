@@ -277,6 +277,7 @@ window.__ModuleLoader__.load({
       'wd.strip': '文件带 · 每格 1 个文件',
       'wd.stripGroup': '文件带 · 每格约 {n} 个文件',
       'wd.overview': '批次概览',
+      'wd.version': '版本',
       'wd.runsShort': '记录',
       'wd.pctEta': '完成 · 约 {eta}{unit}',
       'wd.peakAt': '峰值 {pct}%',
@@ -1106,6 +1107,7 @@ window.__ModuleLoader__.load({
       'wd.strip': 'Files · one cell per file',
       'wd.stripGroup': 'Files · about {n} per cell',
       'wd.overview': 'Batch overview',
+      'wd.version': 'Version',
       'wd.runsShort': 'Batches',
       'wd.pctEta': 'done · ~{eta}{unit} left',
       'wd.peakAt': 'peak {pct}%',
@@ -1871,6 +1873,8 @@ window.__ModuleLoader__.load({
       .ws-clock{display:flex;flex-direction:column;align-items:flex-end;line-height:16px;padding:0 4px}
       .ws-clock span{font-size:10px;color:var(--dsw-alias-label-secondary);letter-spacing:1px}
       .ws-clock b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:18px;font-weight:600;letter-spacing:1px;line-height:22px}
+      .ws-clock.wd-ver{padding-right:14px;margin-right:6px;border-right:1px solid var(--dsw-alias-border-l1)}
+      .ws-clock.wd-ver b{font-size:12.5px;font-weight:500;letter-spacing:0;color:var(--dsw-alias-label-secondary)}
       .ws-clock.wd-pct{padding-right:14px;margin-right:6px;border-right:1px solid var(--dsw-alias-border-l1)}
       .ws-clock.wd-pct b{color:var(--ws-accent)}
       .ws-clock.wd-pct small{font-size:11px;font-weight:400;margin-left:1px;color:var(--dsw-alias-label-secondary)}
@@ -6247,7 +6251,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'ws-brand' },
             h('span', { className: 'ws-brand-mark' }, h(AnonymizerIcon, { size: 18 })),
             h('div', {},
-              h('h2', {}, t('ws.title'), config?.version ? h('em', { className: 'ws-version' }, `v${config.version}`) : null),
+              h('h2', {}, t('ws.title')),
               h('span', {}, t('ws.subtitle')))),
           h('div', { className: `ws-status ws-s-${lineStatus}` },
             h('span', { className: 'ws-lamp' }),
@@ -6258,6 +6262,8 @@ window.__ModuleLoader__.load({
                 ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
                 : (current?.source ? sourceLabel(current.source) : null))),
           h('span', { className: 'wd-sp' }),
+          // Plugin version, then completion and the clock: a row of readouts.
+          config?.version ? h('div', { className: 'ws-clock wd-ver' }, h('span', {}, t('wd.version')), h('b', {}, `v${config.version}`)) : null,
           // Completion beside the clock: visible on every tab.
           current ? h('div', { className: 'ws-clock wd-pct', title: `${done} / ${planned || '—'} ${t('ws.unitFiles')}` },
             h('span', {}, running && etaMin !== null ? t('wd.pctEta', { eta: fmtEta(etaMin), unit: etaMin >= 60 ? 'h' : t('wd.min') }) : t('wd.bFiles')),
