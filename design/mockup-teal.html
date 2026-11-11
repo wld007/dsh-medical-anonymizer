@@ -51,7 +51,7 @@
   .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: 0; }
   .strip { position: absolute; left: 14px; right: 14px; bottom: 10px; }
   .ov { position: absolute; border: 1px solid var(--line2); background: rgba(10,22,27,.82); backdrop-filter: blur(4px); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
-  .ov-tl { right: 14px; top: 38px; width: 390px; }
+  .ov-tl { left: 14px; bottom: 44px; width: 390px; }
   .ov-br { right: 14px; top: 38px; width: 340px; border-color: rgba(245,165,36,.45); }
   .ovh { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; white-space: nowrap; }
   .ovh .btn { white-space: nowrap; }
@@ -167,11 +167,12 @@
       <div class="mtab">
         <span></span><b class="h">识别 <i style="background:var(--amber)"></i></b><b class="h">核验 <i style="background:var(--blue)"></i></b>
         <span>模型</span><b class="m">qwen3.6-35b</b><b class="m">gemma-4-26b</b>
-        <span class="z">并发 · 排队</span><b class="z">4/4 · +12</b><b class="z">3/4 · +146</b>
-        <span>调用</span><b>11.3k</b><b>15.9k</b>
-        <span class="z">失败</span><b class="z">0.3% <small>↻291</small></b><b class="z" style="color:var(--warn)">3.1% <small>↻1095</small></b>
-        <span>每次</span><b>3.7s · 101 tok</b><b>3.5s · 120 tok</b>
-        <span class="z">上下文 均/最大</span><b class="z">1.1k / 5.6k</b><b class="z">2.7k / 9.1k</b>
+        <span class="z">并发 <small style="color:var(--amber2)">自动</small></span><b class="z">12 <small style="color:var(--ok)">↑ 满载</small></b><b class="z">8 <small style="color:var(--warn)">↓ 服务器排队</small></b>
+        <span>吞吐 次/分</span><b>64</b><b>71</b>
+        <span class="z">调用</span><b class="z">11.3k</b><b class="z">15.9k</b>
+        <span>失败</span><b>0.3% <small>↻291</small></b><b style="color:var(--warn)">3.1% <small>↻1095</small></b>
+        <span class="z">每次</span><b class="z">3.7s · 101 tok</b><b class="z">3.5s · 120 tok</b>
+        <span>上下文 均/最大</span><b>1.1k / 5.6k</b><b>2.7k / 9.1k</b>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink2)"><span>Token <b class="num" style="color:var(--ink)">53.9M</b></span><span>复用 <b class="num" style="color:var(--ink)">40</b></span><span>发送 1% · 免送 99%</span></div>
       <div class="dh"><span class="cap">请求占用 · 60 MIN</span><span class="sp"></span><span class="num" style="font-size:10.5px;color:var(--ink3)">上：进行 · 下：排队</span></div>
@@ -208,11 +209,11 @@
       <div style="display:flex;gap:12px;font-size:11.5px;color:var(--ink2);white-space:nowrap"><span>通过 <b class="num" style="color:var(--ink)">5952</b></span><span>待复核 <b class="num" style="color:var(--warn)">155</b></span><span style="margin-left:auto;color:var(--ink3)">病历号 29% · 医院 20% · 医生 13%</span></div>
     </div>
     <div class="bp">
-      <div class="bh"><span class="cap" style="color:var(--ink)">资源</span><span class="num" style="font-size:11px;color:var(--ink3)">本机</span></div>
-      <div class="bar" style="grid-template-columns:54px 1fr 92px"><span>堆内存</span><div class="track"><div class="ticks" style="--w:73%;--fill:var(--warn)"></div></div><span class="num">3.0 / 4.1G</span></div>
-      <div class="bar" style="grid-template-columns:54px 1fr 92px"><span>磁盘</span><div class="track"><div class="ticks" style="--w:96%;--fill:var(--bad)"></div></div><span class="num" style="color:#ff9797">剩 17G</span></div>
-      <div class="bar" style="grid-template-columns:54px 1fr 92px"><span>进程</span><div class="track"><div class="ticks" style="--w:52%"></div></div><span class="num">4.5G RSS</span></div>
-      <div style="display:flex;gap:14px;font-size:11px;color:var(--ink3)"><span>记录 <b class="num" style="color:var(--ink2)">1.1G</b></span><span>临时解压 <b class="num" style="color:var(--ink2)">0.3G</b></span><span>峰值内存 <b class="num" style="color:var(--ink2)">3.2G</b></span></div>
+      <div class="bh"><span class="cap" style="color:var(--ink)">资源</span><span class="num" style="font-size:11px;color:var(--ink3)">本机 · 推理服务器</span></div>
+      <div class="bar" style="grid-template-columns:62px 1fr 96px"><span>堆内存</span><div class="track"><div class="ticks" style="--w:73%;--fill:var(--warn)"></div></div><span class="num">3.0 / 4.1G</span></div>
+      <div class="bar" style="grid-template-columns:62px 1fr 96px"><span>磁盘</span><div class="track"><div class="ticks" style="--w:96%;--fill:var(--bad)"></div></div><span class="num" style="color:#ff9797">剩 17G</span></div>
+      <div class="bar" style="grid-template-columns:62px 1fr 96px"><span>识别 KV</span><div class="track"><div class="ticks" style="--w:58%"></div></div><span class="num">58% · 排 0</span></div>
+      <div class="bar" style="grid-template-columns:62px 1fr 96px"><span>核验 KV</span><div class="track"><div class="ticks" style="--w:93%;--fill:var(--warn)"></div></div><span class="num" style="color:var(--warn)">93% · 排 6</span></div>
     </div>
     <div class="bp">
       <div class="bh"><span class="cap" style="color:var(--ink)">待办 · 告警</span><span class="num" style="font-size:11px;color:var(--ink3)">2</span></div>
