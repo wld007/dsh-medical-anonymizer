@@ -606,6 +606,33 @@ window.__ModuleLoader__.load({
       'ws.pv.skipped': '另有 {n} 项不是可显示的图片（或超过 4 MB）',
       'ws.cmp.mode.opaque': '图片等',
       'ws.rv.opaqueUnlocated': '无法检查的内容（图片等）· 表格中定位不到的 {n} 项',
+      'rules.imageCheck': '用模型识别「无法检查的内容」里的图片（签名、印章、图表等）',
+      'rules.imageCheckHint': '开启后，复核页可以把待复核的图片发给识别模型，判断类别、读出图中文字，并给出移除或保留的建议；不会自动处理。图片会发送到你配置的模型端点，需要模型支持图片输入。',
+      'ws.vis.run': '用模型识别 {n} 项图片',
+      'ws.vis.runRest': '识别其余 {n} 项图片',
+      'ws.vis.runHint': '把图片发给识别模型，判断类别并给出建议（相同图片只发一次）',
+      'ws.vis.offHint': '未开启：设置 → 匿名化规则 → 用模型识别图片',
+      'ws.vis.busyHint': '有批次正在运行，模型被占用',
+      'ws.vis.running': '模型识别中 {done} / {total}',
+      'ws.vis.removeSuggested': '移除建议移除的（{n}）',
+      'ws.vis.keepSuggested': '保留建议保留的（{n}）',
+      'ws.vis.removeHint': '模型判断为签名、印章、人脸、证件，或图中文字含身份信息的图片',
+      'ws.vis.keepHint': '模型判断为图表、徽标、空白或检查图像，且图中文字不含身份信息；保留前建议看一眼缩略图',
+      'ws.vis.failed': '识别失败',
+      'ws.vis.rules': '图中文字含：{types}',
+      'ws.vis.s.remove': '建议移除',
+      'ws.vis.s.keep': '建议保留',
+      'ws.vis.s.unknown': '需人工判断',
+      'ws.vis.cat.signature': '手写签名',
+      'ws.vis.cat.seal': '印章',
+      'ws.vis.cat.face': '人脸 / 证件照',
+      'ws.vis.cat.id_document': '证件',
+      'ws.vis.cat.scanned_text': '扫描文字',
+      'ws.vis.cat.medical_image': '检查图像',
+      'ws.vis.cat.chart': '图表',
+      'ws.vis.cat.logo': '徽标',
+      'ws.vis.cat.blank': '空白',
+      'ws.vis.cat.other': '其他',
       'ws.cmp.mode.all': '全部',
       'ws.cmp.mode.changed': '只看改动',
       'ws.cmp.mode.judge': '待判断',
@@ -1457,6 +1484,33 @@ window.__ModuleLoader__.load({
       'ws.pv.skipped': '{n} more not drawable as an image (or larger than 4 MB)',
       'ws.cmp.mode.opaque': 'Images',
       'ws.rv.opaqueUnlocated': 'Content that cannot be checked (images …) · {n} not found in the table',
+      'rules.imageCheck': 'Let the model read images in content that cannot be checked (signatures, seals, charts …)',
+      'rules.imageCheckHint': 'When on, the review page can send images under review to the detection model, which sorts them, reads their text and suggests remove or keep; nothing is decided automatically. Images are sent to your configured model endpoint; the model must accept images.',
+      'ws.vis.run': 'Read {n} images with the model',
+      'ws.vis.runRest': 'Read the other {n} images',
+      'ws.vis.runHint': 'Send the images to the detection model for a category and a suggestion (identical images are sent once)',
+      'ws.vis.offHint': 'Off: Settings → Anonymization rules → read images with the model',
+      'ws.vis.busyHint': 'A batch is running; the model is busy',
+      'ws.vis.running': 'Model reading {done} / {total}',
+      'ws.vis.removeSuggested': 'Remove suggested ({n})',
+      'ws.vis.keepSuggested': 'Keep suggested ({n})',
+      'ws.vis.removeHint': 'Signatures, seals, faces, ID documents, or images whose text holds identifiers',
+      'ws.vis.keepHint': 'Charts, logos, blank or medical images whose text holds no identifiers; glance at the thumbnails first',
+      'ws.vis.failed': 'Not read',
+      'ws.vis.rules': 'Text in the image holds: {types}',
+      'ws.vis.s.remove': 'remove',
+      'ws.vis.s.keep': 'keep',
+      'ws.vis.s.unknown': 'needs a person',
+      'ws.vis.cat.signature': 'Signature',
+      'ws.vis.cat.seal': 'Seal',
+      'ws.vis.cat.face': 'Face / photo',
+      'ws.vis.cat.id_document': 'ID document',
+      'ws.vis.cat.scanned_text': 'Scanned text',
+      'ws.vis.cat.medical_image': 'Medical image',
+      'ws.vis.cat.chart': 'Chart',
+      'ws.vis.cat.logo': 'Logo',
+      'ws.vis.cat.blank': 'Blank',
+      'ws.vis.cat.other': 'Other',
       'ws.cmp.mode.all': 'All',
       'ws.cmp.mode.changed': 'Changes',
       'ws.cmp.mode.judge': 'To judge',
@@ -2506,6 +2560,14 @@ window.__ModuleLoader__.load({
       .ws-rv-inline.ws-rv-inline-op{flex-direction:column;align-items:flex-start;gap:6px;border-left-color:var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 7%,transparent);margin-top:0}
       .ws-rv-op-meta{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
       .ws-rv-op-kind{color:var(--dsw-alias-label-primary)}
+      .ws-vis{font-size:10.5px;line-height:17px;padding:0 6px;border-radius:4px;white-space:nowrap;border:1px solid transparent}
+      .ws-vis-remove{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 9%,transparent);border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 30%,transparent)}
+      .ws-vis-keep{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 9%,transparent);border-color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 30%,transparent)}
+      .ws-vis-unknown,.ws-vis-err{color:var(--dsw-alias-label-secondary);background:color-mix(in srgb,var(--dsw-alias-label-primary) 6%,transparent)}
+      .ws-vis-row{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
+      .ws-vis-row .ma-btn{display:inline-flex;align-items:center;gap:4px;align-self:flex-start}
+      .ws-vis-sum{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .ma-warn-text{color:var(--dsw-alias-state-warn-primary)!important}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -3105,6 +3167,7 @@ window.__ModuleLoader__.load({
       const [skipText, setSkipText] = React.useState('')
       const [forceText, setForceText] = React.useState('')
       const [opaquePolicy, setOpaquePolicy] = React.useState('review')
+      const [imageCheckOn, setImageCheckOn] = React.useState(false)
       const [testing, setTesting] = React.useState(false)
       const [ping, setPing] = React.useState(null)
       const [saving, setSaving] = React.useState(false)
@@ -3143,6 +3206,7 @@ window.__ModuleLoader__.load({
         setForceText((info.forceValues ?? []).join('\n'))
         setSkipText((info.skipFields ?? []).join('\n'))
         setOpaquePolicy(info.opaquePolicy === 'remove' ? 'remove' : 'review')
+        setImageCheckOn(info.imageCheck === true)
       }
       const lines = (text) => [...new Set(String(text ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean))]
       const sameList = (text, list) => JSON.stringify(lines(text)) === JSON.stringify(list ?? [])
@@ -3157,6 +3221,7 @@ window.__ModuleLoader__.load({
         setSkipText('')
         setForceText('')
         setOpaquePolicy('review')
+        setImageCheckOn(false)
       }
 
       React.useEffect(() => {
@@ -3185,7 +3250,8 @@ window.__ModuleLoader__.load({
         ['rules', !sameMap(identifierPolicy, config.identifierPolicy) || quasiOn !== (config.quasiIdentifiers === true)
           || !sameMap(quasiPolicy, config.quasiPolicy)
           || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields) || !sameList(forceText, config.forceValues)
-          || opaquePolicy !== (config.opaquePolicy === 'remove' ? 'remove' : 'review')],
+          || opaquePolicy !== (config.opaquePolicy === 'remove' ? 'remove' : 'review')
+          || imageCheckOn !== (config.imageCheck === true)],
       ].filter(([, changed]) => changed).map(([key]) => key) : []
 
       // Tests and model listings only use a saved key against the endpoint it
@@ -3243,6 +3309,7 @@ window.__ModuleLoader__.load({
             skipFields: lines(skipText),
             forceValues: lines(forceText),
             opaquePolicy,
+            imageCheck: imageCheckOn,
           }
           if (apiKey.length > 0) request.apiKey = apiKey
           else if (clearKey) request.apiKey = ''
@@ -3482,6 +3549,10 @@ window.__ModuleLoader__.load({
             h('select', { className: 'ma-input', value: opaquePolicy, onChange: (event) => setOpaquePolicy(event.target.value) },
               h('option', { value: 'review' }, t('rules.opaqueReview')),
               h('option', { value: 'remove' }, t('rules.opaqueRemove')))),
+          h('label', { className: 'ma-check' },
+            h('input', { type: 'checkbox', checked: imageCheckOn, onChange: (event) => setImageCheckOn(event.target.checked) }),
+            t('rules.imageCheck')),
+          h('p', { className: `ma-hint${imageCheckOn ? ' ma-warn-text' : ''}` }, t('rules.imageCheckHint')),
         ),
       )
 
@@ -4651,6 +4722,20 @@ window.__ModuleLoader__.load({
         loadReview(adviceRunId)
       }, [adviceRunId, current?.status, recordsRetry])
       const reviewData = adviceRunId ? reviewByRun[adviceRunId] : undefined
+      // Image check by the model: refresh the items while it runs.
+      const imageJob = reviewData?.imageCheck ?? null
+      React.useEffect(() => {
+        if (!adviceRunId || imageJob?.state !== 'running') return undefined
+        const timer = setTimeout(() => loadReview(adviceRunId), 1500)
+        return () => clearTimeout(timer)
+      }, [adviceRunId, imageJob?.state, imageJob?.done, reviewData])
+      async function startImageCheck() {
+        setReviewNote(null)
+        try {
+          await call('imageCheck', { runId: adviceRunId })
+          await loadReview(adviceRunId)
+        } catch (cause) { setReviewNote({ ok: false, text: message(cause) }) }
+      }
       const reviewOpen = (reviewData?.files ?? []).reduce((sum, file) => sum + file.items.filter((item) => !item.decision).length, 0)
 
       // Side-by-side comparison: file list per batch, one file's changes.
@@ -5360,9 +5445,10 @@ window.__ModuleLoader__.load({
         }, `${label} ↗`)
       }
 
-      async function bulkReview(action, files = reviewData?.files ?? []) {
+      // `pick` narrows the items (e.g. only those the model suggests removing).
+      async function bulkReview(action, files = reviewData?.files ?? [], pick = null) {
         const ids = files.flatMap((file) => file.items)
-          .filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code) && (action === 'accept' || item.code === 'opaque'))
+          .filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code) && (action === 'accept' || item.code === 'opaque') && (!pick || pick(item)))
           .map((item) => item.id)
         if (ids.length === 0) return
         setReviewBusy('bulk')
@@ -5415,19 +5501,26 @@ window.__ModuleLoader__.load({
         h('div', { className: 'ws-rv-meta' },
           h('span', { className: 'ws-rv-code' }, codeLabel(item)),
           item.type ? h('b', {}, item.type) : null,
-          item.field ? h('span', { className: 'ma-mono' }, item.field) : null),
+          item.field ? h('span', { className: 'ma-mono' }, item.field) : null,
+          visionChip(item)),
         item.text
           ? h('div', { className: 'ws-rv-ctx' }, item.before, h('mark', {}, item.text), item.after)
           : h('div', { className: 'ws-rv-ctx ws-rv-plain' }, item.detail),
         item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove' }) : null,
         reviewActions(file, item))
+      // The model's reading of an image under review: category and suggestion.
+      const visionChip = (item) => (item.vision
+        ? h('span', { className: `ws-vis ws-vis-${item.vision.error ? 'err' : item.vision.suggestion}`, title: item.vision.error ? item.vision.error : `${item.vision.reason ?? ''}${item.vision.ruleTypes?.length ? `\n${t('ws.vis.rules', { types: item.vision.ruleTypes.join('、') })}` : ''}` },
+          item.vision.error ? t('ws.vis.failed') : `${t(`ws.vis.cat.${item.vision.category}`)} · ${t(`ws.vis.s.${item.vision.suggestion}`)}`)
+        : null)
       // In the comparison: an image (or other unreadable content) under the
       // row of the record that embeds it, with its thumbnail and decision.
       const opaqueInline = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-inline ws-rv-inline-op${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
         h('div', { className: 'ws-rv-op-meta' },
           h('span', { className: 'ws-rv-code ws-rv-code-op' }, codeLabel(item)),
           h('span', { className: 'ws-rv-op-kind' }, item.kind ?? item.detail ?? ''),
-          item.field ? h('span', { className: 'ma-mono' }, item.field) : null),
+          item.field ? h('span', { className: 'ma-mono' }, item.field) : null,
+          visionChip(item)),
         item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove' }) : h('div', { className: 'ws-pv-note' }, item.detail),
         reviewActions(file, item))
       // In the comparison: one line per item right under the row holding it.
@@ -5711,8 +5804,33 @@ window.__ModuleLoader__.load({
               const pending = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code))
               if (pending.length === 0) return null
               const removable = pending.filter((item) => item.code === 'opaque').length
+              const images = pending.filter((item) => item.image && item.baseId)
+              const seen = images.filter((item) => item.vision && !item.vision.error)
+              const suggestRemove = pending.filter((item) => item.code === 'opaque' && item.vision?.suggestion === 'remove')
+              const suggestKeep = pending.filter((item) => item.vision?.suggestion === 'keep')
+              const visionOn = config?.imageCheck === true
+              const checking = imageJob?.state === 'running'
+              const visionRow = images.length === 0 ? null
+                : checking ? h('div', { className: 'ws-vis-row' }, h('span', {}, t('ws.vis.running', { done: imageJob.done, total: imageJob.total })), h('div', { className: 'wd-fl-bar' }, h('i', { style: { width: `${imageJob.total ? Math.round((imageJob.done / imageJob.total) * 100) : 0}%` } })))
+                  : seen.length < images.length
+                    ? h('div', { className: 'ws-vis-row' },
+                      h('button', { className: 'ma-btn ma-small', disabled: !visionOn || anyRunning || reviewBusy !== null, title: !visionOn ? t('ws.vis.offHint') : anyRunning ? t('ws.vis.busyHint') : t('ws.vis.runHint'), onClick: startImageCheck },
+                        imageGlyph(), ` ${seen.length ? t('ws.vis.runRest', { n: images.length - seen.length }) : t('ws.vis.run', { n: images.length })}`),
+                      imageJob?.state === 'failed' ? h('span', { className: 'ma-hint ma-error' }, imageJob.error) : null)
+                    : null
+              const summary = seen.length
+                ? h('div', { className: 'ws-vis-sum' },
+                  Object.entries(seen.reduce((map, item) => ({ ...map, [item.vision.category]: (map[item.vision.category] ?? 0) + 1 }), {}))
+                    .sort((x, y) => y[1] - x[1])
+                    .map(([category, count]) => h('span', { key: category }, `${t(`ws.vis.cat.${category}`)} ${count}`)))
+                : null
               return h('div', { className: 'ws-cmp-bulk', title: t('ws.rv.bulkHint') },
                 h('span', {}, t('ws.rv.bulkTitle', { count: pending.length })),
+                visionRow,
+                summary,
+                suggestRemove.length || suggestKeep.length ? h('div', { className: 'ma-actions' },
+                  suggestRemove.length ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null, title: t('ws.vis.removeHint'), onClick: () => bulkReview('remove', undefined, (item) => item.vision?.suggestion === 'remove') }, t('ws.vis.removeSuggested', { n: suggestRemove.length })) : null,
+                  suggestKeep.length ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.vis.keepHint'), onClick: () => bulkReview('accept', undefined, (item) => item.vision?.suggestion === 'keep') }, t('ws.vis.keepSuggested', { n: suggestKeep.length })) : null) : null,
                 h('div', { className: 'ma-actions' },
                   removable ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null, onClick: () => bulkReview('remove') }, reviewBusy === 'bulk' ? t('save.saving') : t('ws.rv.bulkRemove', { count: removable })) : null,
                   h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, onClick: () => bulkReview('accept') }, t('ws.rv.bulkKeep'))))

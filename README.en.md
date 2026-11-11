@@ -66,7 +66,8 @@ Used in development and testing: `qwen3.6-35b-a3b` (detection) and `gemma-4-26b-
   concurrency, cross-check), and to-dos and alerts top-right.
 - **Review**: original and result side by side, file by file (originals red, pseudonyms green, suspects orange);
   decide replace / not an identifier / keep right there, revert a false positive with a click, or select missed text to
-  replace it.
+  replace it. Embedded images show as thumbnails; optionally a vision model sorts them (signature, seal, chart …) and
+  suggests remove or keep, to be applied in bulk.
 - **Report**: rendered Markdown with an outline; further tabs for files, model calls, cross-check, log, notices, and
   improvement suggestions.
 
@@ -96,7 +97,7 @@ output root once they are decided.
 
 ## Privacy and security
 
-- The only outbound requests go to the model endpoint you configure; a remote endpoint means the text leaves this machine.
+- The only outbound requests go to the model endpoint you configure; a remote endpoint means the text leaves this machine. With "read images with the model" on, images under review (mostly signatures and seals) are also sent there when you start a reading on the review page.
 - Reports hold no original values but do hold paths; treat reports and the vault as protected health information.
 - Dates, ages, and sex are not processed by default and can still re-identify people in combination; `mask` and `keep`
   leave part or all of a value in the output.

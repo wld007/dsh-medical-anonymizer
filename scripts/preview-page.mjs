@@ -81,6 +81,7 @@ const handlers = {
   compareList: (p) => service.compareList(p.runId),
   compareFile: (p) => service.compareFile(p.runId, p.n),
   opaquePreview: (p) => service.opaquePreview(p.runId, p.itemId),
+  imageCheck: (p) => service.imageCheck(p.runId, { only: p.itemIds ?? null }),
 }
 
 http.createServer(async (req, res) => {
