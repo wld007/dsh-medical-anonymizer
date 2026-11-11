@@ -590,6 +590,7 @@ window.__ModuleLoader__.load({
       'ws.blindSame': '⚠ 与识别模型相同',
       'ws.blindSameHint': '核验模型与识别模型同为 {model}，盲区相同，独立性有限。点击打开设置。',
       'ws.cmp.only': '只看改动',
+      'ws.cmp.noHint': '段号：这一段在文件中的位置（文本文件即行号）',
       'ws.cmp.mode.all': '全部',
       'ws.cmp.mode.changed': '只看改动',
       'ws.cmp.mode.judge': '待判断',
@@ -1425,6 +1426,7 @@ window.__ModuleLoader__.load({
       'ws.blindSame': '⚠ Same as detector',
       'ws.blindSameHint': 'Verification and detection both use {model}: same blind spots, limited independence. Click to open settings.',
       'ws.cmp.only': 'Changes only',
+      'ws.cmp.noHint': 'Segment number: its place in the file (the line number for text files)',
       'ws.cmp.mode.all': 'All',
       'ws.cmp.mode.changed': 'Changes',
       'ws.cmp.mode.judge': 'To judge',
@@ -2407,10 +2409,12 @@ window.__ModuleLoader__.load({
       .ws-cmp-review{display:flex;flex-direction:column;border:1px solid var(--dsw-alias-state-warn-primary);border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-base)}
       .ws-cmp-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}
       .ws-cmp-table th{position:sticky;top:-10px;z-index:1;text-align:left;font-weight:600;font-size:11.5px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l2)}
-      .ws-cmp-table th:first-child{width:150px}
+      .ws-cmp-table th:first-child{width:52px}
+      .ws-cmp-table th:nth-child(2){width:150px}
+      .ws-cmp-table td.ws-cmp-no,.ws-cmp-table th.ws-cmp-no{text-align:right;padding-right:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary));user-select:none;background:none}
       .ws-cmp-table td{padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);vertical-align:top;white-space:pre-wrap;word-break:break-word;line-height:19px}
-      .ws-cmp-table td:nth-child(2){background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 3%,transparent)}
-      .ws-cmp-table td:nth-child(3){background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 3%,transparent)}
+      .ws-cmp-table td:nth-child(3){background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 3%,transparent)}
+      .ws-cmp-table td:nth-child(4){background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 3%,transparent)}
       .ws-cmp-field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-secondary);word-break:break-all}
       .ws-cmp-table del{text-decoration:none;background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 18%,transparent);color:var(--dsw-alias-state-error-primary);border-radius:3px;padding:0 1px}
       .ws-cmp-table ins{text-decoration:none;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 20%,transparent);color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 75%,#000);border-radius:3px;padding:0 1px;font-weight:600}
@@ -2456,7 +2460,7 @@ window.__ModuleLoader__.load({
       .ws-cmp-rowbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
       .ws-cmp-rowbar .ws-cmp-filter{flex:none;padding:0 10px}
       .ws-cmp-same td{color:var(--dsw-alias-label-secondary)}
-      .ws-cmp-same td:nth-child(2),.ws-cmp-same td:nth-child(3){background:none!important}
+      .ws-cmp-same td:nth-child(3),.ws-cmp-same td:nth-child(4){background:none!important}
       .ws-cmp-suspect{background:none;color:inherit;text-decoration:underline dotted var(--dsw-alias-state-warn-primary);text-decoration-thickness:2px;text-underline-offset:3px}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
@@ -5466,8 +5470,10 @@ window.__ModuleLoader__.load({
             ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => !item.decision))
             : mode === 'changed' ? indexed.filter(({ change, index }) => !change.same || change.flagged || hosts.has(index)) : indexed
           const judgeFlags = openHere.filter((item) => item.text).map((item) => item.text)
+          // Only rows holding a review item are clipped (they carry the expand link).
+          const clipped = new Set([...hosts.keys()].map((index) => rows[index].id ?? index))
           // A long cell holding an item is shown as a window scrolled to it.
-          const clip = (content, length, rowKey) => (length > CLIP_CHARS && !expanded[rowKey]
+          const clip = (content, length, rowKey) => (clipped.has(rowKey) && length > CLIP_CHARS && !expanded[rowKey]
             ? h('div', { key: `${selected.n}:${rowKey}`, className: 'ws-cmp-clip', ref: scrollToFlag }, content)
             : content)
           return h(React.Fragment, {},
@@ -5478,7 +5484,7 @@ window.__ModuleLoader__.load({
             visible.length === 0
               ? h('p', { className: 'ma-empty' }, rows.length === 0 ? t('ws.cmp.empty') : t('ws.cmp.nochange'))
               : h('table', { className: 'ws-cmp-table', onMouseUp: (event) => onCompareSelect(event, selected) },
-                h('thead', {}, h('tr', {}, h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
+                h('thead', {}, h('tr', {}, h('th', { className: 'ws-cmp-no', title: t('ws.cmp.noHint') }, '#'), h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
                 // Rows flagged for review stay listed beyond the page size.
                 h('tbody', {}, visible.filter(({ change, index }, position) => position < compareShow || change.flagged || hosts.has(index)).flatMap(({ change, index: row }) => {
                   const after = change.same ? change.before : change.after
@@ -5486,11 +5492,16 @@ window.__ModuleLoader__.load({
                   const flaggedRow = here.some((item) => !item.decision) || (change.flagged && flags.some((flag) => flagAt(after, flag) >= 0))
                   const onPseudo = (event, token) => openManual(event, { kind: 'revert', text: token, relPath: selected.relPath, n: selected.n })
                   const rowKey = change.id ?? row
+                  // Row number: the segment's place in the file. Older records
+                  // lack it; their rows are in file order up to the cap.
+                  const number = change.i ?? (/^L\d+$/.test(String(change.id)) ? Number(String(change.id).slice(1)) : row < 50000 ? row + 1 : null)
+                  const noCell = h('td', { key: 'n', className: 'ws-cmp-no' }, number ?? '—')
                   const longest = Math.max(String(change.before ?? '').length, after.length)
                   const marks = here.length ? judgeFlags : []
                   let cells
                   if (change.same) {
                     cells = [
+                      noCell,
                       h('td', { key: 'f', className: 'ws-cmp-field' }, change.field ?? '—'),
                       h('td', { key: 's', className: 'ws-cmp-src' }, clip(marks.length ? markFlags(change.before, marks, `b${row}`) : change.before, longest, rowKey)),
                       h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, null, flags, `s${row}`, onPseudo), longest, rowKey)),
@@ -5498,6 +5509,7 @@ window.__ModuleLoader__.load({
                   } else {
                     const ops = diffTexts(change.before, after)
                     cells = [
+                      noCell,
                       h('td', { key: 'f', className: 'ws-cmp-field' }, change.field ?? '—'),
                       h('td', { key: 's', className: 'ws-cmp-src' }, clip(ops.filter((op) => op.t !== 'ins').map((op, i) => op.t === 'del' ? h('del', { key: i }, op.s) : h(React.Fragment, { key: i }, marks.length ? markFlags(op.s, marks, `b${row}-${i}`) : op.s)), longest, rowKey)),
                       h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, ops, flags, `${row}-`, onPseudo), longest, rowKey)),
@@ -5506,6 +5518,7 @@ window.__ModuleLoader__.load({
                   const out = [h('tr', { key: rowKey, className: `${change.same ? 'ws-cmp-same' : ''}${flaggedRow ? ' ws-cmp-flagged' : ''}${here.length ? ' ws-cmp-hosted' : ''}` }, cells)]
                   if (here.length) {
                     out.push(h('tr', { key: `${rowKey}-rv`, className: 'ws-cmp-actrow' },
+                      h('td', { className: 'ws-cmp-no' }),
                       h('td', { colSpan: 3 },
                         here.map((item) => reviewInline(reviewFile, item)),
                         longest > CLIP_CHARS ? h('button', { type: 'button', className: 'ma-link ws-cmp-expand', onClick: () => setExpanded({ ...expanded, [rowKey]: !expanded[rowKey] }) }, expanded[rowKey] ? t('ws.cmp.collapse') : t('ws.cmp.expand')) : null)))
