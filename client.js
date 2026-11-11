@@ -427,6 +427,7 @@ window.__ModuleLoader__.load({
       'ws.m.srvLine': '在跑 {running} · 排队 {waiting} · KV {kv}% · 生成 {gen} tok/s（整台）',
       'ws.m.srvPeakLine': '峰值 在跑 {running} · 排队 {waiting} · KV {kv}%（整台）',
       'ws.m.lgSrvQ': '服务器排队',
+      'ws.m.lgSrvQHint': '推理服务器自己的排队（vLLM /metrics，整台服务器），画在轴下方与插件排队对照；为 0 时贴着轴线。读不到服务器指标或旧批次没有记录时不画。',
       'ws.m.srvHint': '推理服务器自己的指标（vLLM /metrics，含其他客户端的请求）：运行 = 服务器正在计算的请求数，排队 = 服务器内部等待的请求数，KV = KV 缓存占用。结束后显示峰值。',
       'ws.m.srvNaHint': '读取不到服务器的 /metrics（不是 vLLM、未开放或需要认证），只能参考插件这边的数字。',
       'ws.m.srvNow': '当前：运行 {running} · 排队 {waiting} · KV {kv}% · 服务器生成 {gen} tok/s',
@@ -1253,6 +1254,7 @@ window.__ModuleLoader__.load({
       'ws.m.srvLine': 'running {running} · waiting {waiting} · KV {kv}% · generating {gen} tok/s (whole server)',
       'ws.m.srvPeakLine': 'peak running {running} · waiting {waiting} · KV {kv}% (whole server)',
       'ws.m.lgSrvQ': 'server queue',
+      'ws.m.lgSrvQHint': 'The inference server’s own queue (vLLM /metrics, whole server), drawn below the axis next to the plugin queue; at 0 it lies on the axis. Not drawn when the server metrics cannot be read or for batches recorded before this.',
       'ws.m.srvHint': 'The inference server’s own metrics (vLLM /metrics, other clients included): running = requests being computed, waiting = queued on the server, KV = KV-cache use. Peaks after the batch.',
       'ws.m.srvNaHint': 'The server’s /metrics cannot be read (not vLLM, not exposed, or needs auth); only the plugin’s numbers are available.',
       'ws.m.srvNow': 'Now: running {running} · waiting {waiting} · KV {kv}% · server generation {gen} tok/s',
@@ -5826,7 +5828,7 @@ window.__ModuleLoader__.load({
                       h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': `${role} ${t('ws.m.busy')}` },
                         empty ? null : h('path', { className: `ws-busy-f${cls}`, d: `${line((p) => up(p[ai] ?? 0))} L${W} ${AX} L0 ${AX} Z` }),
                         empty ? null : h('path', { className: `ws-busy-l${cls} ws-busy-q`, d: line((p) => down(p[qi] ?? 0)) }),
-                        srvSeen && srvQMax > 0 ? h('path', { className: 'wd-conc-srvq', d: line((p, i) => down(srvRows[i]?.[1] ?? 0)) }) : null,
+                        srvSeen ? h('path', { className: 'wd-conc-srvq', d: line((p, i) => down(srvRows[i]?.[1] ?? 0)) }) : null,
                         h('line', { className: 'ws-busy-axis', x1: 0, x2: W, y1: AX, y2: AX }),
                         empty ? h('line', { className: `wd-conc-lim wd-conc-lim-${cls}`, x1: 0, x2: W, y1: up(fixed), y2: up(fixed) }) : h('path', { className: `wd-conc-lim wd-conc-lim-${cls}`, d: stepLine }),
                         thrLine ? h('path', { className: 'wd-conc-thrline', d: thrLine }) : null,
@@ -5851,8 +5853,7 @@ window.__ModuleLoader__.load({
                   h('span', {}, h('i', { className: 'wd-lg-lim' }), t('ws.m.lgLim')),
                   h('span', {}, h('i', { className: 'wd-lg-thr' }), t('ws.m.lgThr')),
                   h('span', {}, h('i', { className: 'wd-lg-q' }), t('ws.m.lgQ')),
-                  // Only when a server queue line is actually drawn.
-                  (series?.srv ?? []).some((row) => (row ?? []).some((cell) => (cell?.[1] ?? 0) > 0)) ? h('span', {}, h('i', { className: 'wd-lg-srvq' }), t('ws.m.lgSrvQ')) : null)
+                  h('span', { title: t('ws.m.lgSrvQHint') }, h('i', { className: 'wd-lg-srvq' }), t('ws.m.lgSrvQ')))
                 const concPanels = h('div', { className: 'wd-concs' }, concLegend, cols.map((key) => concPanel(key)))
                 return h(React.Fragment, {},
                   block('wd.secLoad', 'WORKLOAD', splitBar, sumLine),
