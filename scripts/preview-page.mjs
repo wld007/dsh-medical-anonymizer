@@ -56,6 +56,9 @@ body{background:var(--dsw-alias-bg-base);font-family:-apple-system,"PingFang SC"
   plugin.apply(ctx)
   ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Page))
   // ?station=blind clicks that station once the page has data (for screenshots).
+  if (new URLSearchParams(location.search).get('open') === 'runs') {
+    const tm = setInterval(() => { const b = document.querySelector('.wd-switch'); if (b && document.querySelectorAll('.wd-st').length) { b.click(); clearInterval(tm) } }, 200)
+  }
   const pick = new URLSearchParams(location.search).get('station')
   if (pick) {
     const order = ['prescan', 'read', 'discover', 'rules', 'blind', 'repair', 'rescan', 'pack', 'review', 'deliver']

@@ -222,6 +222,7 @@ window.__ModuleLoader__.load({
       'wd.tab.line': '产线',
       'wd.tab.review': '复核',
       'wd.tab.runs': '记录',
+      'wd.switchHint': '切换批次：查看、删除历史批次',
       'wd.newRun': '新批次',
       'wd.newRunCap': '新批次 · NEW RUN',
       'wd.clickStation': '点工位看详情',
@@ -969,6 +970,7 @@ window.__ModuleLoader__.load({
       'wd.tab.line': 'Line',
       'wd.tab.review': 'Review',
       'wd.tab.runs': 'Runs',
+      'wd.switchHint': 'Switch batch: view or delete past batches',
       'wd.newRun': 'New run',
       'wd.newRunCap': 'New run',
       'wd.clickStation': 'Click a station for details',
@@ -2442,7 +2444,11 @@ window.__ModuleLoader__.load({
       .wd-c-ok{color:var(--dsw-alias-state-success-primary);border-color:rgba(70,209,127,.55)}
       .wd-full{flex:1;min-height:0;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);padding:10px 14px;display:flex;flex-direction:column}
       .wd-full .ws-drawer-body{flex:1;min-height:0;overflow:auto}
-      .wd-runs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;overflow:auto;align-content:start}
+      .wd-runs{display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:min(60vh,520px);scrollbar-width:thin}
+      .wd-runs-act .wd-runs-pop{left:0;right:auto;width:420px}
+      .wd-switch{font:inherit;color:inherit;text-align:left;cursor:pointer;background:transparent}
+      .wd-switch:hover{border-color:var(--ws-accent)}
+      .wd-switch-n{margin-left:8px;align-self:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--wd-ink3);white-space:nowrap}
       .wd-runs .ws-run{margin:0}
       @media (max-width:1100px){.wd-main{grid-template-columns:minmax(0,1fr)}.wd-bottom{grid-template-columns:1fr 1fr}.wd-ro:nth-child(2){border-right:0}}
       .wd-ro .ws-spark{gap:2px}
@@ -3756,6 +3762,7 @@ window.__ModuleLoader__.load({
       const [view, setView] = React.useState('line') // 'line' | 'drawer' | 'runs'
       const [stationSel, setStationSel] = React.useState(null)
       const [newOpen, setNewOpen] = React.useState(false)
+      const [runsOpen, setRunsOpen] = React.useState(false)
       // Follow the Harness theme (light / dark).
       const [hostDark, setHostDark] = React.useState(() => hostIsDark(null))
       React.useEffect(() => {
@@ -5617,6 +5624,36 @@ window.__ModuleLoader__.load({
         const waiting = running ? (v.waiting ?? 0) : (v.peakWaiting ?? 0)
         return gauge(name, kv, t('wd.srvWait', { n: waiting }), kv >= 0.9 || waiting > 0 ? 'warn' : '', t('ws.m.srvHint'))
       }
+      // Batch switcher: the header status card opens the list of all batches.
+      const runsPopover = () => h('div', { className: 'wd-pop wd-runs-pop', role: 'dialog' },
+            h('div', { className: 'wd-roh' },
+              h('b', {}, t('runs.title')),
+              h('span', { className: 'wd-sp' }),
+              runs.some((run) => run.status !== 'running')
+                ? h('button', { className: 'ma-btn ma-small ws-clear', onClick: () => setDeleting({ all: true, deliverable: false, busy: false, error: '' }) }, t('ws.del.clear'))
+                : null,
+              h('button', { className: 'ma-btn ma-small', onClick: refreshRuns }, t('runs.refresh'))),
+            runs.length === 0
+              ? h('p', { className: 'ma-empty' }, t('runs.empty'))
+              : h('div', { className: 'wd-runs' }, runs.map((run) => h('div', {
+                key: run.id, role: 'button', tabIndex: 0,
+                className: `ws-run${run.id === viewId ? ' ws-run-on' : ''}`,
+                onClick: () => { selectRun(run.id); setRunsOpen(false); setView('line') },
+                onKeyDown: (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRun(run.id); setRunsOpen(false); setView('line') } },
+              },
+                h('div', { className: 'ws-run-top' },
+                  h('span', { className: 'ws-run-name', title: run.selection?.length ? run.selection.join('\n') : (run.inputDir ?? '') }, run.selection?.length > 1 ? t('ws.pickedName', { first: run.selection[0], count: run.selection.length }) : (baseName(run.inputDir) || run.id)),
+                  h('span', { className: statusClass(run.status) }, t(`status.${run.status}`)),
+                  run.status !== 'running'
+                    ? h('button', {
+                      type: 'button', className: 'ws-run-del', title: t('ws.del.title'), 'aria-label': t('ws.del.title'),
+                      onClick: (event) => { event.stopPropagation(); setDeleting({ run, deliverable: false, busy: false, error: '' }) },
+                    }, '✕')
+                    : null),
+                h('div', { className: 'ws-run-meta' },
+                  h('span', {}, `${formatTime(run.startedAt)}${run.source ? ` · ${t(`ws.src.${run.source.kind}`)}` : ''}`),
+                  run.resumedFrom ? h('span', { className: 'ws-run-resume', title: run.resumedFrom }, t('ws.resumedFrom', { id: run.resumedFrom.slice(-6) })) : null,
+                  h('span', {}, `${run.files ?? 0} ${t('ws.unitFiles')} · ${run.entities ?? 0} ${t('ws.unitEntities')}${run.unresolved ? ` · ⚠ ${run.unresolved}` : ''}`))))))
       const TABS = [
         ['line', t('wd.tab.line')],
         ['parts', t('ws.tab.parts')],
@@ -5627,11 +5664,10 @@ window.__ModuleLoader__.load({
         ['warn', t('ws.tab.warn'), current?.warnings?.length ?? 0],
         ['advice', t('ws.tab.advice'), adviceCount],
         ['report', t('ws.tab.report')],
-        ['runs', t('wd.tab.runs')],
       ]
-      const tabOn = (id) => (id === 'line' ? view === 'line' : id === 'runs' ? view === 'runs' : id === 'review' ? modal === 'compare' : view === 'drawer' && drawer === id)
+      const tabOn = (id) => (id === 'line' ? view === 'line' : id === 'review' ? modal === 'compare' : view === 'drawer' && drawer === id)
       const openTab = (id) => {
-        if (id === 'line' || id === 'runs') { setView(id); return }
+        if (id === 'line') { setView(id); return }
         if (id === 'review') { if (adviceRunId) openCompare({ filter: reviewOpen > 0 ? 'review' : null }); return }
         if (id === 'log' || id === 'calls') { followLog.current = true; setLogPinned(false) }
         setDrawer(id)
@@ -5689,14 +5725,18 @@ window.__ModuleLoader__.load({
               h('h2', {}, h('button', { type: 'button', className: 'ws-brand-title', onClick: () => setModal('help'), title: t('ws.helpHint') },
                 t('ws.title'), h('span', { className: 'ws-brand-info', 'aria-hidden': 'true' }, 'i'))),
               h('span', {}, t('ws.subtitle'), config?.version ? h('em', { className: 'ws-version' }, `v${config.version}`) : null))),
-          h('div', { className: `ws-status ws-s-${lineStatus}` },
+          h('div', { className: 'wd-act wd-runs-act' },
+          h('button', { type: 'button', className: `ws-status ws-s-${lineStatus} wd-switch`, onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false' },
             h('span', { className: 'ws-lamp' }),
             h('div', {},
               h('b', {}, lineStatus === 'idle' ? t('ws.idle') : t(`status.${lineStatus}`)),
               h('span', { className: 'ma-mono' }, current?.id ?? '—'),
               current?.resumedFrom
                 ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
-                : (current?.source ? sourceLabel(current.source) : null))),
+                : (current?.source ? sourceLabel(current.source) : null)),
+            h('span', { className: 'wd-switch-n' }, `${runs.length} ▾`)),
+          runsOpen ? h('div', { className: 'wd-shade', onMouseDown: () => setRunsOpen(false) }) : null,
+          runsOpen ? runsPopover() : null),
           h('span', { className: 'wd-sp' }),
           h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           h('div', { className: 'wd-act' },
@@ -5827,35 +5867,7 @@ window.__ModuleLoader__.load({
               (drawer === 'log' || drawer === 'calls') && logPinned
                 ? h('button', { type: 'button', className: 'ws-latest', onClick: jumpToLatest }, `↓ ${t('ws.latest')}`)
                 : null)) : null,
-          view === 'runs' ? h('section', { className: 'wd-full', style: { gap: 10 } },
-            h('div', { className: 'wd-roh' },
-              h('b', {}, t('runs.title')),
-              h('span', { className: 'wd-sp' }),
-              runs.some((run) => run.status !== 'running')
-                ? h('button', { className: 'ma-btn ma-small ws-clear', onClick: () => setDeleting({ all: true, deliverable: false, busy: false, error: '' }) }, t('ws.del.clear'))
-                : null,
-              h('button', { className: 'ma-btn ma-small', onClick: refreshRuns }, t('runs.refresh'))),
-            runs.length === 0
-              ? h('p', { className: 'ma-empty' }, t('runs.empty'))
-              : h('div', { className: 'wd-runs' }, runs.map((run) => h('div', {
-                key: run.id, role: 'button', tabIndex: 0,
-                className: `ws-run${run.id === viewId ? ' ws-run-on' : ''}`,
-                onClick: () => { selectRun(run.id); setView('line') },
-                onKeyDown: (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRun(run.id); setView('line') } },
-              },
-                h('div', { className: 'ws-run-top' },
-                  h('span', { className: 'ws-run-name', title: run.selection?.length ? run.selection.join('\n') : (run.inputDir ?? '') }, run.selection?.length > 1 ? t('ws.pickedName', { first: run.selection[0], count: run.selection.length }) : (baseName(run.inputDir) || run.id)),
-                  h('span', { className: statusClass(run.status) }, t(`status.${run.status}`)),
-                  run.status !== 'running'
-                    ? h('button', {
-                      type: 'button', className: 'ws-run-del', title: t('ws.del.title'), 'aria-label': t('ws.del.title'),
-                      onClick: (event) => { event.stopPropagation(); setDeleting({ run, deliverable: false, busy: false, error: '' }) },
-                    }, '✕')
-                    : null),
-                h('div', { className: 'ws-run-meta' },
-                  h('span', {}, `${formatTime(run.startedAt)}${run.source ? ` · ${t(`ws.src.${run.source.kind}`)}` : ''}`),
-                  run.resumedFrom ? h('span', { className: 'ws-run-resume', title: run.resumedFrom }, t('ws.resumedFrom', { id: run.resumedFrom.slice(-6) })) : null,
-                  h('span', {}, `${run.files ?? 0} ${t('ws.unitFiles')} · ${run.entities ?? 0} ${t('ws.unitEntities')}${run.unresolved ? ` · ⚠ ${run.unresolved}` : ''}`)))))) : null),
+          null),
         deleting ? h('div', { className: 'ws-modal-back', onMouseDown: (event) => { if (event.target === event.currentTarget && !deleting.busy) setDeleting(null) } },
           h('div', { className: 'ws-modal ws-modal-del', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': t('ws.del.title') },
             h('div', { className: 'ws-modal-head' }, h('h3', {}, deleting.all ? t('ws.del.clearTitle') : t('ws.del.title'))),
