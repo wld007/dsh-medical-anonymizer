@@ -378,6 +378,16 @@ window.__ModuleLoader__.load({
       'run.startPrefix': '起始',
       'run.autoConcurrencyHint': '开启后，上面的并发只是起始值：每 30 秒按各模型的吞吐量调整一次。名额全满且有排队时加一半；加了吞吐涨不到 5% 就退回，并把那一档记为上限（10 分钟后再试）；服务器内部排队、KV 缓存将满或出现超时、连接错误时降低。最多 64。',
       'ws.ps.auto': ' · 自动',
+      'ws.m.cUp': '↑ 满载，加并发',
+      'ws.m.cFlat': '↩ 吞吐不升，退回',
+      'ws.m.cServer': '↓ 服务器排队 / KV 将满',
+      'ws.m.cErrors': '↓ 超时或连接错误',
+      'ws.m.cHold': '保持',
+      'ws.m.cLimit': '并发',
+      'ws.m.cCeil': '上限',
+      'ws.m.cFixed': '固定并发 {n}',
+      'ws.m.cNow': '在途 {a} · 排队 {q}',
+      'ws.m.cPeak': '峰值 在途 {a} · 排队 {q}',
       'ws.m.aTag': '自动',
       'ws.m.aPath': '{path}，{reason}',
       'ws.m.aHold': '保持 {n}（名额未满或数据不足，暂不调整）',
@@ -1175,6 +1185,16 @@ window.__ModuleLoader__.load({
       'run.startPrefix': 'Initial ',
       'run.autoConcurrencyHint': 'When on, the values above are starting points: every 30 s each model’s concurrency follows its throughput. It grows by half while all slots are busy with a queue; it goes back when a step up gains less than 5 % (that level becomes a ceiling for 10 min); it drops when the server queues, its KV cache is nearly full, or calls time out. At most 64.',
       'ws.ps.auto': ' · auto',
+      'ws.m.cUp': '↑ saturated, step up',
+      'ws.m.cFlat': '↩ no gain, back',
+      'ws.m.cServer': '↓ server queue / KV full',
+      'ws.m.cErrors': '↓ timeouts or errors',
+      'ws.m.cHold': 'holding',
+      'ws.m.cLimit': 'concurrency',
+      'ws.m.cCeil': 'ceiling',
+      'ws.m.cFixed': 'fixed concurrency {n}',
+      'ws.m.cNow': 'in flight {a} · queued {q}',
+      'ws.m.cPeak': 'peak in flight {a} · queued {q}',
       'ws.m.aTag': 'Auto',
       'ws.m.aPath': '{path}, {reason}',
       'ws.m.aHold': 'holding {n} (slots not full or too little data)',
@@ -2105,6 +2125,17 @@ window.__ModuleLoader__.load({
       .ws-hist{display:inline-flex;align-items:flex-end;gap:1px;height:12px;width:48px;justify-content:flex-end}
       .ws-hist i{display:block;width:5px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 45%,transparent);border-radius:1px 1px 0 0}
       .ws-hist i.ws-hist-hot{background:var(--dsw-alias-state-error-primary)}
+      .ws-histbox{display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px}
+      .ws-hist-ax{display:none}
+      .wd-blk .ws-ctxcell{display:flex;align-items:stretch;width:100%;gap:3px;padding:2px 0}
+      .wd-blk .ws-histbox{align-items:stretch;width:100%}
+      .wd-blk .ws-hist{width:100%;height:30px;gap:2px;justify-content:stretch;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-label-primary) 18%,transparent)}
+      .wd-blk .ws-hist i{flex:1;width:auto;background:color-mix(in srgb,var(--ws-accent) 70%,transparent)}
+      .wd-blk .ws-hist i.ws-hist-hot{background:var(--dsw-alias-state-error-primary)}
+      .wd-blk .ws-hist i.ws-hist-empty{height:2px!important;background:color-mix(in srgb,var(--dsw-alias-label-primary) 12%,transparent)}
+      .wd-blk .ws-hist-ax{display:flex;gap:2px;font-style:normal}
+      .wd-blk .ws-hist-ax i{flex:1;text-align:center;font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:8.5px;font-weight:400;color:var(--wd-ink3)}
+      .wd-blk .ws-ctxcell{text-align:right}
       .ws-busy{display:flex;flex-direction:column;gap:2px;margin-top:6px;flex:1 1 0;min-height:40px}
       .ws-busy-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .ws-busy-legend{display:inline-flex;align-items:center;gap:4px;font-size:10px}
@@ -2116,6 +2147,25 @@ window.__ModuleLoader__.load({
       .ws-busy-ld,.ws-busy-lv{fill:none;stroke-width:1.6;vector-effect:non-scaling-stroke}
       .ws-busy-qd{fill:color-mix(in srgb,var(--ws-accent) 18%,transparent)}
       .ws-busy-qv{fill:color-mix(in srgb,#3b82c4 18%,transparent)}
+      .wd-concs{display:flex;flex-direction:column;gap:8px}
+      .wd-conc{display:flex;flex-direction:column;gap:2px}
+      .wd-conc-h{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dsw-alias-label-secondary)}
+      .wd-conc-h>i{display:inline-block;width:10px;height:3px;border-radius:2px}
+      .wd-conc-h b{color:var(--dsw-alias-label-primary);font-weight:600}
+      .wd-conc-h em{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;color:var(--dsw-alias-label-primary);margin-left:3px}
+      .wd-conc-chip{margin-left:auto;font-size:10.5px;padding:0 6px;border-radius:4px;line-height:17px;white-space:nowrap;background:color-mix(in srgb,var(--dsw-alias-label-primary) 7%,transparent)}
+      .wd-conc-chip.wd-conc-up{color:var(--dsw-alias-state-success-primary)}
+      .wd-conc-chip.wd-conc-full{color:var(--dsw-alias-state-warn-primary)}
+      .wd-conc-plot{flex:none;height:52px}
+      .wd-conc-plot svg{width:100%;height:100%;display:block}
+      .wd-conc-plot .ws-busy-gutter{position:relative;display:block}
+      .wd-conc-plot .ws-busy-gutter span{position:absolute;right:0}
+      .wd-conc-plot .ws-busy-gutter span:nth-child(1){top:-1px}
+      .wd-conc-plot .ws-busy-gutter span:nth-child(2){top:calc(73% - 6px)}
+      .wd-conc-plot .ws-busy-gutter span:nth-child(3){bottom:-4px}
+      .wd-conc-step{fill:none;stroke-width:2.2;vector-effect:non-scaling-stroke}
+      .wd-conc-f{display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--dsw-alias-label-secondary);padding-left:30px}
+      .wd-conc-f .ma-mono{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .ws-busy-limit{stroke:var(--dsw-alias-label-secondary);stroke-dasharray:3 3;stroke-width:1;vector-effect:non-scaling-stroke}
       .ws-res{display:flex;flex-direction:column}
       /* The column fills the height: C2 takes the spare space (C1 when C2 is folded). */
@@ -2515,7 +2565,7 @@ window.__ModuleLoader__.load({
       .wd-strip .ws-piece.ws-p-review{background:var(--dsw-alias-state-warn-primary)}
       .wd-strip .ws-piece.ws-p-failed,.wd-strip .ws-piece.ws-p-cancelled{background:var(--dsw-alias-state-error-primary)}
       .wd-strip .ws-piece.ws-p-running{background:var(--ws-accent);box-shadow:0 0 6px var(--ws-accent)}
-      .wd-side{min-height:0;overflow:auto;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);padding:10px 14px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin}
+      .wd-side{min-height:0;overflow:auto;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);padding:10px 10px 12px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin}
       .wd-side>.ws-panel{border:0;padding:0;background:none;gap:5px}
       .wd-side .ws-busy{flex:none;height:58px;margin-top:2px}
       .wd-side .ws-panel-head{display:none}
@@ -2524,8 +2574,9 @@ window.__ModuleLoader__.load({
       .wd-sh small{margin-left:auto;font-size:11px;color:var(--wd-ink3)}
       .wd-sep{height:1px;background:var(--dsw-alias-border-l1)}
       .wd-en{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;font-weight:500;letter-spacing:1.5px;color:var(--wd-ink3);margin-left:8px;text-transform:uppercase}
-      .wd-blk{display:flex;flex-direction:column;gap:6px;margin-top:8px}
-      .wd-blk-h{display:flex;align-items:baseline;font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary);padding:5px 8px;border-left:3px solid var(--ws-accent);border-radius:2px 4px 4px 2px;background:color-mix(in srgb,var(--ws-accent) 13%,transparent);line-height:14px}
+      .wd-blk{display:flex;flex-direction:column;gap:6px;margin-top:4px;padding:0 10px 10px;border:1px solid color-mix(in srgb,var(--ws-accent) 22%,var(--dsw-alias-border-l1));border-radius:7px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden}
+      .ws-dark .wd-blk{background:var(--dsw-alias-bg-layer-2);box-shadow:none}
+      .wd-blk-h{display:flex;align-items:baseline;font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary);margin:0 -10px 2px;padding:7px 10px;border-left:3px solid var(--ws-accent);border-bottom:1px solid color-mix(in srgb,var(--ws-accent) 18%,transparent);background:color-mix(in srgb,var(--ws-accent) 13%,transparent);line-height:14px}
       .wd-blk-h .wd-en{margin-left:6px}
       .wd-blk>.ws-panel{border:0;padding:0;background:none;gap:5px}
       .wd-blk .ws-panel-head{display:none}
@@ -5491,8 +5542,6 @@ window.__ModuleLoader__.load({
                 const models = totals.models ?? {}
                 const separate = Boolean(models.verify || current?.requests?.verify || (current?.config ? current.config.verifyModel : config?.verifyModel))
                 const cols = separate ? ['detect', 'verify'] : ['detect']
-                const slots = (r) => (r ? `${r.active}/${r.limit}${r.queued > 0 ? ` +${r.queued}` : ''}` : '—')
-                const slotTone = (r) => (r && r.active < r.limit && r.queued === 0 ? 'warn' : '')
                 const fits = Object.fromEntries(cols.map((key) => [key, fitSpeed(models[key]?.fit ?? (key === 'detect' ? totals.speedFit : null))]))
                 // One speed per model; the prefill / decode split is in the hint.
                 const speedOf = (key) => {
@@ -5511,8 +5560,12 @@ window.__ModuleLoader__.load({
                 const histBar = (hist) => {
                   if (!hist?.some((value) => value > 0)) return '—'
                   const top = Math.max(...hist)
-                  return h('span', { className: 'ws-hist', title: hist.map((value, index) => `${HIST_LABELS[index]}: ${value}`).join('\n') },
-                    hist.map((value, index) => h('i', { key: index, className: index >= 5 ? 'ws-hist-hot' : '', style: { height: `${value ? Math.max(12, (value / top) * 100) : 0}%` } })))
+                  // Every bucket keeps its slot (empty ones as a faint stub) so the
+                  // shape reads against the same axis in both columns.
+                  return h('span', { className: 'ws-histbox', title: hist.map((value, index) => `${HIST_LABELS[index]}: ${value}`).join('\n') },
+                    h('span', { className: 'ws-hist' },
+                      hist.map((value, index) => h('i', { key: index, className: `${index >= 5 ? 'ws-hist-hot' : ''}${value ? '' : ' ws-hist-empty'}`, style: { height: `${value ? Math.max(12, (value / top) * 100) : 0}%` } }))),
+                    h('span', { className: 'ws-hist-ax', 'aria-hidden': 'true' }, ['<.5', '.5', '1', '2', '4', '8', '16+'].map((label) => h('i', { key: label }, label))))
                 }
                 // Token counts as 2.3k / 4.6k so a cell stays narrow.
                 const kTok = (value) => (value >= 1000 ? `${(value / 1000).toFixed(value >= 100000 ? 0 : 1)}k` : String(Math.round(value)))
@@ -5641,80 +5694,70 @@ window.__ModuleLoader__.load({
                 // queued part is shaded above each line, the dashed line is the limit.
                 const series = current?.loadSeries
                 // Current slots per model sit in the chart legend.
-                const legendSlot = (key) => {
-                  if (running && current?.requests?.[key]) {
-                    return h('b', { className: `ws-busy-now${slotTone(current.requests[key]) ? ' ws-mt-warn' : ''}`, title: t('ws.m.reqHint') }, slots(current.requests[key]))
-                  }
-                  // Finished batch: peaks over the run (in flight / limit, +queue).
-                  const pts = current?.loadSeries?.points ?? []
-                  if (pts.length === 0) return null
-                  const [ai, qi] = key === 'verify' ? [2, 3] : [0, 1]
-                  const peakA = Math.max(...pts.map((p) => p[ai] ?? 0))
-                  const peakQ = Math.max(...pts.map((p) => p[qi] ?? 0))
-                  const lim = Number(current?.requests?.[key]?.limit ?? current?.requests?.detect?.limit ?? config?.concurrency ?? 4)
-                  return h('b', { className: 'ws-busy-now', title: t('ws.m.peakHint') }, `${peakA}/${lim}${peakQ > 0 ? ` +${peakQ}` : ''}`)
-                }
-                const busy = (() => {
+                // Concurrency per model, one small chart each: requests in flight
+                // (area), the concurrency limit over time (step line: automatic
+                // concurrency moves it), and requests queued in the plugin below.
+                const CHIP = { up: t('ws.m.cUp'), flat: t('ws.m.cFlat'), server: t('ws.m.cServer'), errors: t('ws.m.cErrors') }
+                const concPanel = (key) => {
+                  const slot = key === 'verify' ? 1 : 0
+                  const [ai, qi] = slot ? [2, 3] : [0, 1]
                   const points = series?.points ?? []
-                  // Before any data the frame (axis, limit line, legend) is still drawn.
-                  const empty = points.length < 2
-                  const limit = Number(current?.requests?.detect?.limit ?? current?.config?.concurrency ?? config?.concurrency ?? 4)
-                  const hasVerify = empty ? Boolean(current?.requests?.verify ?? (current ? current.config?.verifyModel : config?.verifyModel)) : points.some((p) => p.length > 2)
-                  const W = 300
-                  const H = 72
-                  // Mirror chart around the axis: above, requests in flight
-                  // (0..limit, the dashed line is the limit); below, requests
-                  // queued in the plugin, on their own scale.
-                  const AX = H / 2
-                  const x = (index) => (index / Math.max(1, points.length - 1)) * W
-                  // Each model is drawn against its own concurrency: the dashed
-                  // line means "all of that model's slots in use".
-                  const vLimit = Number(current?.requests?.verify?.limit ?? current?.config?.verifyConcurrency ?? limit)
-                  const up = (value, lim = limit) => AX - (Math.min(value, lim) / lim) * (AX - 3)
-                  // The limit at each sample (it moves with automatic concurrency).
                   const limitsAt = series?.limits ?? []
-                  const line = (pick, lim = limit, slot = 0) => points.map((p, index) => {
-                    const at = limitsAt[index]
-                    const own = at ? (at[slot] ?? at[0]) : lim
-                    return `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${up(pick(p), own || lim).toFixed(1)}`
-                  }).join(' ')
-                  const qMax = Math.max(1, ...points.map((p) => Math.max(p[1], p[3] ?? 0)))
-                  void qMax
-                  const down = (value) => AX + (value / qMax) * (AX - 3)
-                  const qLine = (pick) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${down(pick(p)).toFixed(1)}`).join(' ')
-                  const qArea = (pick) => `M0 ${AX} ${points.map((p, index) => `L${x(index).toFixed(1)} ${down(pick(p)).toFixed(1)}`).join(' ')} L${W} ${AX} Z`
-                  const minutes = empty ? 0 : Math.round(((points.length - 1) * (series.step ?? 2000)) / 60000)
-                  return h('div', { className: `ws-busy${empty ? ' ws-busy-empty' : ''}`, title: `${t('ws.m.busyHint')}\n${t('ws.m.busyAxis', { limit, max: qMax, minutes: Math.max(1, minutes) })}` },
-                    h('div', { className: 'ws-busy-head' },
-                      h('span', {}, t('ws.m.busy')),
-                      h('span', { className: 'ws-busy-legend' },
-                        h('i', { className: 'ws-busy-d' }), t('ws.model'), legendSlot('detect'),
-                        hasVerify ? h(React.Fragment, {}, h('i', { className: 'ws-busy-v' }), t('ws.verifyModel'), legendSlot('verify')) : null)),
-                    h('div', { className: 'ws-busy-plot' },
-                      // Scale labels sit in a gutter left of the plot, never over the lines.
+                  const fixed = Number(current?.requests?.[key]?.limit ?? (slot ? current?.config?.verifyConcurrency : current?.config?.concurrency) ?? config?.concurrency ?? 4)
+                  const limOf = (i) => { const at = limitsAt[i]; return Number(at ? (at[slot] ?? at[0]) : fixed) || fixed }
+                  const empty = points.length < 2
+                  const state = current?.autoTune?.[key] ?? null
+                  const steps = state?.history ?? []
+                  const last = steps[steps.length - 1]
+                  const nowLimit = empty ? fixed : limOf(points.length - 1)
+                  const top = Math.max(1, state?.ceiling ?? 0, ...points.map((p, i) => Math.max(p[ai] ?? 0, limOf(i))))
+                  const qMax = Math.max(1, ...points.map((p) => p[qi] ?? 0))
+                  const W = 300
+                  const H = 60
+                  const AX = 44
+                  const x = (i) => (i / Math.max(1, points.length - 1)) * W
+                  const up = (v) => AX - (Math.min(v, top) / top) * (AX - 3)
+                  const down = (v) => AX + (v / qMax) * (H - AX - 2)
+                  const line = (pick) => points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${pick(p, i).toFixed(1)}`).join(' ')
+                  const stepLine = points.map((p, i) => (i ? `H${x(i).toFixed(1)} V${up(limOf(i)).toFixed(1)}` : `M0 ${up(limOf(0)).toFixed(1)}`)).join(' ')
+                  const peakA = Math.max(0, ...points.map((p) => p[ai] ?? 0))
+                  const peakQ = Math.max(0, ...points.map((p) => p[qi] ?? 0))
+                  const nowReq = running ? current?.requests?.[key] : null
+                  const role = key === 'verify' ? t('ws.verifyModel') : (separate ? t('ws.model') : t('ws.modelShared'))
+                  const tone = !state ? 'idle' : last?.reason === 'up' ? 'up' : last ? 'full' : 'idle'
+                  const chip = autoOn && state ? (last ? CHIP[last.reason] ?? last.reason : t('ws.m.cHold')) : null
+                  const history = steps.length
+                    ? steps.map((step) => `${hhmmss(new Date(step.at))}  ${step.from}→${step.to}  ${AUTO_REASON[step.reason] ?? step.reason}（${t('ws.m.aThr', { n: step.thr })}）`).join('\n')
+                    : (autoOn ? t('ws.m.aHint') : '')
+                  const path = state ? [state.start, ...steps.map((step) => step.to)].slice(-7).join('→') : String(fixed)
+                  return h('div', { key, className: `wd-conc wd-conc-${key}`, title: `${t('ws.m.busyHint')}${history ? `\n\n${history}` : ''}` },
+                    h('div', { className: 'wd-conc-h' },
+                      h('i', { className: key === 'verify' ? 'ws-busy-v' : 'ws-busy-d' }),
+                      h('b', {}, role),
+                      h('span', {}, t('ws.m.cLimit'), h('em', {}, String(nowLimit))),
+                      state?.ceiling ? h('span', {}, t('ws.m.cCeil'), h('em', {}, String(state.ceiling))) : null,
+                      chip ? h('span', { className: `wd-conc-chip wd-conc-${tone}` }, chip) : null),
+                    h('div', { className: 'ws-busy-plot wd-conc-plot' },
                       h('div', { className: 'ws-busy-gutter', 'aria-hidden': 'true' },
-                        h('span', {}, t('ws.m.inflightTag')),
-                        h('span', { className: 'ws-busy-zero' }, '0'),
-                        h('span', {}, t('ws.m.queueTag'))),
-                      h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': t('ws.m.busy') },
-                        h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: up(limit), y2: up(limit) }),
-                        // Queue drawn like the lines above, mirrored; dashed = queue peak.
-                        h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: down(qMax), y2: down(qMax) }),
-                        empty ? null : h('path', { className: 'ws-busy-ld ws-busy-q', d: qLine((p) => p[1]) }),
-                        !empty && hasVerify ? h('path', { className: 'ws-busy-lv ws-busy-q', d: qLine((p) => p[3] ?? 0) }) : null,
-                        // Light fill between the in-flight lines and the axis.
-                        empty ? null : h('path', { className: 'ws-busy-fd', d: `${line((p) => p[0])} L${W} ${AX} L0 ${AX} Z` }),
-                        !empty && hasVerify ? h('path', { className: 'ws-busy-fv', d: `${line((p) => p[2] ?? 0, vLimit, 1)} L${W} ${AX} L0 ${AX} Z` }) : null,
+                        h('span', {}, String(top)), h('span', { className: 'ws-busy-zero' }, '0'), h('span', {}, t('ws.m.queueTag'))),
+                      h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': `${role} ${t('ws.m.busy')}` },
+                        state?.ceiling ? h('line', { className: 'ws-busy-limit', x1: 0, x2: W, y1: up(state.ceiling), y2: up(state.ceiling) }) : null,
+                        empty ? null : h('path', { className: slot ? 'ws-busy-fv' : 'ws-busy-fd', d: `${line((p) => up(p[ai] ?? 0))} L${W} ${AX} L0 ${AX} Z` }),
+                        empty ? null : h('path', { className: `${slot ? 'ws-busy-lv' : 'ws-busy-ld'} ws-busy-q`, d: line((p) => down(p[qi] ?? 0)) }),
                         h('line', { className: 'ws-busy-axis', x1: 0, x2: W, y1: AX, y2: AX }),
-                        empty ? null : h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
-                        !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0, vLimit, 1) }) : null),
-                      empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null,
-                    ))
-                })()
+                        empty ? h('line', { className: `wd-conc-step ${slot ? 'ws-busy-lv' : 'ws-busy-ld'}`, x1: 0, x2: W, y1: up(fixed), y2: up(fixed) }) : h('path', { className: `wd-conc-step ${slot ? 'ws-busy-lv' : 'ws-busy-ld'}`, d: stepLine })),
+                      empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null),
+                    h('div', { className: 'wd-conc-f' },
+                      h('span', { className: 'ma-mono' }, autoOn ? path : t('ws.m.cFixed', { n: fixed })),
+                      nowReq
+                        ? h('span', {}, t('ws.m.cNow', { a: nowReq.active ?? 0, q: nowReq.queued ?? 0 }))
+                        : (empty ? null : h('span', {}, t('ws.m.cPeak', { a: peakA, q: peakQ })))))
+                }
+                const concPanels = h('div', { className: 'wd-concs' }, cols.map((key) => concPanel(key)))
                 return h(React.Fragment, {},
                   block('wd.secLoad', 'WORKLOAD', splitBar, sumLine),
                   block('wd.secModels', 'MODELS', table),
-                  block('wd.secConc', 'CONCURRENCY', verdictBox, busy))
+                  block('wd.secConc', 'CONCURRENCY', autoOn ? null : verdictBox, concPanels))
       }
 
       // ── Dark layout: station labels, alerts and readouts ──
