@@ -764,7 +764,9 @@ window.__ModuleLoader__.load({
       'ws.cmp.keys': '↑ ↓ 切换文件',
       'ws.cmp.f.all': '全部',
       'ws.cmp.f.changed': '有改动',
-      'ws.cmp.f.review': '待复核文件',
+      'ws.cmp.f.review': '待复核',
+      'ws.cmp.f.images': '图片',
+      'ws.cmp.f.imagesHint': '只列还有图片等内容待处理的文件',
       'ws.cmp.skipped.too-large': '文件超过 50 MB，未生成比对记录。',
       'ws.cmp.skipped.error': '生成比对记录时出错。',
       'ws.cmp.rowHint': '点击查看原文与结果比对',
@@ -1679,7 +1681,9 @@ window.__ModuleLoader__.load({
       'ws.cmp.keys': '↑ ↓ to switch files',
       'ws.cmp.f.all': 'All',
       'ws.cmp.f.changed': 'Changed',
-      'ws.cmp.f.review': 'Files to review',
+      'ws.cmp.f.review': 'To review',
+      'ws.cmp.f.images': 'Images',
+      'ws.cmp.f.imagesHint': 'Only files with images (or other unreadable content) still to handle',
       'ws.cmp.skipped.too-large': 'File over 50 MB; no comparison recorded.',
       'ws.cmp.skipped.error': 'The comparison could not be built.',
       'ws.cmp.rowHint': 'Click to compare original and result',
@@ -2545,8 +2549,10 @@ window.__ModuleLoader__.load({
       .ws-cmp-keys{margin-right:8px}
       .ws-cmp{flex:1;min-height:0;display:grid;grid-template-columns:280px minmax(0,1fr);outline:none}
       .ws-cmp-side{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
-      .ws-cmp-filters{display:flex;gap:4px;padding:8px}
-      .ws-cmp-filter{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:26px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+      .ws-cmp-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:8px}
+      .ws-cmp-filter{flex:1;min-width:0;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:3px;padding:0 4px;height:26px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+      .ws-cmp-filter:disabled{opacity:.45;cursor:default}
+      .ws-cmp-filter .ws-img-glyph{margin:0}
       .ws-cmp-filter i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px}
       .ws-cmp-filter.ws-on{border-color:var(--ws-accent);color:var(--ws-accent);font-weight:600}
       .ws-cmp-list{flex:1;min-height:0;overflow:auto;padding:0 6px 8px}
@@ -5823,9 +5829,12 @@ window.__ModuleLoader__.load({
         const extra = (reviewData?.files ?? []).filter((file) => !listed.has(file.relPath))
           .map((file) => ({ n: `rv:${file.relPath}`, relPath: file.relPath, status: 'review', changed: 0, total: 0, reviewOnly: true }))
         list = [...extra, ...list]
+        // Files with images (or other unreadable content) still to handle.
+        const hasImages = (relPath) => (reviewByPath.get(relPath)?.items ?? []).some((item) => !item.decision && isOpaque(item))
         const shown = list.filter((entry) => compareFilter === 'all' ? true
           : compareFilter === 'changed' ? entry.changed > 0
-            : reviewByPath.has(entry.relPath))
+            : compareFilter === 'images' ? hasImages(entry.relPath)
+              : reviewByPath.has(entry.relPath))
         const position = shown.findIndex((entry) => entry.n === compareSel)
         // The open file always belongs to the current filter.
         const selected = (position >= 0 ? shown[position] : shown[0]) ?? null
@@ -5970,9 +5979,15 @@ window.__ModuleLoader__.load({
         } },
           manualPopover(),
           h('aside', { className: 'ws-cmp-side' },
-            h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'review'].map((id) => h('button', {
-              key: id, type: 'button', className: `ws-cmp-filter${compareFilter === id ? ' ws-on' : ''}`, onClick: () => setCompareFilter(id),
-            }, t(`ws.cmp.f.${id}`), h('i', {}, String(id === 'all' ? list.length : id === 'changed' ? list.filter((entry) => entry.changed > 0).length : list.filter((entry) => reviewByPath.has(entry.relPath)).length))))),
+            h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'review', 'images'].map((id) => {
+              const n = id === 'all' ? list.length : id === 'changed' ? list.filter((entry) => entry.changed > 0).length : id === 'images' ? list.filter((entry) => hasImages(entry.relPath)).length : list.filter((entry) => reviewByPath.has(entry.relPath)).length
+              return h('button', {
+                key: id, type: 'button', className: `ws-cmp-filter${compareFilter === id ? ' ws-on' : ''}`, disabled: id === 'images' && n === 0 && compareFilter !== 'images',
+                title: id === 'images' ? t('ws.cmp.f.imagesHint') : undefined,
+                // Picking the image files also shows the image view of the table.
+                onClick: () => { setCompareFilter(id); if (id === 'images') { setCompareRows('opaque'); setCompareShow(300); setCompareFrom(0) } },
+              }, id === 'images' ? imageGlyph() : null, t(`ws.cmp.f.${id}`), h('i', {}, String(n)))
+            })),
             h('div', { className: 'ws-cmp-list' }, shown.map((entry) => {
               const open = openOf(entry.relPath)
               return h('button', {
@@ -6553,7 +6568,7 @@ window.__ModuleLoader__.load({
       const imageCats = imagesSeen.reduce((map, item) => ({ ...map, [item.vision.category]: (map[item.vision.category] ?? 0) + 1 }), {})
       const openImages = () => {
         const first = (reviewData?.files ?? []).find((file) => file.items.some((item) => item.code === 'opaque' && item.image && !item.decision))
-        openCompare({ relPath: first?.relPath ?? null, filter: 'review' })
+        openCompare({ relPath: first?.relPath ?? null, filter: 'images' })
         setCompareRows('opaque')
       }
       const alerts = []
