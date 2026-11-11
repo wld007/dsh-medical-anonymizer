@@ -271,8 +271,7 @@ window.__ModuleLoader__.load({
       'wd.kReview': '待复核',
       'wd.loop': '确认的问题回到规则核验 · 最多 {rounds} 轮',
       'wd.inflight': '正在处理',
-      'wd.inflightCols': '环节 · 轮次 · 进度',
-      'wd.inflightMore': '另 {n} 个文件在处理中',
+      'wd.inflightMore': '另 {n} 个',
       'wd.empty': '还没有批次。点右上角「＋ 新批次」选择数据开始。',
       'wd.strip': '文件带 · 每格 1 个文件',
       'wd.stripGroup': '文件带 · 每格约 {n} 个文件',
@@ -1117,8 +1116,7 @@ window.__ModuleLoader__.load({
       'wd.kReview': 'Review',
       'wd.loop': 'Confirmed findings go back to the rule check · up to {rounds} rounds',
       'wd.inflight': 'In progress',
-      'wd.inflightCols': 'station · round · progress',
-      'wd.inflightMore': '{n} more files in progress',
+      'wd.inflightMore': '{n} more',
       'wd.empty': 'No batch yet. Click “＋ New run” at the top right to start.',
       'wd.strip': 'Files · one cell per file',
       'wd.stripGroup': 'Files · about {n} per cell',
@@ -2724,9 +2722,16 @@ window.__ModuleLoader__.load({
       .wd-st-hit{fill:transparent}
       .wd-st-sel .wd-st-hit{fill:rgba(34,199,192,.12);stroke:rgba(34,199,192,.55);stroke-dasharray:4 4}
       .wd-ov{position:absolute;z-index:2;border:1px solid var(--dsw-alias-border-l2);background:var(--wd-ov-bg);backdrop-filter:blur(4px);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
-      .wd-ov-bl{left:12px;bottom:40px;width:min(420px,46%)}
+      .wd-ov-bl{left:12px;bottom:40px;width:min(320px,36%);gap:3px;padding:7px 10px}
+      .wd-fl{display:flex;flex-direction:column;gap:2px}
+      .wd-fl-row{display:flex;align-items:baseline;gap:8px;font-size:11px;color:var(--dsw-alias-label-primary)}
+      .wd-fl-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .wd-fl-row i{flex:none;font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--wd-acc2)}
+      .wd-fl-bar{height:3px;border-radius:2px;background:var(--wd-track);overflow:hidden}
+      .wd-fl-bar i{display:block;height:100%;border-radius:2px;background:var(--ws-accent);transition:width .6s ease}
+      .wd-fl-more{font-size:10.5px;color:var(--wd-ink3);padding-top:1px}
       .wd-ovh{display:flex;justify-content:space-between;gap:8px;margin-bottom:2px}
-      .wd-ovr{display:grid;grid-template-columns:minmax(0,1fr) 72px 40px;gap:8px;font-size:11px;color:var(--dsw-alias-label-secondary);align-items:center}
+      .wd-ovr{display:grid;grid-template-columns:minmax(0,1fr) 48px 40px;gap:8px;font-size:11px;color:var(--dsw-alias-label-secondary);align-items:center}
       .wd-ovr span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .wd-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
       .wd-ovr-done i{text-align:right}
@@ -6549,26 +6554,34 @@ window.__ModuleLoader__.load({
                   dicom: dicomBypass, loopLabel: t('wd.loop', { rounds: Number(current?.config?.maxRounds ?? config?.maxRounds ?? 3) }),
                   selected: stationSel, onStation: (id) => setStationSel(stationSel === id ? null : id), dark: hostDark, t,
                 }),
-                // Bottom-left: files in progress (while running), then the most
-                // recently finished ones; always shown once a batch has files.
+                // Bottom-left: while running, the files in progress (name, station ·
+                // round, a thin progress bar); afterwards the last five finished.
+                // File names only; the full path is in the tooltip.
                 current && (inflight.length || files.length) ? (() => {
-                  const live = running ? inflight.slice(0, 4) : []
-                  const recent = [...files].filter((f) => Number.isFinite(Number(f.doneMs))).sort((x, y) => Number(y.doneMs) - Number(x.doneMs)).slice(0, Math.max(0, (running ? 6 : 5) - live.length))
+                  const fileName = (path) => { const text = String(path ?? ''); return text.slice(text.lastIndexOf('/') + 1) || text }
                   const TONE = { clean: 'var(--dsw-alias-state-success-primary)', review: 'var(--dsw-alias-state-warn-primary)', failed: 'var(--dsw-alias-state-error-primary)', cancelled: 'var(--dsw-alias-state-error-primary)' }
+                  if (running && inflight.length) {
+                    const live = inflight.slice(0, 5)
+                    return h('div', { className: 'wd-ov wd-ov-bl' },
+                      h('div', { className: 'wd-ovh' }, h('span', { className: 'wd-cap', style: { color: 'var(--wd-acc2)' } }, `● ${t('wd.inflight')} · ${inflight.length}`)),
+                      live.map((state) => {
+                        const pct = Math.round(Math.min(1, Number(state.fraction) || 0) * 100)
+                        return h('div', { key: `l${state.file}`, className: 'wd-fl', title: `${state.file}\n${pct}%` },
+                          h('div', { className: 'wd-fl-row' },
+                            h('span', { className: 'wd-fl-name' }, fileName(state.file)),
+                            h('i', {}, atIndex(state) >= 0 ? `S${String(atIndex(state) + 1).padStart(2, '0')} · R${state.round || 1}` : `R${state.round || 1}`)),
+                          h('div', { className: 'wd-fl-bar' }, h('i', { style: { width: `${pct}%` } })))
+                      }),
+                      inflight.length > live.length ? h('div', { className: 'wd-fl-more' }, t('wd.inflightMore', { n: inflight.length - live.length })) : null)
+                  }
+                  const recent = [...files].filter((f) => Number.isFinite(Number(f.doneMs))).sort((x, y) => Number(y.doneMs) - Number(x.doneMs)).slice(0, 5)
+                  if (recent.length === 0) return null
                   return h('div', { className: 'wd-ov wd-ov-bl' },
-                    live.length ? h(React.Fragment, {},
-                      h('div', { className: 'wd-ovh' }, h('span', { className: 'wd-cap', style: { color: 'var(--wd-acc2)' } }, `● ${t('wd.inflight')} · ${inflight.length}`), h('span', { className: 'wd-cap' }, t('wd.inflightCols'))),
-                      live.map((state) => h('div', { key: `l${state.file}`, className: 'wd-ovr', title: state.file },
-                        h('span', { className: 'wd-mono' }, shortPath(state.file)),
-                        h('i', {}, `S${String(atIndex(state) + 1).padStart(2, '0')} · R${state.round || 1}`),
-                        h('b', {}, `${Math.round(Math.min(1, Number(state.fraction) || 0) * 100)}%`))),
-                      inflight.length > live.length ? h('div', { className: 'wd-ovr' }, h('span', { style: { color: 'var(--wd-ink3)' } }, t('wd.inflightMore', { n: inflight.length - live.length }))) : null) : null,
-                    recent.length ? h(React.Fragment, {},
-                      h('div', { className: 'wd-ovh', style: live.length ? { marginTop: 4 } : undefined }, h('span', { className: 'wd-cap', style: { color: 'var(--dsw-alias-label-secondary)' } }, t('wd.recent', { n: files.length })), h('span', { className: 'wd-cap' }, t('wd.recentCols'))),
-                      recent.map((f) => h('div', { key: `d${f.relPath}`, className: 'wd-ovr wd-ovr-done', title: `${f.relPath} · ${t(`file.${f.status}`)}` },
-                        h('span', { className: 'wd-mono' }, h('i', { className: 'wd-dot', style: { background: TONE[f.status] ?? 'var(--wd-ink3)' } }), shortPath(f.relPath)),
-                        h('i', { style: { color: 'var(--dsw-alias-label-secondary)' } }, compact(fileEntities(f))),
-                        h('b', {}, `${((f.durationMs ?? 0) / 1000).toFixed(f.durationMs < 10000 ? 1 : 0)}s`)))) : null)
+                    h('div', { className: 'wd-ovh' }, h('span', { className: 'wd-cap', style: { color: 'var(--dsw-alias-label-secondary)' } }, t('wd.recent', { n: files.length })), h('span', { className: 'wd-cap' }, t('wd.recentCols'))),
+                    recent.map((f) => h('div', { key: `d${f.relPath}`, className: 'wd-ovr wd-ovr-done', title: `${f.relPath} · ${t(`file.${f.status}`)}` },
+                      h('span', {}, h('i', { className: 'wd-dot', style: { background: TONE[f.status] ?? 'var(--wd-ink3)' } }), fileName(f.relPath)),
+                      h('i', { style: { color: 'var(--dsw-alias-label-secondary)' } }, compact(fileEntities(f))),
+                      h('b', {}, `${((f.durationMs ?? 0) / 1000).toFixed(f.durationMs < 10000 ? 1 : 0)}s`))))
                 })() : null,
                 !current ? h('div', { className: 'wd-ov', style: { left: '50%', top: '42%', transform: 'translate(-50%,-50%)', textAlign: 'center' } }, h('span', {}, t('wd.empty'))) : null,
                 alertOverlay(),
