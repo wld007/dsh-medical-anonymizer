@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>Mockup · medical dark</title>
+<style>
+  :root {
+    --bg: #081116; --panel: #0d1a20; --panel2: #112128; --line: #1a2c34; --line2: #26404a;
+    --ink: #e2eef0; --ink2: #8ba5ad; --ink3: #58717a;
+    --acc: #22c7c0; --acc2: #7fe9e2; --accdim: rgba(34,199,192,.14);
+    --ok: #46d17f; --warn: #f5a524; --bad: #f05252; --vio: #a58bff;
+    --mono: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    --sans: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; width: 1600px; height: 900px; background: var(--bg); color: var(--ink); font-family: var(--sans); overflow: hidden; font-size: 12px; }
+  .num { font-family: var(--mono); }
+  .cap { font-family: var(--mono); font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink3); }
+  .p { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 9px 12px; display: flex; flex-direction: column; gap: 7px; min-height: 0; min-width: 0; position: relative; }
+  .p::before { content: ''; position: absolute; left: -1px; top: 10px; width: 2px; height: 14px; background: var(--acc); border-radius: 2px; }
+  .ph { display: flex; align-items: center; gap: 8px; }
+  .ph h3 { margin: 0; font-size: 12.5px; font-weight: 650; letter-spacing: .5px; white-space: nowrap; }
+  .ph .en { font-family: var(--mono); font-size: 9.5px; letter-spacing: 1.4px; color: var(--ink3); }
+  .ph .r { margin-left: auto; color: var(--ink2); font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+  .link { color: var(--acc2); }
+  .app { position: absolute; inset: 8px; display: grid; grid-template-rows: 46px 1fr; gap: 8px; }
+  .grid { display: grid; grid-template-columns: 222px minmax(0,1fr) 318px; gap: 8px; min-height: 0; }
+  .col { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+
+  /* top */
+  .top { display: flex; align-items: center; gap: 16px; padding: 0 14px; border: 1px solid var(--line); background: linear-gradient(90deg, rgba(34,199,192,.10), transparent 40%), var(--panel); border-radius: 6px; }
+  .logo { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #2fd6cd, #138a96); display: grid; place-items: center; color: #04201f; font-weight: 900; font-size: 16px; }
+  .brand b { display: block; font-size: 13.5px; letter-spacing: 2px; }
+  .brand span { font-family: var(--mono); font-size: 9.5px; color: var(--ink3); letter-spacing: 1.4px; }
+  .ver { font-family: var(--mono); font-size: 9.5px; color: var(--ink2); border: 1px solid var(--line2); border-radius: 3px; padding: 0 5px; margin-left: 6px; }
+  .live { display: flex; align-items: center; gap: 9px; padding: 4px 11px; border: 1px solid var(--line2); border-radius: 5px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 8px var(--acc); }
+  .sp { flex: 1; }
+  .search { width: 260px; height: 28px; border: 1px solid var(--line2); border-radius: 5px; display: flex; align-items: center; padding: 0 10px; color: var(--ink3); }
+  .clock { font-family: var(--mono); font-size: 21px; font-weight: 600; letter-spacing: 2px; }
+  .btn { height: 28px; padding: 0 12px; border-radius: 5px; border: 1px solid var(--line2); background: var(--panel2); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+  .btn.stop { border-color: rgba(240,82,82,.6); color: #ff9797; }
+  .btn.pri { background: var(--acc); border-color: var(--acc); color: #032220; font-weight: 700; letter-spacing: 2px; height: 34px; }
+  .icon { width: 28px; height: 28px; border-radius: 5px; border: 1px solid var(--line2); display: grid; place-items: center; color: var(--ink2); }
+
+  /* left: history */
+  .runs { display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+  .run { border: 1px solid var(--line); border-radius: 5px; padding: 7px 9px; display: grid; grid-template-columns: 1fr auto; gap: 2px 6px; }
+  .run.on { border-color: rgba(34,199,192,.6); background: var(--accdim); }
+  .run b { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .run small { grid-column: 1 / -1; color: var(--ink3); font-family: var(--mono); font-size: 10px; }
+  .chip { font-family: var(--mono); font-size: 9.5px; padding: 0 5px; border-radius: 3px; border: 1px solid; letter-spacing: .5px; height: 16px; line-height: 14px; white-space: nowrap; }
+  .c-run { color: var(--acc2); border-color: rgba(34,199,192,.6); }
+  .c-ok { color: var(--ok); border-color: rgba(70,209,127,.55); }
+  .c-warn { color: var(--warn); border-color: rgba(245,165,36,.6); }
+  .c-bad { color: #ff9797; border-color: rgba(240,82,82,.6); }
+  .c-mute { color: var(--ink2); border-color: var(--line2); }
+
+  /* stage */
+  .stage { padding: 0; overflow: hidden; background: radial-gradient(ellipse at 45% 55%, rgba(34,199,192,.08), transparent 62%), var(--panel); }
+  .stage .ph { position: absolute; left: 12px; right: 12px; top: 9px; z-index: 2; }
+  .legend { display: flex; gap: 10px; color: var(--ink2); font-size: 10.5px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
+  .stage svg.iso { display: block; width: 100%; height: 300px; }
+  .queue { padding: 0 12px 9px; }
+  .queue .row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .cells { display: flex; gap: 2px; height: 11px; }
+  .cells i { flex: 1; border-radius: 1px; background: #1a2a31; }
+  .cells i.c { background: rgba(70,209,127,.7); } .cells i.r { background: var(--warn); } .cells i.a { background: var(--acc); box-shadow: 0 0 6px var(--acc); }
+
+  /* ticks */
+  .track { height: 9px; background: repeating-linear-gradient(90deg, #1f343d 0 2px, transparent 2px 5px); position: relative; }
+  .ticks { position: absolute; left: 0; top: 0; height: 9px; width: var(--w); background: repeating-linear-gradient(90deg, var(--f, var(--acc)) 0 2px, transparent 2px 5px); }
+  .tb { display: grid; grid-template-columns: max-content minmax(0,1fr) max-content max-content; gap: 5px 8px; align-items: center; }
+  .tb span { color: var(--ink2); white-space: nowrap; }
+  .tb b { font-family: var(--mono); font-weight: 600; text-align: right; }
+  .tb i { font-style: normal; font-family: var(--mono); font-size: 10px; color: var(--ink3); text-align: right; min-width: 2.6em; }
+  .stack { display: flex; height: 9px; border-radius: 2px; overflow: hidden; gap: 1px; }
+  .lg { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--ink2); font-size: 11px; }
+  .lg i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
+  .lg b { font-family: var(--mono); color: var(--ink); margin-left: 3px; }
+
+  /* right */
+  .ov { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: center; }
+  .kv4 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .kv4 div { border-left: 2px solid var(--line2); padding: 3px 8px; display: flex; justify-content: space-between; align-items: baseline; background: rgba(255,255,255,.015); }
+  .kv4 span { color: var(--ink2); font-size: 11px; }
+  .kv4 b { font-family: var(--mono); font-size: 15px; }
+  .cells3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .cells3 div { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 7px; border-radius: 4px; background: rgba(255,255,255,.04); color: var(--ink2); font-size: 11px; white-space: nowrap; }
+  .cells3 b { font-family: var(--mono); color: var(--ink); font-size: 12.5px; }
+  .mt { display: grid; grid-template-columns: auto 1fr 1fr; font-size: 11px; color: var(--ink2); letter-spacing: -.1px; }
+  .mt > * { padding: 3px 5px; }
+  .mt b { font-family: var(--mono); text-align: right; color: var(--ink); font-weight: 600; white-space: nowrap; }
+  .mt > span { white-space: nowrap; }
+  .mt .z { background: rgba(255,255,255,.035); }
+  .mt .h { font-weight: 600; color: var(--ink); text-align: right; border-bottom: 1px solid var(--line2); }
+  .hist { display: inline-flex; gap: 1px; align-items: flex-end; height: 11px; margin-right: 6px; vertical-align: -1px; }
+  .hist i { width: 3px; background: var(--ink3); }
+
+  /* drawer */
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line2); margin: -2px -12px 0; padding: 0 8px; }
+  .tab { padding: 6px 11px 7px; color: var(--ink2); border-bottom: 2px solid transparent; font-size: 12px; white-space: nowrap; }
+  .tab.on { color: var(--ink); border-bottom-color: var(--acc); }
+  .tab .n { font-family: var(--mono); font-size: 9.5px; background: var(--warn); color: #1a1100; border-radius: 7px; padding: 0 5px; margin-left: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th { text-align: left; font-weight: 500; color: var(--ink3); font-size: 10.5px; padding: 4px 6px; border-bottom: 1px solid var(--line2); white-space: nowrap; }
+  td { padding: 5px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td.path { font-family: var(--mono); font-size: 11px; color: var(--ink2); max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+  td.r { text-align: right; font-family: var(--mono); }
+  .alert { display: grid; grid-template-columns: 3px 36px 1fr auto; gap: 8px; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--line); }
+  .alert:last-child { border-bottom: 0; }
+  .alert .rail { height: 24px; border-radius: 2px; }
+  .alert .t { font-family: var(--mono); font-size: 10px; color: var(--ink3); }
+  .alert b { display: block; font-size: 11.5px; font-weight: 600; }
+  .alert small { font-size: 10px; color: var(--ink3); }
+</style>
+<body>
+<div class="app">
+  <!-- ======= top ======= -->
+  <div class="top">
+    <div class="logo">✚</div>
+    <div class="brand"><b>医疗数据匿名化处理流水线</b><span>MEDICAL DATA DE-IDENTIFICATION<span class="ver">v0.9.0</span></span></div>
+    <div class="live"><span class="dot"></span><span style="color:var(--acc2)">运行中</span><span class="num" style="color:var(--ink2)">RUN-0bc4fe</span><span class="num" style="color:var(--ink3)">来源：面板</span></div>
+    <div class="sp"></div>
+    <div class="search">⌕ 搜索文件、字段、假名…</div>
+    <div class="cap">用时</div><div class="clock">08:33:37</div>
+    <div class="btn stop">■ 停止批次</div>
+    <div class="icon">⚙</div><div class="icon">?</div>
+  </div>
+
+  <div class="grid">
+    <!-- ======= left ======= -->
+    <div class="col">
+      <div class="p" style="gap:8px">
+        <div class="ph"><h3>数据输入</h3><span class="en">INPUT</span><span class="r link">⚙ 参数</span></div>
+        <div style="border:1px dashed var(--line2);border-radius:5px;padding:8px;color:var(--ink2);font-size:11px;line-height:16px">
+          <span class="num" style="color:var(--ink)">…/datasets/sample-8531</span><br>8531 个文件 · 1.37 GB · 含 zip 0
+        </div>
+        <div style="display:flex;gap:6px"><div class="btn" style="flex:1">选文件夹…</div><div class="btn" style="flex:1">选文件 / zip…</div></div>
+        <div class="btn stop" style="height:34px;letter-spacing:2px;font-weight:600">■ 停止批次</div>
+      </div>
+      <div class="p" style="flex:1">
+        <div class="ph"><h3>批次记录</h3><span class="en">RUNS</span><span class="r">12</span></div>
+        <div class="runs">
+          <div class="run on"><b>batch-A</b><span class="chip c-run">RUN 72%</span><small>11/10 17:38 · 8531 文件</small></div>
+          <div class="run"><b>证件-5754A4</b><span class="chip c-warn">待复核</span><small>11/10 17:22 · 32 文件 · △531</small></div>
+          <div class="run"><b>证件-5754A4</b><span class="chip c-bad">失败</span><small>11/10 17:04 · 磁盘已满</small></div>
+          <div class="run"><b>证件-5754A4</b><span class="chip c-warn">待复核</span><small>11/10 15:58 · 32 文件 · △531</small></div>
+          <div class="run"><b>证件-3A91C2</b><span class="chip c-ok">已交付</span><small>11/10 14:47 · 28 文件</small></div>
+          <div class="run"><b>CT-影像-07</b><span class="chip c-ok">已交付</span><small>11/10 14:22 · DICOM 1 240</small></div>
+          <div class="run"><b>证件-5754A4</b><span class="chip c-mute">已取消</span><small>11/10 11:15 · 22 文件</small></div>
+          <div class="run"><b>证件-5754A4</b><span class="chip c-mute">已取消</span><small>11/10 10:24 · 16 文件</small></div>
+          <div class="run"><b>门诊-样例</b><span class="chip c-ok">已交付</span><small>11/09 20:21 · 4 文件</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======= center ======= -->
+    <div class="col">
+      <div class="p stage">
+        <div class="ph"><h3>处理流程</h3><span class="en">LINE</span>
+          <span class="num" style="color:var(--ink3);font-size:10.5px;margin-left:8px">① 准备 → ② 逐文件并行 → ③ 收尾 → ④ 交付</span>
+          <span class="r legend"><span><i style="background:var(--acc)"></i>处理中</span><span><i style="background:var(--ok)"></i>已完成</span><span><i style="background:var(--warn)"></i>待复核</span><span><i style="background:#26404a"></i>未开始</span></span></div>
+        <svg class="iso" id="iso" viewBox="0 70 1240 360" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="queue">
+          <div class="row"><span class="cap">文件队列 · 每格 36 个文件</span><span class="num" style="font-size:11px;color:var(--ink2)">6107 / 8531 · 分组 31/43</span></div>
+          <div class="cells" id="cells"></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="p">
+          <div class="ph"><h3>标识符替换</h3><span class="en">BY TYPE</span><span class="r">12.7M</span></div>
+          <div class="tb">
+            <span>病历号</span><div class="track"><div class="ticks" style="--w:100%"></div></div><b>3.7M</b><i>29%</i>
+            <span>医院</span><div class="track"><div class="ticks" style="--w:66%"></div></div><b>2.5M</b><i>20%</i>
+            <span>医生</span><div class="track"><div class="ticks" style="--w:46%"></div></div><b>1.7M</b><i>13%</i>
+            <span>住院号</span><div class="track"><div class="ticks" style="--w:31%"></div></div><b>1.2M</b><i>9%</i>
+          </div>
+        </div>
+        <div class="p">
+          <div class="ph"><h3>核验结果</h3><span class="en">QUALITY</span><span class="r"><span class="link">比对与复核 214 项 →</span></span></div>
+          <div class="stack"><i style="flex:5181;background:var(--ok)"></i><i style="flex:926;background:var(--warn)"></i></div>
+          <div class="lg"><span><i style="background:var(--ok)"></i>通过<b>5181</b></span><span><i style="background:var(--warn)"></i>待复核<b>926</b></span><span><i style="background:var(--bad)"></i>失败<b>0</b></span><span style="margin-left:auto;color:var(--ink3)">已完成 6107</span></div>
+          <div style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--ink2)"><span class="chip c-warn">暂扣</span>有待复核项，交付数据暂不放到输出根目录</div>
+          <div style="display:flex;gap:6px;align-items:center"><span class="chip c-mute">记录</span><span class="num" style="font-size:10.5px;color:var(--ink3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">…/sample-8531/output/_medical-anonymizer/_records/runs/…0bc4fe</span><span class="link">复制</span></div>
+        </div>
+      </div>
+
+      <div class="p" style="flex:1;padding-top:6px">
+        <div class="tabs">
+          <div class="tab on">文件</div><div class="tab">日志</div><div class="tab">模型调用</div><div class="tab">交叉核验</div><div class="tab">提示<span class="n">3</span></div><div class="tab">改进<span class="n">12</span></div><div class="tab">报告</div>
+          <span style="margin-left:auto;color:var(--ink3);padding:6px 4px">⤢</span>
+        </div>
+        <table>
+          <thead><tr><th>文件</th><th>环节</th><th>状态</th><th style="text-align:right">替换数</th><th style="text-align:right">轮次</th><th style="text-align:right">耗时</th></tr></thead>
+          <tbody>
+            <tr><td class="path">batch-A/证件-7FEB77/护理与评估/C0102_0513_01住院一般护理记录.json</td><td>独立盲审</td><td><span class="chip c-run">处理中</span></td><td class="r">—</td><td class="r">2</td><td class="r">12s</td></tr>
+            <tr><td class="path">batch-A/证件-ADFE94/护理与评估/C0102_0513_01住院一般护理记录.json</td><td>规则核验</td><td><span class="chip c-run">处理中</span></td><td class="r">—</td><td class="r">1</td><td class="r">4s</td></tr>
+            <tr><td class="path">batch-A/证件-D8FDE9/住院记录/C0102_0201_01住院入出院登记.json</td><td>比对·打包</td><td><span class="chip c-ok">通过</span></td><td class="r">1 842</td><td class="r">1</td><td class="r">38s</td></tr>
+            <tr><td class="path">batch-A/证件-9D783A/费用/C0102_0801_02住院费用明细.json</td><td>比对·打包</td><td><span class="chip c-warn">待复核</span></td><td class="r">43 345</td><td class="r">2</td><td class="r">2m 41s</td></tr>
+            <tr><td class="path">batch-A/证件-75315E/住院病历与病程/C0102_0515_02首次病程记录.json</td><td>比对·打包</td><td><span class="chip c-ok">通过</span></td><td class="r">6 545</td><td class="r">2</td><td class="r">1m 12s</td></tr>
+            <tr><td class="path">batch-A/证件-31C0AB/检验/C0102_0402_01检验报告.json</td><td>比对·打包</td><td><span class="chip c-ok">通过</span></td><td class="r">982</td><td class="r">1</td><td class="r">22s</td></tr>
+            <tr><td class="path">batch-A/证件-31C0AB/影像/CT-0001.dcm</td><td>DICOM 旁路</td><td><span class="chip c-ok">通过</span></td><td class="r">14</td><td class="r">—</td><td class="r">0.2s</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======= right ======= -->
+    <div class="col">
+      <div class="p">
+        <div class="ph"><h3>运行概况</h3><span class="en">OVERVIEW</span><span class="r"><span class="chip c-run">LIVE</span></span></div>
+        <div class="ov">
+          <svg viewBox="0 0 96 96" width="96" height="96">
+            <circle cx="48" cy="48" r="38" fill="none" stroke="#1a2c34" stroke-width="9"/>
+            <circle cx="48" cy="48" r="38" fill="none" stroke="#22c7c0" stroke-width="9" stroke-linecap="round" stroke-dasharray="171.9 238.8" transform="rotate(-90 48 48)" style="filter:drop-shadow(0 0 5px rgba(34,199,192,.6))"/>
+            <text x="48" y="50" text-anchor="middle" fill="#e2eef0" font-family="SF Mono, Menlo" font-size="21" font-weight="700">72<tspan font-size="11" fill="#8ba5ad">%</tspan></text>
+            <text x="48" y="66" text-anchor="middle" fill="#58717a" font-size="9">按字节</text>
+          </svg>
+          <div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--ink2)">速率 件/分</span><b class="num">16.6</b></div>
+            <svg viewBox="0 0 200 44" style="width:100%;height:44px"><path id="rate" fill="rgba(34,199,192,.15)" stroke="none"/><path id="ratel" fill="none" stroke="#22c7c0" stroke-width="1.4"/><line x1="0" y1="24" x2="200" y2="24" stroke="#26404a" stroke-dasharray="3 3"/></svg>
+            <div style="display:flex;justify-content:space-between;color:var(--ink3);font-size:10.5px"><span>平均 16.6</span><span>剩余 ≈ 2h27m</span><span>峰值 39</span></div>
+          </div>
+        </div>
+        <div class="kv4">
+          <div><span>发现标识符</span><b>1.0M</b></div><div><span>替换次数</span><b>12.7M</b></div>
+          <div style="border-color:var(--warn)"><span>待复核</span><b style="color:var(--warn)">214</b></div><div><span>失败文件</span><b>0</b></div>
+        </div>
+        <div class="tb" style="grid-template-columns:max-content minmax(0,1fr) max-content"><span>堆内存</span><div class="track"><div class="ticks" style="--w:73%;--f:var(--warn)"></div></div><b style="font-size:11.5px">3.0 / 4.1 GB</b></div>
+      </div>
+
+      <div class="p">
+        <div class="ph"><h3>模型负载</h3><span class="en">MODELS</span></div>
+        <div class="stack"><i style="flex:1.4;background:var(--acc)"></i><i style="flex:.3;background:var(--ok)"></i><i style="flex:98.3;background:#2a434d"></i></div>
+        <div class="lg"><span><i style="background:var(--acc)"></i>发送 302.7k · 1%</span><span><i style="background:var(--ok)"></i>复用 61</span><span><i style="background:#2a434d"></i>免送 21.4M · 99%</span></div>
+        <div class="cells3"><div>调用<b>27.2k</b></div><div>复用<b>40</b></div><div>Token<b>53.9M</b></div></div>
+        <div class="mt">
+          <span></span><span class="h">识别 <i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc)"></i></span><span class="h">核验 <i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--vio)"></i></span>
+          <span style="color:var(--ink3);font-size:10px">模型</span><b style="font-weight:400;color:var(--ink2);font-size:10px">qwen3.6-35b</b><b style="font-weight:400;color:var(--ink2);font-size:10px">gemma-4-26b</b>
+          <span>调用</span><b>11.3k</b><b>15.9k</b>
+          <span class="z">失败率</span><b class="z">0.3% <small style="color:var(--ink3)">↻291</small></b><b class="z" style="color:var(--warn)">3.1% <small style="color:var(--ink3)">↻1095</small></b>
+          <span>上下文 均/最大</span><b><span class="hist"><i style="height:3px"></i><i style="height:4px"></i><i style="height:11px"></i><i style="height:6px"></i></span>1.1k / 5.6k</b><b><span class="hist"><i style="height:2px"></i><i style="height:5px"></i><i style="height:8px"></i><i style="height:11px"></i></span>2.7k / 9.1k</b>
+          <span class="z">每次 输出/耗时</span><b class="z">101 / 3.7s</b><b class="z">120 / 3.5s</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--ink2)">请求占用</span><span class="num" style="font-size:10.5px;color:var(--ink2)"><span style="color:var(--acc)">━</span> 识别 4/4 +12　<span style="color:var(--vio)">━</span> 核验 3/4 +146</span></div>
+        <svg viewBox="0 0 300 60" style="width:100%;height:46px" preserveAspectRatio="none">
+          <line x1="0" y1="8" x2="300" y2="8" stroke="#26404a" stroke-dasharray="3 3"/><line x1="0" y1="34" x2="300" y2="34" stroke="#26404a"/>
+          <path id="s1" fill="rgba(34,199,192,.12)" stroke="#22c7c0" stroke-width="1.3"/><path id="s2" fill="rgba(165,139,255,.10)" stroke="#a58bff" stroke-width="1.3"/>
+          <path id="q1" fill="none" stroke="#a58bff" stroke-width="1" opacity=".6"/>
+        </svg>
+      </div>
+
+      <div class="p">
+        <div class="ph"><h3>交叉核验</h3><span class="en">CROSS-CHECK</span><span class="r link">明细 →</span></div>
+        <div class="num" style="color:var(--ink2);font-size:11px">盲审 14 652 次 · 1 770 次有报出 · 18 661 条</div>
+        <div class="stack" style="height:5px"><i style="flex:4062;background:#3a535d"></i><i style="flex:1737;background:var(--bad)"></i><i style="flex:12862;background:#9fb4ba"></i></div>
+        <div class="stack"><i style="flex:3935;background:#4b646e"></i><i style="flex:127;background:#33494f"></i><i style="flex:1737;background:var(--bad)"></i><i style="flex:12528;background:var(--ok)"></i><i style="flex:255;background:#6f858c"></i><i style="flex:75;background:var(--warn)"></i></div>
+        <div style="display:grid;grid-template-columns:max-content 1fr;gap:3px 10px;font-size:11px;color:var(--ink2)">
+          <span><i style="display:inline-block;width:8px;height:8px;background:#3a535d;border-radius:2px;margin-right:4px"></i>过滤 <b class="num" style="color:var(--ink)">4062</b></span><span>格式不符 3935 · 无效 117 · 其他 10</span>
+          <span><i style="display:inline-block;width:8px;height:8px;background:var(--bad);border-radius:2px;margin-right:4px"></i>无法定位 <b class="num" style="color:var(--ink)">1737</b></span><span>→ 人工</span>
+          <span><i style="display:inline-block;width:8px;height:8px;background:#9fb4ba;border-radius:2px;margin-right:4px"></i>复判 <b class="num" style="color:var(--ink)">12862</b></span><span>确认 12528 · 误报 255 · 分歧 75</span>
+        </div>
+        <div style="display:flex;justify-content:space-between"><span>一致 97% · 分歧 1%</span><span class="link">待裁定 54 →</span></div>
+      </div>
+
+      <div class="p" style="flex:1">
+        <div class="ph"><h3>告警</h3><span class="en">ALERTS</span><span class="r">1 警告</span></div>
+        <div class="alert"><i class="rail" style="background:var(--warn)"></i><span class="t">07:52</span><div><b>核验模型格式错误 3.1%</b><small>已自动拆小重试</small></div><span class="chip c-warn">WARN</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- 2.5D line ----------
+const svg = document.getElementById('iso'), NS = 'http://www.w3.org/2000/svg'
+const O = { x: 120, y: 200 }
+const P = (x, y, z = 0) => [O.x + x * 0.96 - y * 0.62, O.y + x * 0.17 + y * 0.40 - z]
+const el = (tag, a, parent = svg) => { const n = document.createElementNS(NS, tag); for (const k in a) n.setAttribute(k, a[k]); parent.appendChild(n); return n }
+const poly = (pts, a) => el('polygon', { points: pts.map((p) => p.join(',')).join(' '), ...a })
+const shade = (hex, f) => { const n = parseInt(hex.slice(1), 16); return `rgb(${[n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.min(255, Math.round(v * f))).join(',')})` }
+el('defs', {}).innerHTML = `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+  <radialGradient id="poolA"><stop offset="0" stop-color="#22c7c0" stop-opacity=".55"/><stop offset="1" stop-color="#22c7c0" stop-opacity="0"/></radialGradient>
+  <radialGradient id="poolW"><stop offset="0" stop-color="#f5a524" stop-opacity=".5"/><stop offset="1" stop-color="#f5a524" stop-opacity="0"/></radialGradient>`
+function box(x, y, z, w, d, h, base, o = {}) {
+  const s = o.stroke ?? 'rgba(160,230,235,.10)'
+  poly([P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)], { fill: shade(base, .62), stroke: s, 'stroke-width': .8 })
+  poly([P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)], { fill: shade(base, .82), stroke: s, 'stroke-width': .8 })
+  poly([P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)], { fill: o.top ?? base, stroke: s, 'stroke-width': .8 })
+}
+const g0 = el('g', { opacity: .6 })
+for (let i = -2; i <= 12; i++) { const a = P(i * 100, -120), b = P(i * 100, 260); el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#132229' }, g0) }
+for (let j = -1; j <= 3; j++) { const a = P(-200, j * 100 - 20), b = P(1200, j * 100 - 20); el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#132229' }, g0) }
+const pools = el('g', {})
+box(-60, -60, -14, 1140, 290, 14, '#14262d', { stroke: 'rgba(160,230,235,.07)' })
+box(-40, 104, 0, 1110, 22, 7, '#21363e')
+for (let x = -30; x < 1070; x += 22) { const a = P(x, 104, 7.2), b = P(x, 126, 7.2); el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#2f4952' }) }
+;(() => { const a = P(10, 186), b = P(108 * 7 + 30, 186); el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#a58bff', 'stroke-width': 1.2, 'stroke-dasharray': '5 5', opacity: .75 }); const m = P(108 * 2.6, 206); el('text', { x: m[0], y: m[1], fill: '#a58bff', 'font-size': 11, 'font-family': 'SF Mono, Menlo', 'text-anchor': 'middle' }).textContent = '旁路 · DICOM 只处理元数据，不经模型 · 1 240' })()
+const ST = [['S01','预扫描','done','8531'],['S02','解析·拆层','done','8531'],['S03','识别·替换','active','6107'],['S04','规则核验','active','6102'],['S05','独立盲审','active','6094'],['S06','复判修正','done','R2 1683'],['S07','批次复扫','idle','31/43'],['S08','比对·打包','active','6090'],['S09','人工复核','warn','214'],['S10','交付','idle','暂扣']]
+const BODY = { done: '#2c4049', active: '#2f4750', warn: '#3a3f3c', idle: '#1f3036' }, LED = { done: '#46d17f', active: '#22c7c0', warn: '#f5a524', idle: '#2f4952' }
+ST.forEach(([code, name, st, stat], i) => {
+  const x = i * 108, y = 20, c = BODY[st]
+  if (st === 'active' || st === 'warn') { const p = P(x + 34, y + 40); el('ellipse', { cx: p[0], cy: p[1] + 16, rx: 70, ry: 26, fill: `url(#${st === 'warn' ? 'poolW' : 'poolA'})`, filter: 'url(#soft)' }, pools) }
+  box(x, y, 0, 70, 66, 26, c)
+  for (let k = 0; k < 4; k++) poly([P(x + 8 + k * 14, y + 66, 8), P(x + 18 + k * 14, y + 66, 8), P(x + 18 + k * 14, y + 66, 18), P(x + 8 + k * 14, y + 66, 18)], { fill: '#0b171c', opacity: .85 })
+  const hot = st === 'active'
+  box(x + 12, y + 10, 26, 46, 42, st === 'idle' ? 14 : 20, c, { top: hot ? '#1f5a5c' : st === 'warn' ? '#5a4a2a' : undefined })
+  if (hot || st === 'warn') { const col = hot ? '#7fe9e2' : '#f5a524'; for (let gx = 0; gx < 3; gx++) for (let gy = 0; gy < 3; gy++) { const zx = x + 16 + gx * 14, zy = y + 14 + gy * 12, zz = 46.2; poly([P(zx, zy, zz), P(zx + 10, zy, zz), P(zx + 10, zy + 8, zz), P(zx, zy + 8, zz)], { fill: col, opacity: (gx + gy) % 3 === 0 ? .95 : .5, filter: 'url(#glow)' }) } }
+  if (i % 3 === 1) { box(x + 46, y + 14, 46, 8, 8, 16, '#3a5560'); }
+  // medical cross on idle/done module top
+  if (!hot && st !== 'warn') { const zz = (st === 'idle' ? 40 : 46) + .2, cx = x + 35, cy = y + 31; poly([P(cx - 3, cy - 10, zz), P(cx + 3, cy - 10, zz), P(cx + 3, cy + 10, zz), P(cx - 3, cy + 10, zz)], { fill: '#3d5a64' }); poly([P(cx - 10, cy - 3, zz), P(cx + 10, cy - 3, zz), P(cx + 10, cy + 3, zz), P(cx - 10, cy + 3, zz)], { fill: '#3d5a64' }) }
+  const led = P(x + 64, y + 66, 22); el('circle', { cx: led[0], cy: led[1], r: 3, fill: LED[st], filter: st === 'idle' ? '' : 'url(#glow)' })
+  box(x + 26, y + 66, 0, 16, 18, 5, '#1b2d33')
+  const tip = P(x + 35, y + 31, st === 'idle' ? 40 : 46), lx = tip[0], top = tip[1] - 54
+  el('line', { x1: lx, y1: tip[1] - 4, x2: lx, y2: top + 34, stroke: LED[st], 'stroke-width': 1, 'stroke-dasharray': '2 3', opacity: .7 })
+  el('text', { x: lx, y: top + 4, fill: '#58717a', 'font-size': 9.5, 'font-family': 'SF Mono, Menlo', 'text-anchor': 'middle', 'letter-spacing': 1 }).textContent = code
+  el('text', { x: lx, y: top + 19, fill: st === 'idle' ? '#6f8a92' : '#e2eef0', 'font-size': 12.5, 'font-weight': 600, 'text-anchor': 'middle' }).textContent = name
+  el('text', { x: lx, y: top + 32, fill: st === 'warn' ? '#f5a524' : hot ? '#7fe9e2' : '#8ba5ad', 'font-size': 10.5, 'font-family': 'SF Mono, Menlo', 'text-anchor': 'middle' }).textContent = stat
+})
+for (let k = 0; k < 40; k++) { const x = 210 + k * 21 + (k % 3) * 2; if (x > 900) break; if (x > 700 && k % 2) continue; box(x, 109, 7, 11, 11, 8, x < 720 ? '#1aa39d' : '#2a5258', { top: x < 720 ? '#7fe9e2' : '#3c6a70', stroke: 'rgba(0,0,0,.3)' }) }
+;(() => { const a = P(5 * 108 + 35, 34, 128), b = P(3 * 108 + 35, 34, 128), mx = (a[0] + b[0]) / 2, my = Math.min(a[1], b[1]) - 46
+  el('path', { d: `M${a[0]},${a[1]} Q${mx},${my} ${b[0]},${b[1]}`, fill: 'none', stroke: '#22c7c0', 'stroke-width': 1.3, 'stroke-dasharray': '6 5' })
+  el('path', { d: `M${b[0] + 9},${b[1] - 9} L${b[0]},${b[1]} L${b[0] + 12},${b[1] + 1}`, fill: 'none', stroke: '#22c7c0', 'stroke-width': 1.3 })
+  el('text', { x: mx, y: my + 12, fill: '#7fe9e2', 'font-size': 11, 'text-anchor': 'middle', 'font-family': 'SF Mono, Menlo' }).textContent = '复判修正 → 规则核验 · 最多 3 轮 · R2 1683' })()
+;(() => { const p = P(4 * 108 + 40, 40, 52), gx = p[0] + 270, gy = p[1] - 140
+  el('polyline', { points: `${p[0]},${p[1]} ${p[0] + 70},${gy + 70} ${gx},${gy + 70}`, fill: 'none', stroke: '#22c7c0', 'stroke-width': 1, opacity: .6 })
+  el('rect', { x: gx, y: gy, width: 200, height: 82, rx: 4, fill: 'rgba(13,26,32,.95)', stroke: '#22c7c0', 'stroke-opacity': .55 })
+  const t = (x, y, s, a) => { el('text', { x, y, ...a }).textContent = s }
+  t(gx + 12, gy + 20, 'S05', { fill: '#7fe9e2', 'font-size': 12, 'font-weight': 700, 'font-family': 'SF Mono, Menlo' }); t(gx + 44, gy + 20, '独立盲审 · gemma-4-26b', { fill: '#8ba5ad', 'font-size': 11 })
+  ;[['进行 / 排队', '3/4 · +146'], ['平均耗时', '3.1 s'], ['本轮报出', '1 770 次']].forEach(([k, v], i) => { t(gx + 12, gy + 40 + i * 15, k, { fill: '#58717a', 'font-size': 10.5 }); t(gx + 188, gy + 40 + i * 15, v, { fill: '#e2eef0', 'font-size': 11, 'text-anchor': 'end', 'font-family': 'SF Mono, Menlo' }) }) })()
+svg.insertBefore(pools, svg.children[2])
+
+// queue
+const cells = document.getElementById('cells')
+for (let i = 0; i < 240; i++) { const c = document.createElement('i'); if (i < 168) c.className = (i * 37 % 23 === 0 || i % 31 === 7) ? 'r' : 'c'; else if (i < 172) c.className = 'a'; cells.appendChild(c) }
+// rate sparkline
+const S = (n, f) => Array.from({ length: n }, (_, i) => f(i))
+const r = S(50, (i) => 30 - 6 * Math.sin(i / 3.1) - 4 * Math.sin(i / 1.3 + 1) - 3 * Math.cos(i / 7) - (i < 4 ? (4 - i) * 4 : 0))
+const rp = r.map((y, i) => `${i ? 'L' : 'M'}${(i / 49 * 200).toFixed(1)},${y.toFixed(1)}`).join('')
+document.getElementById('ratel').setAttribute('d', rp); document.getElementById('rate').setAttribute('d', rp + 'L200,44L0,44Z')
+// request slots: in flight above axis (34), queue below
+const up = (f) => S(90, (i) => 34 - 26 * f(i)).map((y, i) => `${i ? 'L' : 'M'}${(i / 89 * 300).toFixed(1)},${y.toFixed(1)}`).join('') + 'L300,34L0,34Z'
+document.getElementById('s1').setAttribute('d', up((i) => (i % 30 < 18 ? 1 : .25)))
+document.getElementById('s2').setAttribute('d', up((i) => (i % 30 >= 12 ? .75 : .5)))
+document.getElementById('q1').setAttribute('d', S(90, (i) => 34 + Math.min(24, (i % 45) * .9)).map((y, i) => `${i ? 'L' : 'M'}${(i / 89 * 300).toFixed(1)},${y.toFixed(1)}`).join(''))
+</script>
+</body>
+</html>
