@@ -728,7 +728,6 @@ window.__ModuleLoader__.load({
       'ws.drawer.exit': '退出全屏',
       'ws.drawer.fullHint': '底部面板（文件、日志、模型调用、交叉核验、提示、改进、报告）铺满窗口',
       'ws.drawer.exitHint': '恢复原来的布局（Esc）',
-      'ws.report.copy': '复制 Markdown',
       'ws.perMin': '件/分',
       'ws.spark.avg': '全程平均 {rate}（{secs} s/文件）',
       'ws.spark.now': '当前',
@@ -1525,7 +1524,6 @@ window.__ModuleLoader__.load({
       'ws.drawer.exit': 'Exit full screen',
       'ws.drawer.fullHint': 'The bottom panel (files, log, calls, cross-check, notes, advice, report) fills the window',
       'ws.drawer.exitHint': 'Back to the normal layout (Esc)',
-      'ws.report.copy': 'Copy Markdown',
       'ws.perMin': '/min',
       'ws.spark.avg': 'overall {rate} ({secs} s/file)',
       'ws.spark.now': 'now',
@@ -2148,8 +2146,6 @@ window.__ModuleLoader__.load({
       .ws-strip-axis{display:flex;justify-content:space-between;font-size:10px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
       .ws-calls tr.ws-focus td{background:color-mix(in srgb,var(--ws-accent) 14%,transparent)}
       .ws-report{position:relative}
-      .ws-report-tools{position:sticky;top:0;z-index:2;display:flex;justify-content:flex-end;gap:6px;margin-bottom:-28px;pointer-events:none}
-      .ws-report-tools button{pointer-events:auto}
       .ws-modal-report{width:min(1100px,100%);height:calc(100vh - 48px)}
       .ws-modal-report .ws-modal-body{padding:8px 32px 28px}
       .ws-md{font-size:13px;line-height:21px;color:var(--dsw-alias-label-primary);max-width:960px}
@@ -5006,8 +5002,6 @@ window.__ModuleLoader__.load({
           ? h('p', { className: 'ma-empty' }, t('detail.noReport'))
           : (reportText
             ? h('div', { className: 'ws-report' },
-              h('div', { className: 'ws-report-tools' },
-                h('button', { className: 'ma-btn ma-small', onClick: () => copyText(reportText) }, t('ws.report.copy'))),
               h(MarkdownView, { text: reportText }))
             : h('p', { className: 'ma-empty' }, t('detail.loading')))
       }
@@ -6231,7 +6225,6 @@ window.__ModuleLoader__.load({
           h('div', { className: `ws-modal ws-modal-${modal}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : t('settings.title')) },
             h('div', { className: 'ws-modal-head' },
               h('h3', {}, (modal === 'help' ? t('ws.helpTitle') : modal === 'report' ? `${t('ws.tab.report')} · ${current?.id ?? ''}` : t('settings.title'))),
-              modal === 'report' && reportText ? h('button', { className: 'ma-btn ma-small', onClick: () => copyText(reportText) }, t('ws.report.copy')) : null,
               h('button', { className: 'ma-btn ma-small', onClick: closeModal, 'aria-label': t('detail.close') }, '✕')),
             h('div', { className: 'ws-modal-body' },
               modal === 'help'
