@@ -2335,21 +2335,24 @@ window.__ModuleLoader__.load({
     // aliases inside the page, so every existing panel, table and dialog
     // follows; the wd-* classes are the new layout.
     const DARK_CSS = `
-      .ws-page.ws-dark{--dsw-alias-label-primary:#e2eef0;--dsw-alias-label-secondary:#8ba5ad;--dsw-alias-label-tertiary:#58717a;--dsw-alias-bg-base:#0a151a;--dsw-alias-bg-layer-1:#0d1a20;--dsw-alias-bg-layer-2:#132229;--dsw-alias-bg-overlay:#16272e;--dsw-alias-border-l1:#1a2c34;--dsw-alias-border-l2:#26404a;--dsw-alias-state-success-primary:#46d17f;--dsw-alias-state-warn-primary:#f5a524;--dsw-alias-state-error-primary:#f05252;--dsw-alias-state-danger-primary:#f05252;--dsw-alias-brand-primary:#22c7c0;--ws-accent:#22c7c0;--ws-accent-soft:rgba(34,199,192,.14);--ws-ink:#e2eef0;--ws-paper:#0d1a20;--wd-acc2:#7fe9e2;--wd-vio:#a58bff;--wd-ink3:#58717a;background:#081116;color:#e2eef0;color-scheme:dark;gap:8px;padding:8px 10px 10px}
-      .ws-dark .ws-panel,.ws-dark .ws-head{background:var(--ws-paper);border-color:var(--dsw-alias-border-l1);border-radius:6px}
-      .ws-dark .ws-panel::before,.ws-dark .ws-panel::after,.ws-dark .ws-head::after{display:none}
-      .ws-dark .ws-head{border-left:1px solid var(--dsw-alias-border-l1);background:linear-gradient(90deg,rgba(34,199,192,.10),transparent 40%),var(--ws-paper);padding:6px 12px;gap:14px;flex-wrap:nowrap}
-      .ws-dark .ws-brand .ws-brand-mark{background:linear-gradient(135deg,#2fd6cd,#138a96);color:#04201f;border-radius:7px}
-      .ws-dark .ws-brand{flex:0 0 auto;min-width:0}
-      .ws-dark .ws-panel-head h3::before{background:transparent;color:var(--wd-ink3);padding:0;margin-right:6px}
+      .ws-page.ws-light{--ws-accent:#0e9f98;--ws-accent-soft:rgba(14,159,152,.12);--ws-ink:var(--dsw-alias-label-primary);--ws-paper:var(--dsw-alias-bg-layer-1);--dsw-alias-brand-primary:#0e9f98;--wd-acc2:#08857f;--wd-vio:#7b5cf0;--wd-ink3:var(--dsw-alias-label-tertiary,#7d9298);--wd-track:#d3dfe2;--wd-empty:#dfe7ea;--wd-ov-bg:rgba(255,255,255,.9);--wd-pop-bg:var(--dsw-alias-bg-layer-1);--wd-crit:#d23c3c;background:var(--dsw-alias-bg-base);gap:8px;padding:8px 10px 10px}
+      .ws-light .ws-head{background:linear-gradient(90deg,rgba(14,159,152,.08),transparent 40%),var(--ws-paper)}
+      .ws-light .wd-stage{background:radial-gradient(ellipse at 45% 55%,rgba(14,159,152,.07),transparent 62%),var(--ws-paper)}
+      .ws-page.ws-dark{--dsw-alias-label-primary:#e2eef0;--dsw-alias-label-secondary:#8ba5ad;--dsw-alias-label-tertiary:#58717a;--dsw-alias-bg-base:#0a151a;--dsw-alias-bg-layer-1:#0d1a20;--dsw-alias-bg-layer-2:#132229;--dsw-alias-bg-overlay:#16272e;--dsw-alias-border-l1:#1a2c34;--dsw-alias-border-l2:#26404a;--dsw-alias-state-success-primary:#46d17f;--dsw-alias-state-warn-primary:#f5a524;--dsw-alias-state-error-primary:#f05252;--dsw-alias-state-danger-primary:#f05252;--dsw-alias-brand-primary:#22c7c0;--ws-accent:#22c7c0;--ws-accent-soft:rgba(34,199,192,.14);--ws-ink:#e2eef0;--ws-paper:#0d1a20;--wd-acc2:#7fe9e2;--wd-vio:#a58bff;--wd-ink3:#58717a;--wd-track:#1f343d;--wd-empty:#1a2a31;--wd-ov-bg:rgba(10,22,27,.86);--wd-pop-bg:#0f1d23;--wd-crit:#ff9797;background:#081116;color:#e2eef0;color-scheme:dark;gap:8px;padding:8px 10px 10px}
+      .ws-ctl .ws-panel,.ws-ctl .ws-head{background:var(--ws-paper);border-color:var(--dsw-alias-border-l1);border-radius:6px}
+      .ws-ctl .ws-panel::before,.ws-ctl .ws-panel::after,.ws-ctl .ws-head::after{display:none}
+      .ws-ctl .ws-head{border-left:1px solid var(--dsw-alias-border-l1);background:linear-gradient(90deg,rgba(34,199,192,.10),transparent 40%),var(--ws-paper);padding:6px 12px;gap:14px;flex-wrap:nowrap}
+      .ws-ctl .ws-brand .ws-brand-mark{background:linear-gradient(135deg,#2fd6cd,#138a96);color:#04201f;border-radius:7px}
+      .ws-ctl .ws-brand{flex:0 0 auto;min-width:0}
+      .ws-ctl .ws-panel-head h3::before{background:transparent;color:var(--wd-ink3);padding:0;margin-right:6px}
       .ws-dark .ma-btn{background:#112128;border-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary)}
-      .ws-dark .ma-btn.ma-primary,.ws-dark .ws-start{background:var(--ws-accent);border-color:var(--ws-accent);color:#032220;font-weight:700}
+      .ws-ctl .ma-btn.ma-primary,.ws-ctl .ws-start{background:var(--ws-accent);border-color:var(--ws-accent);color:#032220;font-weight:700}
       .ws-dark .ma-input{background:#0a151a;border-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary)}
-      .ws-dark .ws-start.ws-stop{background:transparent;border-color:rgba(240,82,82,.6);color:#ff9797}
+      .ws-ctl .ws-start.ws-stop{background:transparent;border-color:rgba(240,82,82,.6);color:var(--wd-crit)}
       .ws-dark .ws-modal{background:#0d1a20;border:1px solid var(--dsw-alias-border-l2)}
-      .ws-dark .ws-modal-head{border-top-color:var(--ws-accent)}
-      .ws-dark .ma-table th{color:var(--wd-ink3)}
-      .ws-dark .ws-table thead th{background:var(--ws-paper)}
+      .ws-ctl .ws-modal-head{border-top-color:var(--ws-accent)}
+      .ws-ctl .ma-table th{color:var(--wd-ink3)}
+      .ws-ctl .ws-table thead th{background:var(--ws-paper)}
       .wd-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
       .wd-cap{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--wd-ink3);white-space:nowrap}
       .wd-sp{flex:1}
@@ -2358,7 +2361,7 @@ window.__ModuleLoader__.load({
       .wd-act{position:relative}
       .wd-act .ma-btn{height:30px;padding:0 14px;white-space:nowrap}
       .wd-new{border-color:rgba(34,199,192,.6)!important;color:var(--wd-acc2)!important}
-      .wd-pop{position:absolute;right:0;top:38px;z-index:950;width:440px;padding:14px 16px;border:1px solid rgba(34,199,192,.5);border-radius:8px;background:#0f1d23;box-shadow:0 20px 60px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:10px}
+      .wd-pop{position:absolute;right:0;top:38px;z-index:950;width:440px;padding:14px 16px;border:1px solid rgba(34,199,192,.5);border-radius:8px;background:var(--wd-pop-bg);box-shadow:0 20px 60px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:10px}
       .wd-pop .ma-field{gap:4px}
       .wd-shade{position:fixed;inset:0;z-index:940;background:rgba(0,0,0,.35)}
       .wd-tabs{flex:none;display:flex;align-items:stretch;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);padding:0 6px;overflow-x:auto;scrollbar-width:none}
@@ -2379,7 +2382,7 @@ window.__ModuleLoader__.load({
       .wd-st:hover .wd-st-hit{fill:rgba(34,199,192,.08)}
       .wd-st-hit{fill:transparent}
       .wd-st-sel .wd-st-hit{fill:rgba(34,199,192,.12);stroke:rgba(34,199,192,.55);stroke-dasharray:4 4}
-      .wd-ov{position:absolute;z-index:2;border:1px solid var(--dsw-alias-border-l2);background:rgba(10,22,27,.86);backdrop-filter:blur(4px);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+      .wd-ov{position:absolute;z-index:2;border:1px solid var(--dsw-alias-border-l2);background:var(--wd-ov-bg);backdrop-filter:blur(4px);border-radius:6px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
       .wd-ov-bl{left:12px;bottom:40px;width:min(420px,46%)}
       .wd-ovh{display:flex;justify-content:space-between;gap:8px;margin-bottom:2px}
       .wd-ovr{display:grid;grid-template-columns:minmax(0,1fr) 72px 40px;gap:8px;font-size:11px;color:var(--dsw-alias-label-secondary);align-items:center}
@@ -2388,7 +2391,7 @@ window.__ModuleLoader__.load({
       .wd-ovr b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;text-align:right;color:var(--dsw-alias-label-primary)}
       .wd-strip{flex:none;padding:0 12px 9px;display:flex;flex-direction:column;gap:4px}
       .wd-strip .ws-pieces{max-height:none;min-height:11px;padding:0;border:0;background:none;gap:2px;flex-wrap:nowrap;overflow:hidden}
-      .wd-strip .ws-piece{flex:1;min-width:2px;width:auto;height:11px;border-radius:1px;border:0;background:#1a2a31}
+      .wd-strip .ws-piece{flex:1;min-width:2px;width:auto;height:11px;border-radius:1px;border:0;background:var(--wd-empty)}
       .wd-strip .ws-piece.ws-p-clean{background:rgba(70,209,127,.72)}
       .wd-strip .ws-piece.ws-p-review{background:var(--dsw-alias-state-warn-primary)}
       .wd-strip .ws-piece.ws-p-failed,.wd-strip .ws-piece.ws-p-cancelled{background:var(--dsw-alias-state-error-primary)}
@@ -2414,11 +2417,8 @@ window.__ModuleLoader__.load({
       .wd-big div span{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;letter-spacing:1.3px;color:var(--wd-ink3)}
       .wd-big div b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:24px;font-weight:600;letter-spacing:.5px;line-height:28px;white-space:nowrap}
       .wd-big div b small{font-size:11px;color:var(--wd-ink3);font-weight:400;margin-left:2px}
-      .wd-bar{display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:11.5px;color:var(--dsw-alias-label-secondary)}
-      .wd-bar>b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:var(--dsw-alias-label-primary);text-align:right;white-space:nowrap;min-width:5em}
-      .wd-track{height:9px;position:relative;background:repeating-linear-gradient(90deg,#1f343d 0 2px,transparent 2px 5px)}
-      .wd-ticks{position:absolute;left:0;top:0;height:9px;background:repeating-linear-gradient(90deg,var(--wd-f,var(--ws-accent)) 0 2px,transparent 2px 5px)}
-      .wd-stack{display:flex;height:9px;gap:1px;border-radius:2px;overflow:hidden;background:#1a2a31}
+      .wd-track{height:9px;position:relative;background:repeating-linear-gradient(90deg,var(--wd-track) 0 2px,transparent 2px 5px)}
+      .wd-stack{display:flex;height:9px;gap:1px;border-radius:2px;overflow:hidden;background:var(--wd-empty)}
       .wd-lg{display:flex;gap:12px;font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden}
       .wd-lg b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);margin-left:3px}
       .wd-path{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--wd-ink3);min-width:0}
@@ -2431,7 +2431,7 @@ window.__ModuleLoader__.load({
       .wd-alert b{display:block;font-size:12px;font-weight:600}
       .wd-alert small{font-size:10.5px;color:var(--wd-ink3)}
       .wd-chip{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;padding:0 5px;border-radius:3px;border:1px solid;letter-spacing:.5px;white-space:nowrap}
-      .wd-c-crit{color:#ff9797;border-color:rgba(240,82,82,.6)}
+      .wd-c-crit{color:var(--wd-crit);border-color:rgba(240,82,82,.6)}
       .wd-c-warn{color:var(--dsw-alias-state-warn-primary);border-color:rgba(245,165,36,.6)}
       .wd-c-info{color:var(--dsw-alias-label-secondary);border-color:var(--dsw-alias-border-l2)}
       .wd-c-ok{color:var(--dsw-alias-state-success-primary);border-color:rgba(70,209,127,.55)}
@@ -2440,6 +2440,19 @@ window.__ModuleLoader__.load({
       .wd-runs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;overflow:auto;align-content:start}
       .wd-runs .ws-run{margin:0}
       @media (max-width:1100px){.wd-main{grid-template-columns:minmax(0,1fr)}.wd-bottom{grid-template-columns:1fr 1fr}.wd-ro:nth-child(2){border-right:0}}
+      .wd-ro .ws-spark{gap:2px}
+      .wd-ro .ws-spark-head{display:none}
+      .wd-line{font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .wd-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);font-weight:500}
+      .wd-gauges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;align-items:start}
+      .wd-gauge{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;text-align:center}
+      .wd-gauge svg{width:58px;height:58px}
+      .wd-gauge .wd-g-track{fill:none;stroke:var(--wd-track);stroke-width:6}
+      .wd-gauge .wd-g-arc{fill:none;stroke-width:6;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+      .wd-gauge text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:600;fill:var(--dsw-alias-label-primary)}
+      .wd-gauge span{font-size:11px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
+      .wd-gauge small{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--wd-ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
     `
 
     function tFactory(ctx) {
@@ -3263,7 +3276,34 @@ window.__ModuleLoader__.load({
      * DICOM bypass. labels[id] = [line1, line2, tone]. Click a station for
      * its detail on the right.
      */
-    function IsoLine({ states, labels, load, belt, dicom, loopLabel, onStation, selected, t }) {
+    // 2.5D colours for the dark and the light host theme.
+    const ISO_DARK = { grid: '#132229', slab: '#14262d', belt: '#21363e', roller: '#2f4952', bDone: '#2c4049', bActive: '#2f4750', bWarn: '#3a3f3c', bIdle: '#1f3036', ok: '#46d17f', acc: '#22c7c0', warn: '#f5a524', vent: '#0b171c', activeTop: '#1f5a5c', warnTop: '#5a4a2a', acc2: '#7fe9e2', cross: '#3d5a64', feeder: '#1b2d33', pileWarn: '#b8781a', pile: '#178d89', pileTop: '#4fd3cb', code: '#58717a', idleText: '#6f8a92', name: '#e2eef0', line: '#8ba5ad', file: '#1aa39d', vio: '#a58bff', stroke: 'rgba(160,230,235,.10)' }
+    const ISO_LIGHT = { grid: '#dbe5e8', slab: '#e3ecee', belt: '#c9d9dd', roller: '#aabfc5', bDone: '#cfdde1', bActive: '#c4e6e3', bWarn: '#f1e0bf', bIdle: '#e2e9ec', ok: '#1f9d55', acc: '#0e9f98', warn: '#d98a00', vent: '#7f979e', activeTop: '#9fe3dd', warnTop: '#f6c873', acc2: '#08857f', cross: '#a7bcc2', feeder: '#bfd0d4', pileWarn: '#e0a23a', pile: '#1bb0a7', pileTop: '#7fe3dc', code: '#7d9298', idleText: '#8aa0a6', name: '#17323a', line: '#4c6870', file: '#18b3aa', vio: '#7b5cf0', stroke: 'rgba(20,60,70,.14)' }
+
+    /** Is the host (DSH) page dark? Reads its background colour. */
+    function hostIsDark(el) {
+      try {
+        const host = el ?? document.documentElement
+        let color = getComputedStyle(host).getPropertyValue('--dsw-alias-bg-base').trim()
+        if (!color) color = getComputedStyle(document.body).backgroundColor
+        const probe = document.createElement('span')
+        probe.style.color = color
+        document.body.appendChild(probe)
+        const rgb = getComputedStyle(probe).color
+        probe.remove()
+        const parts = (rgb.match(/[\d.]+/g) ?? []).map(Number)
+        if (parts.length < 3) throw new Error('no colour')
+        const scale = rgb.startsWith('color(') ? 255 : 1
+        const [r, g, b] = rgb.startsWith('color(') ? parts.slice(0, 3) : parts
+        if ([r, g, b].every((v) => v === 0) && /rgba\(0, 0, 0, 0\)|transparent/.test(rgb)) throw new Error('transparent')
+        return (0.2126 * r + 0.7152 * g + 0.0722 * b) * scale / 255 < 0.5
+      } catch {
+        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true
+      }
+    }
+
+    function IsoLine({ states, labels, load, belt, dicom, loopLabel, onStation, selected, dark = true, t }) {
+      const C = dark ? ISO_DARK : ISO_LIGHT
       const STEP = 108
       const P = (x, y, z = 0) => [120 + x * 0.96 - y * 0.62, 236 + x * 0.12 + y * 0.40 - z]
       const pts = (list) => list.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
@@ -3272,17 +3312,17 @@ window.__ModuleLoader__.load({
         return `rgb(${[n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.min(255, Math.round(v * f))).join(',')})`
       }
       let key = 0
-      const poly = (list, fill, extra = {}) => h('polygon', { key: key++, points: pts(list), fill, stroke: 'rgba(160,230,235,.10)', strokeWidth: 0.8, ...extra })
+      const poly = (list, fill, extra = {}) => h('polygon', { key: key++, points: pts(list), fill, stroke: C.stroke, strokeWidth: 0.8, ...extra })
       const box = (x, y, z, w, d, hh, base, top) => [
         poly([P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + hh), P(x, y + d, z + hh)], shade(base, 0.62)),
         poly([P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + hh), P(x + w, y, z + hh)], shade(base, 0.82)),
         poly([P(x, y, z + hh), P(x + w, y, z + hh), P(x + w, y + d, z + hh), P(x, y + d, z + hh)], top ?? base),
       ]
-      const BODY = { done: '#2c4049', active: '#2f4750', warn: '#3a3f3c', idle: '#1f3036' }
-      const LED = { done: '#46d17f', active: '#22c7c0', warn: '#f5a524', idle: '#2f4952' }
+      const BODY = { done: C.bDone, active: C.bActive, warn: C.bWarn, idle: C.bIdle }
+      const LED = { done: C.ok, active: C.acc, warn: C.warn, idle: C.roller }
       const grid = []
-      for (let i = -2; i <= 12; i += 1) { const a = P(i * 100, -120); const b = P(i * 100, 260); grid.push(h('line', { key: `gx${i}`, x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#132229' })) }
-      for (let j = -1; j <= 3; j += 1) { const a = P(-200, j * 100 - 20); const b = P(1200, j * 100 - 20); grid.push(h('line', { key: `gy${j}`, x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#132229' })) }
+      for (let i = -2; i <= 12; i += 1) { const a = P(i * 100, -120); const b = P(i * 100, 260); grid.push(h('line', { key: `gx${i}`, x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C.grid })) }
+      for (let j = -1; j <= 3; j += 1) { const a = P(-200, j * 100 - 20); const b = P(1200, j * 100 - 20); grid.push(h('line', { key: `gy${j}`, x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C.grid })) }
       const pools = []
       const stations = STATIONS.map((id, i) => {
         const st = states[id] ?? 'idle'
@@ -3295,12 +3335,12 @@ window.__ModuleLoader__.load({
         const hit = [P(x - 6, y - 6, 0), P(x + 76, y - 6, 0), P(x + 76, y + 92, 0), P(x - 6, y + 92, 0)]
         parts.push(h('polygon', { key: 'hit', className: 'wd-st-hit', points: pts(hit) }))
         parts.push(...box(x, y, 0, 70, 66, 26, base))
-        for (let v = 0; v < 4; v += 1) parts.push(poly([P(x + 8 + v * 14, y + 66, 8), P(x + 18 + v * 14, y + 66, 8), P(x + 18 + v * 14, y + 66, 18), P(x + 8 + v * 14, y + 66, 18)], '#0b171c', { stroke: 'none' }))
+        for (let v = 0; v < 4; v += 1) parts.push(poly([P(x + 8 + v * 14, y + 66, 8), P(x + 18 + v * 14, y + 66, 8), P(x + 18 + v * 14, y + 66, 18), P(x + 8 + v * 14, y + 66, 18)], C.vent, { stroke: 'none' }))
         const mh = st === 'idle' ? 14 : 20
-        parts.push(...box(x + 12, y + 10, 26, 46, 42, mh, base, hot ? '#1f5a5c' : st === 'warn' ? '#5a4a2a' : undefined))
+        parts.push(...box(x + 12, y + 10, 26, 46, 42, mh, base, hot ? C.activeTop : st === 'warn' ? C.warnTop : undefined))
         const zz = 26 + mh + 0.2
         if (hot || st === 'warn') {
-          const col = hot ? '#7fe9e2' : '#f5a524'
+          const col = hot ? C.acc2 : C.warn
           for (let gx = 0; gx < 3; gx += 1) {
             for (let gy = 0; gy < 3; gy += 1) {
               const zx = x + 16 + gx * 14
@@ -3311,19 +3351,19 @@ window.__ModuleLoader__.load({
         } else {
           const cx = x + 35
           const cy = y + 31
-          parts.push(poly([P(cx - 3, cy - 10, zz), P(cx + 3, cy - 10, zz), P(cx + 3, cy + 10, zz), P(cx - 3, cy + 10, zz)], '#3d5a64', { stroke: 'none' }))
-          parts.push(poly([P(cx - 10, cy - 3, zz), P(cx + 10, cy - 3, zz), P(cx + 10, cy + 3, zz), P(cx - 10, cy + 3, zz)], '#3d5a64', { stroke: 'none' }))
+          parts.push(poly([P(cx - 3, cy - 10, zz), P(cx + 3, cy - 10, zz), P(cx + 3, cy + 10, zz), P(cx - 3, cy + 10, zz)], C.cross, { stroke: 'none' }))
+          parts.push(poly([P(cx - 10, cy - 3, zz), P(cx + 10, cy - 3, zz), P(cx + 10, cy + 3, zz), P(cx - 10, cy + 3, zz)], C.cross, { stroke: 'none' }))
         }
         const led = P(x + 64, y + 66, 22)
         parts.push(h('circle', { key: 'led', cx: led[0], cy: led[1], r: 3, fill: LED[st], filter: st === 'idle' ? undefined : 'url(#wd-glow)' }))
-        parts.push(...box(x + 26, y + 66, 0, 16, 18, 5, '#1b2d33'))
+        parts.push(...box(x + 26, y + 66, 0, 16, 18, 5, C.feeder))
         // Files at this station, piled in front of it.
         const n = Math.min(36, load[id] ?? 0)
         for (let b = 0; b < n; b += 1) {
           const lv = Math.floor(b / 6)
           const a = b % 3
           const c = Math.floor((b % 6) / 3)
-          parts.push(...box(x + 14 + a * 13, 136 + c * 12, lv * 9, 11, 10, 8, st === 'warn' ? '#b8781a' : '#178d89', st === 'warn' ? '#f5a524' : '#4fd3cb'))
+          parts.push(...box(x + 14 + a * 13, 136 + c * 12, lv * 9, 11, 10, 8, st === 'warn' ? C.pileWarn : C.pile, st === 'warn' ? C.warn : C.pileTop))
         }
         return { id, i, st, x, y, parts, mh }
       })
@@ -3333,20 +3373,20 @@ window.__ModuleLoader__.load({
         const top = tip[1] - (line2 ? 66 : 54)
         return h('g', { key: `lb${id}`, pointerEvents: 'none' },
           h('line', { x1: tip[0], y1: tip[1] - 4, x2: tip[0], y2: top + (line2 ? 46 : 34), stroke: LED[st], strokeWidth: 1, strokeDasharray: '2 3', opacity: 0.7 }),
-          h('text', { x: tip[0], y: top + 4, fill: '#58717a', fontSize: 9.5, textAnchor: 'middle', className: 'wd-mono', letterSpacing: 1 }, `S${String(i + 1).padStart(2, '0')}`),
-          h('text', { x: tip[0], y: top + 19, fill: st === 'idle' ? '#6f8a92' : '#e2eef0', fontSize: 12.5, fontWeight: 600, textAnchor: 'middle' }, t(`ws.st.${id}`)),
-          h('text', { x: tip[0], y: top + 32, fill: st === 'warn' ? '#f5a524' : st === 'active' ? '#7fe9e2' : '#8ba5ad', fontSize: 10.5, textAnchor: 'middle', className: 'wd-mono' }, line1),
-          line2 ? h('text', { x: tip[0], y: top + 44, fill: tone === 'warn' ? '#f5a524' : '#8ba5ad', fontSize: 9.5, textAnchor: 'middle', className: 'wd-mono' }, line2) : null)
+          h('text', { x: tip[0], y: top + 4, fill: C.code, fontSize: 9.5, textAnchor: 'middle', className: 'wd-mono', letterSpacing: 1 }, `S${String(i + 1).padStart(2, '0')}`),
+          h('text', { x: tip[0], y: top + 19, fill: st === 'idle' ? C.idleText : C.name, fontSize: 12.5, fontWeight: 600, textAnchor: 'middle' }, t(`ws.st.${id}`)),
+          h('text', { x: tip[0], y: top + 32, fill: st === 'warn' ? C.warn : st === 'active' ? C.acc2 : C.line, fontSize: 10.5, textAnchor: 'middle', className: 'wd-mono' }, line1),
+          line2 ? h('text', { x: tip[0], y: top + 44, fill: tone === 'warn' ? C.warn : C.line, fontSize: 9.5, textAnchor: 'middle', className: 'wd-mono' }, line2) : null)
       })
       // Belt and the files riding it.
       const beltBoxes = []
       for (let k = 0; k < belt; k += 1) {
         const x = 210 + k * 21 + (k % 3) * 2
         if (x > 960) break
-        beltBoxes.push(...box(x, 109, 7, 11, 11, 8, '#1aa39d', '#7fe9e2'))
+        beltBoxes.push(...box(x, 109, 7, 11, 11, 8, C.file, C.acc2))
       }
       const rollers = []
-      for (let x = -30; x < 1070; x += 22) { const a = P(x, 104, 7.2); const b = P(x, 126, 7.2); rollers.push(h('line', { key: `r${x}`, x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: '#2f4952' })) }
+      for (let x = -30; x < 1070; x += 22) { const a = P(x, 104, 7.2); const b = P(x, 126, 7.2); rollers.push(h('line', { key: `r${x}`, x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C.roller })) }
       const la = P(5 * STEP + 35, 34, 128)
       const lb = P(3 * STEP + 35, 34, 128)
       const mx = (la[0] + lb[0]) / 2
@@ -3358,22 +3398,22 @@ window.__ModuleLoader__.load({
         h('defs', {},
           h('filter', { id: 'wd-glow', x: '-50%', y: '-50%', width: '200%', height: '200%' }, h('feGaussianBlur', { stdDeviation: 3.5, result: 'b' }), h('feMerge', {}, h('feMergeNode', { in: 'b' }), h('feMergeNode', { in: 'SourceGraphic' }))),
           h('filter', { id: 'wd-soft', x: '-50%', y: '-50%', width: '200%', height: '200%' }, h('feGaussianBlur', { stdDeviation: 10 })),
-          h('radialGradient', { id: 'wd-pool-a' }, h('stop', { offset: 0, stopColor: '#22c7c0', stopOpacity: 0.55 }), h('stop', { offset: 1, stopColor: '#22c7c0', stopOpacity: 0 })),
-          h('radialGradient', { id: 'wd-pool-w' }, h('stop', { offset: 0, stopColor: '#f5a524', stopOpacity: 0.5 }), h('stop', { offset: 1, stopColor: '#f5a524', stopOpacity: 0 }))),
+          h('radialGradient', { id: 'wd-pool-a' }, h('stop', { offset: 0, stopColor: C.acc, stopOpacity: 0.55 }), h('stop', { offset: 1, stopColor: C.acc, stopOpacity: 0 })),
+          h('radialGradient', { id: 'wd-pool-w' }, h('stop', { offset: 0, stopColor: C.warn, stopOpacity: 0.5 }), h('stop', { offset: 1, stopColor: C.warn, stopOpacity: 0 }))),
         h('g', { opacity: 0.6 }, grid),
-        h('g', {}, box(-60, -60, -14, 1140, 290, 14, '#14262d')),
+        h('g', {}, box(-60, -60, -14, 1140, 290, 14, C.slab)),
         h('g', {}, pools),
-        h('g', {}, box(-40, 104, 0, 1110, 22, 7, '#21363e'), rollers),
-        h('line', { x1: da[0], y1: da[1], x2: db[0], y2: db[1], stroke: '#a58bff', strokeWidth: 1.2, strokeDasharray: '5 5', opacity: dicom.state === 'idle' ? 0.35 : 0.8 }),
-        h('text', { x: dm[0], y: dm[1], fill: '#a58bff', fontSize: 11, textAnchor: 'middle', className: 'wd-mono', opacity: dicom.state === 'idle' ? 0.5 : 1 }, dicom.label),
+        h('g', {}, box(-40, 104, 0, 1110, 22, 7, C.belt), rollers),
+        h('line', { x1: da[0], y1: da[1], x2: db[0], y2: db[1], stroke: C.vio, strokeWidth: 1.2, strokeDasharray: '5 5', opacity: dicom.state === 'idle' ? 0.35 : 0.8 }),
+        h('text', { x: dm[0], y: dm[1], fill: C.vio, fontSize: 11, textAnchor: 'middle', className: 'wd-mono', opacity: dicom.state === 'idle' ? 0.5 : 1 }, dicom.label),
         stations.map(({ id, parts }) => h('g', {
           key: id, className: `wd-st${selected === id ? ' wd-st-sel' : ''}`,
           onClick: () => onStation(id),
         }, h('title', {}, t(`ws.st.${id}`)), parts)),
         h('g', { pointerEvents: 'none' }, beltBoxes),
-        h('path', { d: `M${la[0]},${la[1]} Q${mx},${my} ${lb[0]},${lb[1]}`, fill: 'none', stroke: '#22c7c0', strokeWidth: 1.3, strokeDasharray: '6 5' }),
-        h('path', { d: `M${lb[0] + 9},${lb[1] - 9} L${lb[0]},${lb[1]} L${lb[0] + 12},${lb[1] + 1}`, fill: 'none', stroke: '#22c7c0', strokeWidth: 1.3 }),
-        h('text', { x: mx, y: my + 12, fill: '#7fe9e2', fontSize: 11, textAnchor: 'middle', className: 'wd-mono' }, loopLabel),
+        h('path', { d: `M${la[0]},${la[1]} Q${mx},${my} ${lb[0]},${lb[1]}`, fill: 'none', stroke: C.acc, strokeWidth: 1.3, strokeDasharray: '6 5' }),
+        h('path', { d: `M${lb[0] + 9},${lb[1] - 9} L${lb[0]},${lb[1]} L${lb[0] + 12},${lb[1] + 1}`, fill: 'none', stroke: C.acc, strokeWidth: 1.3 }),
+        h('text', { x: mx, y: my + 12, fill: C.acc2, fontSize: 11, textAnchor: 'middle', className: 'wd-mono' }, loopLabel),
         labelsSvg)
     }
 
@@ -3709,6 +3749,18 @@ window.__ModuleLoader__.load({
       const [view, setView] = React.useState('line') // 'line' | 'drawer' | 'runs'
       const [stationSel, setStationSel] = React.useState(null)
       const [newOpen, setNewOpen] = React.useState(false)
+      // Follow the Harness theme (light / dark).
+      const [hostDark, setHostDark] = React.useState(() => hostIsDark(null))
+      React.useEffect(() => {
+        const check = () => setHostDark(hostIsDark(rootRef.current?.parentElement ?? null))
+        check()
+        const observer = new MutationObserver(check)
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-color-scheme'] })
+        if (document.body) observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] })
+        const media = window.matchMedia?.('(prefers-color-scheme: dark)')
+        media?.addEventListener?.('change', check)
+        return () => { observer.disconnect(); media?.removeEventListener?.('change', check) }
+      }, [])
       const [now, setNow] = React.useState(Date.now())
       const [log, setLog] = React.useState([])
       const [draft, setDraft] = React.useState(null)
@@ -5536,18 +5588,27 @@ window.__ModuleLoader__.load({
       if (alerts.length === 0) alerts.push({ tone: 'ok', tag: 'OK', title: current ? t('wd.aNone') : t('wd.aIdle'), sub: '' })
       const etaMin = running && rate > 0 && planned > done ? (planned - done) / rate : null
       const fmtEta = (min) => (min >= 60 ? `${Math.floor(min / 60)}:${String(Math.round(min % 60)).padStart(2, '0')}` : `${Math.max(1, Math.round(min))}`)
-      const bar = (label, pct, value, color, title = '') => h('div', { className: 'wd-bar', title },
-        h('span', {}, label),
-        h('div', { className: 'wd-track' }, h('div', { className: 'wd-ticks', style: { width: `${Math.max(0, Math.min(100, pct))}%`, ...(color ? { '--wd-f': color } : {}) } })),
-        h('b', { style: color === 'var(--dsw-alias-state-error-primary)' ? { color: '#ff9797' } : undefined }, value))
-      const srvBar = (key) => {
+      const gauge = (label, ratio, detail, tone = '', title = '') => {
+        const r = 23
+        const len = 2 * Math.PI * r
+        const v = ratio === null || ratio === undefined || !Number.isFinite(ratio) ? null : Math.max(0, Math.min(1, ratio))
+        const color = tone === 'crit' ? 'var(--dsw-alias-state-error-primary)' : tone === 'warn' ? 'var(--dsw-alias-state-warn-primary)' : 'var(--ws-accent)'
+        return h('div', { className: 'wd-gauge', title },
+          h('svg', { viewBox: '0 0 58 58' },
+            h('circle', { className: 'wd-g-track', cx: 29, cy: 29, r }),
+            v === null ? null : h('circle', { className: 'wd-g-arc', cx: 29, cy: 29, r, stroke: color, strokeDasharray: `${(len * v).toFixed(1)} ${len.toFixed(1)}` }),
+            h('text', { x: 29, y: 33, textAnchor: 'middle' }, v === null ? '—' : `${Math.round(v * 100)}%`)),
+          h('span', {}, label),
+          h('small', {}, detail))
+      }
+      const srvGauge = (key) => {
         const v = current?.server?.[key]
         const name = key === 'verify' ? t('wd.kvVerify') : t('wd.kvDetect')
-        if (!v) return bar(name, 0, '—', null, t('ws.m.srvHint'))
-        if (v.available === false) return bar(name, 0, t('ws.m.srvNa'), null, t('ws.m.srvNaHint'))
+        if (!v) return gauge(name, null, '—', '', t('ws.m.srvHint'))
+        if (v.available === false) return gauge(name, null, t('ws.m.srvNa'), '', t('ws.m.srvNaHint'))
         const kv = (running ? v.kv : v.peakKv) ?? 0
         const waiting = running ? (v.waiting ?? 0) : (v.peakWaiting ?? 0)
-        return bar(name, kv * 100, `${Math.round(kv * 100)}% · ${t('wd.srvWait', { n: waiting })}`, kv >= 0.9 ? 'var(--dsw-alias-state-warn-primary)' : null, t('ws.m.srvHint'))
+        return gauge(name, kv, t('wd.srvWait', { n: waiting }), kv >= 0.9 || waiting > 0 ? 'warn' : '', t('ws.m.srvHint'))
       }
       const TABS = [
         ['line', t('wd.tab.line')],
@@ -5611,7 +5672,7 @@ window.__ModuleLoader__.load({
             : null)
       }
 
-      return h('div', { className: 'ma-page ws-page ws-dark', ref: rootRef },
+      return h('div', { className: `ma-page ws-page ws-ctl ${hostDark ? 'ws-dark' : 'ws-light'}`, ref: rootRef },
         h('style', { key: 'ma-style' }, CSS + WS_CSS + DARK_CSS),
         // ── Header ──
         h('header', { className: 'ws-head' },
@@ -5676,13 +5737,13 @@ window.__ModuleLoader__.load({
                     h('span', {}, h('i', { style: { background: 'var(--ws-accent)' } }), t('ws.kActive')),
                     h('span', {}, h('i', { style: { background: 'var(--dsw-alias-state-success-primary)' } }), t('ws.kDone')),
                     h('span', {}, h('i', { style: { background: 'var(--dsw-alias-state-warn-primary)' } }), t('wd.kReview')),
-                    h('span', {}, h('i', { style: { background: '#26404a' } }), t('ws.kIdle'))),
+                    h('span', {}, h('i', { style: { background: 'var(--wd-empty)' } }), t('ws.kIdle'))),
                   h('span', { className: 'wd-sp' }),
                   h('span', { className: 'wd-cap' }, t('wd.clickStation'))),
                 h(IsoLine, {
                   states: stationStates, labels: stationLabels, load, belt: running ? Math.min(30, inflight.length * 2) : 0,
                   dicom: dicomBypass, loopLabel: t('wd.loop', { rounds: Number(current?.config?.maxRounds ?? config?.maxRounds ?? 3) }),
-                  selected: stationSel, onStation: (id) => setStationSel(stationSel === id ? null : id), t,
+                  selected: stationSel, onStation: (id) => setStationSel(stationSel === id ? null : id), dark: hostDark, t,
                 }),
                 running && inflight.length
                   ? h('div', { className: 'wd-ov wd-ov-bl' },
@@ -5714,7 +5775,9 @@ window.__ModuleLoader__.load({
                   h('div', {}, h('span', {}, 'FILES'), h('b', {}, `${percent}`, h('small', {}, '%'))),
                   h('div', {}, h('span', {}, 'RATE'), h('b', {}, (running ? recentRate : rate).toFixed(1), h('small', {}, t('wd.perMin')))),
                   h('div', {}, h('span', {}, 'ETA'), h('b', { style: { color: 'var(--dsw-alias-label-secondary)' } }, etaMin === null ? '—' : fmtEta(etaMin), h('small', {}, etaMin !== null && etaMin >= 60 ? 'h' : etaMin !== null ? t('wd.min') : '')))),
-                bar(t('wd.bytes'), bytePercent, plannedBytes ? fmtBytes(Math.min(processedBytes, plannedBytes)) : `${done} / ${planned || '—'}`),
+                h('div', { className: 'wd-line' },
+                  h('b', {}, `${done} / ${planned || '—'}`), ` ${t('ws.unitFiles')}`,
+                  plannedBytes ? h(React.Fragment, {}, ' · ', h('b', {}, `${fmtBytes(Math.min(processedBytes, plannedBytes))} / ${fmtBytes(plannedBytes)}`)) : null),
                 spark()),
               // Results
               h('div', { className: 'wd-ro' },
@@ -5722,7 +5785,7 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'wd-big' },
                   h('div', { title: t('ws.m.distinctHint') }, h('span', {}, 'IDENTIFIERS'), h('b', {}, compact(totals.distinctIds ?? totals.newMappings ?? 0))),
                   h('div', { title: t('ws.m.entitiesHint') }, h('span', {}, 'REPLACED'), h('b', {}, compact(totals.entities ?? 0))),
-                  h('div', {}, h('span', {}, 'FAILED'), h('b', { style: { color: (totals.filesFailed ?? 0) > 0 ? '#ff9797' : 'var(--dsw-alias-label-secondary)' } }, String(totals.filesFailed ?? 0)))),
+                  h('div', {}, h('span', {}, 'FAILED'), h('b', { style: { color: (totals.filesFailed ?? 0) > 0 ? 'var(--wd-crit)' : 'var(--dsw-alias-label-secondary)' } }, String(totals.filesFailed ?? 0)))),
                 h('div', { className: 'wd-stack' }, ['clean', 'review', 'failed'].map((key) => counts[key] > 0
                   ? h('i', { key, style: { flex: counts[key], background: key === 'clean' ? 'var(--dsw-alias-state-success-primary)' : key === 'review' ? 'var(--dsw-alias-state-warn-primary)' : 'var(--dsw-alias-state-error-primary)' } })
                   : null)),
@@ -5736,14 +5799,11 @@ window.__ModuleLoader__.load({
               // Resources: this machine and the inference servers
               h('div', { className: 'wd-ro' },
                 h('div', { className: 'wd-roh' }, h('b', {}, t('wd.resources')), h('span', { className: 'wd-cap' }, t('wd.resScope'))),
-                mem?.heapLimit
-                  ? bar(t('wd.heap'), memRatio * 100, `${((running ? mem.heapUsed : mem.peakHeap) / GB).toFixed(1)} / ${(mem.heapLimit / GB).toFixed(1)}G`, memRatio >= 0.85 ? 'var(--dsw-alias-state-error-primary)' : memRatio >= 0.7 ? 'var(--dsw-alias-state-warn-primary)' : null, t('ws.m.memHint'))
-                  : bar(t('wd.heap'), 0, '—'),
-                disk?.total
-                  ? bar(t('wd.disk'), (1 - disk.free / disk.total) * 100, t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }), disk.free < 5 * GB ? 'var(--dsw-alias-state-error-primary)' : disk.free < 20 * GB ? 'var(--dsw-alias-state-warn-primary)' : null, t('wd.diskHint'))
-                  : bar(t('wd.disk'), 0, '—', null, t('wd.diskHint')),
-                srvBar('detect'),
-                verifierName ? srvBar('verify') : null),
+                h('div', { className: 'wd-gauges' },
+                  gauge(t('wd.heap'), memRatio, mem?.heapLimit ? `${((running ? mem.heapUsed : mem.peakHeap) / GB).toFixed(1)} / ${(mem.heapLimit / GB).toFixed(1)}G` : '—', memRatio >= 0.85 ? 'crit' : memRatio >= 0.7 ? 'warn' : '', t('ws.m.memHint')),
+                  gauge(t('wd.disk'), disk?.total ? 1 - disk.free / disk.total : null, disk?.total ? t('wd.diskFree', { gb: (disk.free / GB).toFixed(disk.free < 10 * GB ? 1 : 0) }) : '—', disk?.total && disk.free < 5 * GB ? 'crit' : disk?.total && disk.free < 20 * GB ? 'warn' : '', t('wd.diskHint')),
+                  srvGauge('detect'),
+                  verifierName ? srvGauge('verify') : null)),
               // To do and alerts
               h('div', { className: 'wd-ro' },
                 h('div', { className: 'wd-roh' }, h('b', {}, t('wd.alerts')), h('span', { className: 'wd-cap' }, String(alerts.filter((a) => a.tone !== 'ok').length))),

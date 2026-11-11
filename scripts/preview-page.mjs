@@ -26,7 +26,11 @@ if (!outputRoot || !umd) {
 const service = createService({ config: { outputRoot }, defaultDirectory: outputRoot })
 
 const page = `<!doctype html><meta charset="utf-8"><title>preview</title>
-<style>html,body,#root{margin:0;height:100%;background:#081116}</style>
+<style>html,body,#root{margin:0;height:100%}
+:root{--dsw-alias-bg-base:#0b1418;--dsw-alias-bg-layer-1:#111b20;--dsw-alias-bg-layer-2:#18242a;--dsw-alias-label-primary:#e6edef;--dsw-alias-label-secondary:#93a4a9;--dsw-alias-label-tertiary:#647479;--dsw-alias-border-l1:#1d2a30;--dsw-alias-border-l2:#2a3a41;--dsw-alias-state-success-primary:#3fbf6f;--dsw-alias-state-warn-primary:#f0a020;--dsw-alias-state-error-primary:#e5484d}
+:root.light{--dsw-alias-bg-base:#f4f6f7;--dsw-alias-bg-layer-1:#ffffff;--dsw-alias-bg-layer-2:#eef2f3;--dsw-alias-label-primary:#1b2a2f;--dsw-alias-label-secondary:#5d6e73;--dsw-alias-label-tertiary:#8a989c;--dsw-alias-border-l1:#e3e9eb;--dsw-alias-border-l2:#d2dcdf;--dsw-alias-state-success-primary:#1f9d55;--dsw-alias-state-warn-primary:#d98a00;--dsw-alias-state-error-primary:#d23c3c}
+body{background:var(--dsw-alias-bg-base);font-family:-apple-system,"PingFang SC",sans-serif}</style>
+<script>if (new URLSearchParams(location.search).get('theme') === 'light') document.documentElement.classList.add('light')</script>
 <div id="root"></div>
 <script src="/react.js"></script><script src="/react-dom.js"></script>
 <script>
