@@ -784,6 +784,9 @@ window.__ModuleLoader__.load({
       'ws.rv.replaced': '已替换为 {to}（{count} 处）',
       'ws.rv.allowed': '已确认不是标识符，并加入不匹配的值',
       'ws.rv.accepted': '已确认保留',
+      'ws.rv.absorb': '并入 {token}（删掉残留）',
+      'ws.rv.absorbHint': '「{text}」紧挨着假名 {token}，是同一个值没替换完的部分（原文被标签或字段隔开）。删掉紧挨着假名的「{text}」，让假名代表整个值；文件里其他地方的「{text}」不动。',
+      'ws.rv.absorbed': '已删除紧挨着假名的残留 {count} 处',
       'ws.rv.go': '复核 {count} 项',
       'ws.rv.code.residual': '规则复扫残留',
       'ws.rv.code.disputed': '核验与识别意见不一致',
@@ -1682,6 +1685,9 @@ window.__ModuleLoader__.load({
       'ws.rv.replaced': 'Replaced with {to} ({count}×)',
       'ws.rv.allowed': 'Confirmed not an identifier; added to allowed values',
       'ws.rv.accepted': 'Kept',
+      'ws.rv.absorb': 'Merge into {token} (delete the rest)',
+      'ws.rv.absorbHint': '"{text}" sits right against the pseudonym {token}: the part of the same value left over (split by markup or a field). Deletes "{text}" where it touches a pseudonym, so the pseudonym stands for the whole value; "{text}" elsewhere in the file is untouched.',
+      'ws.rv.absorbed': 'Deleted the leftover next to the pseudonym ({count})',
       'ws.rv.go': 'Review {count}',
       'ws.rv.code.residual': 'Rule rescan residual',
       'ws.rv.code.disputed': 'Verifier and detector disagree',
@@ -5537,10 +5543,16 @@ window.__ModuleLoader__.load({
       }
 
       const codeLabel = (item) => (t(`ws.rv.code.${item.code}`) === `ws.rv.code.${item.code}` ? item.code : t(`ws.rv.code.${item.code}`))
+      // A pseudonym right before or after the item's text in its context: the
+      // text is the rest of that value (split by markup) and can be merged in.
+      const PSEUDO_EDGE_END = new RegExp(`(?:化名|患者|医生|证件|电话|邮箱|地址|病历|住院|就诊|社保|银行卡|医院)-[0-9A-F]{6}$`)
+      const PSEUDO_EDGE_START = new RegExp(`^(?:化名|患者|医生|证件|电话|邮箱|地址|病历|住院|就诊|社保|银行卡|医院)-[0-9A-F]{6}(?![0-9A-Za-z])`)
+      const neighbour = (item) => (item.text ? (String(item.before ?? '').match(PSEUDO_EDGE_END)?.[0] ?? String(item.after ?? '').match(PSEUDO_EDGE_START)?.[0] ?? null) : null)
       // The decision buttons of one review item, or its recorded outcome.
       const reviewActions = (file, item) => (item.decision
         ? h('div', { className: 'ws-rv-result' }, item.decision.action === 'replace'
           ? t('ws.rv.replaced', { to: item.decision.replacement, count: item.decision.count })
+          : item.decision.action === 'absorb' ? t('ws.rv.absorbed', { count: item.decision.count })
           : item.decision.action === 'remove' ? t('ws.rv.removed')
             : item.decision.action === 'allow' ? t('ws.rv.allowed') : t('ws.rv.accepted'))
         : OPAQUE_REVIEW.has(item.code)
@@ -5550,9 +5562,13 @@ window.__ModuleLoader__.load({
               : null,
             h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.keepOpaque')))
           : h('div', { className: 'ma-actions' },
+            neighbour(item) ? h('button', {
+              className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable,
+              title: !file.editable ? file.reason : t('ws.rv.absorbHint', { token: neighbour(item), text: item.text }), onClick: () => decideReview(file, item, 'absorb'),
+            }, reviewBusy === item.id ? t('save.saving') : t('ws.rv.absorb', { token: neighbour(item) })) : null,
             h('button', {
               // A replacement writes the mapping vault, which a running batch holds.
-              className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable || !item.text || anyRunning,
+              className: `ma-btn ma-small${neighbour(item) ? '' : ' ma-primary'}`, disabled: reviewBusy !== null || !file.editable || !item.text || anyRunning,
               title: !item.text ? t('ws.rv.noText') : !file.editable ? file.reason : anyRunning ? t('ws.rv.runningHint') : '', onClick: () => decideReview(file, item, 'replace'),
             }, reviewBusy === item.id ? t('save.saving') : (item.replacement ? t('ws.rv.replaceWith', { to: item.replacement }) : t('ws.rv.replace'))),
             item.text ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || anyRunning, title: t('ws.rv.allowHint'), onClick: () => decideReview(file, item, 'allow') }, t('ws.rv.allow')) : null,
