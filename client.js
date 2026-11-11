@@ -590,6 +590,12 @@ window.__ModuleLoader__.load({
       'ws.blindSame': '⚠ 与识别模型相同',
       'ws.blindSameHint': '核验模型与识别模型同为 {model}，盲区相同，独立性有限。点击打开设置。',
       'ws.cmp.only': '只看改动',
+      'ws.cmp.mode.all': '全部',
+      'ws.cmp.mode.changed': '只看改动',
+      'ws.cmp.mode.judge': '待判断',
+      'ws.cmp.expand': '展开全文',
+      'ws.cmp.collapse': '收起',
+      'ws.rv.unlocatedHead': '需要你判断 · 表格中定位不到的 {n} 项',
       'ws.cmp.onlyHint': '只显示被替换过的段落和待复核的段落；取消勾选显示全部内容',
       'ws.stage1': '① 批次准备',
       'ws.stage2': '② 逐个文件 · 并行',
@@ -1419,6 +1425,12 @@ window.__ModuleLoader__.load({
       'ws.blindSame': '⚠ Same as detector',
       'ws.blindSameHint': 'Verification and detection both use {model}: same blind spots, limited independence. Click to open settings.',
       'ws.cmp.only': 'Changes only',
+      'ws.cmp.mode.all': 'All',
+      'ws.cmp.mode.changed': 'Changes',
+      'ws.cmp.mode.judge': 'To judge',
+      'ws.cmp.expand': 'Show all',
+      'ws.cmp.collapse': 'Collapse',
+      'ws.rv.unlocatedHead': 'Needs your judgement · {n} not found in the table',
       'ws.cmp.onlyHint': 'Show only replaced and flagged segments; untick to show all content',
       'ws.stage1': '① PREPARE',
       'ws.stage2': '② PER FILE · PARALLEL',
@@ -2446,6 +2458,23 @@ window.__ModuleLoader__.load({
       .ws-cmp-same td{color:var(--dsw-alias-label-secondary)}
       .ws-cmp-same td:nth-child(2),.ws-cmp-same td:nth-child(3){background:none!important}
       .ws-cmp-suspect{background:none;color:inherit;text-decoration:underline dotted var(--dsw-alias-state-warn-primary);text-decoration-thickness:2px;text-underline-offset:3px}
+      .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
+      .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+      .ws-cmp-mode:first-child{border-left:0}
+      .ws-cmp-mode.ws-on{background:var(--ws-accent-soft,rgba(14,159,152,.12));color:var(--ws-accent);font-weight:600}
+      .ws-cmp-mode i{font-style:normal;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;padding:0 5px;border-radius:8px;color:#fff;background:var(--dsw-alias-state-error-primary)}
+      .ws-cmp-mode-judge.ws-on{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 8%,transparent)}
+      .ws-cmp-note{margin:0;padding:6px 14px}
+      .ws-cmp-clip{position:relative;max-height:220px;overflow:auto;scrollbar-width:thin}
+      .ws-cmp-src mark.ws-cmp-flag{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 18%,transparent);color:inherit;border-radius:2px}
+      .ws-cmp-hosted td{border-bottom:0}
+      .ws-cmp-actrow td{padding:0 8px 10px;border-bottom:1px solid var(--dsw-alias-border-l1);background:none!important}
+      .ws-rv-inline{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px;padding:6px 10px;border-radius:6px;border-left:3px solid var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 6%,transparent);font-size:12px}
+      .ws-rv-inline .ma-actions{margin:0}
+      .ws-rv-inline.ws-rv-done{border-left-color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 6%,transparent)}
+      .ws-rv-inline.ws-rv-focus{box-shadow:0 0 0 2px color-mix(in srgb,var(--dsw-alias-state-error-primary) 45%,transparent)}
+      .ws-rv-text{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 18%,transparent);color:var(--dsw-alias-label-primary);padding:0 4px;border-radius:3px}
+      .ws-cmp-expand{font-size:11.5px;margin:4px 0 0 4px}
       .ws-cmp-only{flex:none;display:inline-flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;cursor:pointer}
       .ws-warn-line{color:var(--dsw-alias-state-warn-primary)!important;margin:6px 0 0}
       .ws-run-resume{color:var(--ws-accent);font-weight:600}
@@ -3949,6 +3978,16 @@ window.__ModuleLoader__.load({
       return -1
     }
 
+    // Long comparison cells holding a review item are clipped to a window
+    // that opens scrolled to the marked text.
+    const CLIP_CHARS = 600
+    function scrollToFlag(node) {
+      if (!node || node.dataset.scrolled) return
+      const mark = node.querySelector('mark.ws-cmp-flag')
+      if (mark) node.scrollTop = Math.max(0, mark.offsetTop - node.clientHeight / 3)
+      node.dataset.scrolled = '1'
+    }
+
     function markFlags(text, flags, keyBase) {
       if (!flags.length || !text) return text
       const out = []
@@ -4514,7 +4553,10 @@ window.__ModuleLoader__.load({
       const [compareFilter, setCompareFilter] = React.useState('all')
       const [compareFiles, setCompareFiles] = React.useState({})
       const [compareShow, setCompareShow] = React.useState(300)
-      const [compareRows, setCompareRows] = React.useState('all') // 'all' | 'changed'
+      const [compareRows, setCompareRows] = React.useState('all') // 'all' | 'changed' | 'judge'
+      const rowMode = compareRows
+      // Comparison rows whose long cells are shown in full.
+      const [expanded, setExpanded] = React.useState({})
       // Review item to bring into view after its file opens (from the
       // "needs your judgement" list), and per-file unfolded image groups.
       const [focusReview, setFocusReview] = React.useState(null)
@@ -5225,26 +5267,20 @@ window.__ModuleLoader__.load({
         }
       }
 
-      const reviewCard = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-item${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
-        h('div', { className: 'ws-rv-meta' },
-          h('span', { className: 'ws-rv-code' }, t(`ws.rv.code.${item.code}`) === `ws.rv.code.${item.code}` ? item.code : t(`ws.rv.code.${item.code}`)),
-          item.type ? h('b', {}, item.type) : null,
-          item.field ? h('span', { className: 'ma-mono' }, item.field) : null),
-        item.text
-          ? h('div', { className: 'ws-rv-ctx' }, item.before, h('mark', {}, item.text), item.after)
-          : h('div', { className: 'ws-rv-ctx ws-rv-plain' }, item.detail),
-        item.decision
-          ? h('div', { className: 'ws-rv-result' }, item.decision.action === 'replace'
-            ? t('ws.rv.replaced', { to: item.decision.replacement, count: item.decision.count })
-            : item.decision.action === 'remove' ? t('ws.rv.removed')
-              : item.decision.action === 'allow' ? t('ws.rv.allowed') : t('ws.rv.accepted'))
-          : OPAQUE_REVIEW.has(item.code)
-            ? h('div', { className: 'ma-actions' },
-              item.code === 'opaque'
-                ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable, title: file.editable ? t('ws.rv.removeHint') : file.reason, onClick: () => decideReview(file, item, 'remove') }, reviewBusy === item.id ? t('save.saving') : t('ws.rv.remove'))
-                : null,
-              h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.keepOpaque')))
-            : h('div', { className: 'ma-actions' },
+      const codeLabel = (item) => (t(`ws.rv.code.${item.code}`) === `ws.rv.code.${item.code}` ? item.code : t(`ws.rv.code.${item.code}`))
+      // The decision buttons of one review item, or its recorded outcome.
+      const reviewActions = (file, item) => (item.decision
+        ? h('div', { className: 'ws-rv-result' }, item.decision.action === 'replace'
+          ? t('ws.rv.replaced', { to: item.decision.replacement, count: item.decision.count })
+          : item.decision.action === 'remove' ? t('ws.rv.removed')
+            : item.decision.action === 'allow' ? t('ws.rv.allowed') : t('ws.rv.accepted'))
+        : OPAQUE_REVIEW.has(item.code)
+          ? h('div', { className: 'ma-actions' },
+            item.code === 'opaque'
+              ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable, title: file.editable ? t('ws.rv.removeHint') : file.reason, onClick: () => decideReview(file, item, 'remove') }, reviewBusy === item.id ? t('save.saving') : t('ws.rv.remove'))
+              : null,
+            h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.keepOpaque')))
+          : h('div', { className: 'ma-actions' },
             h('button', {
               // A replacement writes the mapping vault, which a running batch holds.
               className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable || !item.text || anyRunning,
@@ -5252,18 +5288,36 @@ window.__ModuleLoader__.load({
             }, reviewBusy === item.id ? t('save.saving') : (item.replacement ? t('ws.rv.replaceWith', { to: item.replacement }) : t('ws.rv.replace'))),
             item.text ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || anyRunning, title: t('ws.rv.allowHint'), onClick: () => decideReview(file, item, 'allow') }, t('ws.rv.allow')) : null,
             h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept'))))
+      // Stand-alone card: items the comparison table cannot show (no text,
+      // no comparison for the file) and content that cannot be checked.
+      const reviewCard = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-item${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
+        h('div', { className: 'ws-rv-meta' },
+          h('span', { className: 'ws-rv-code' }, codeLabel(item)),
+          item.type ? h('b', {}, item.type) : null,
+          item.field ? h('span', { className: 'ma-mono' }, item.field) : null),
+        item.text
+          ? h('div', { className: 'ws-rv-ctx' }, item.before, h('mark', {}, item.text), item.after)
+          : h('div', { className: 'ws-rv-ctx ws-rv-plain' }, item.detail),
+        reviewActions(file, item))
+      // In the comparison: one line per item right under the row holding it.
+      const reviewInline = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-inline${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
+        h('span', { className: 'ws-rv-code' }, codeLabel(item)),
+        item.type ? h('b', {}, item.type) : null,
+        h('mark', { className: 'ws-rv-text' }, item.text),
+        h('span', { className: 'wd-sp' }),
+        reviewActions(file, item))
 
       // One file's review items: what needs a human judgement first, then the
       // content that cannot be checked (images …) folded into one bar.
       const isOpaque = (item) => OPAQUE_REVIEW.has(item.code)
-      const reviewBlocks = (file) => {
-        const judge = file.items.filter((item) => !isOpaque(item))
+      const reviewBlocks = (file, judgeShown = null) => {
+        const judge = judgeShown ?? file.items.filter((item) => !isOpaque(item))
         const opaque = file.items.filter(isOpaque)
         const opaqueLeft = opaque.filter((item) => !item.decision)
         const unfolded = opaqueOpen[file.relPath] === true
         return h(React.Fragment, {},
           judge.length ? h('div', { className: 'ws-cmp-review ws-rv-judge' },
-            h('div', { className: 'ws-rv-head' }, t('ws.rv.judgeHead', { n: judge.filter((item) => !item.decision).length, total: judge.length })),
+            h('div', { className: 'ws-rv-head' }, judgeShown ? t('ws.rv.unlocatedHead', { n: judge.filter((item) => !item.decision).length }) : t('ws.rv.judgeHead', { n: judge.filter((item) => !item.decision).length, total: judge.length })),
             judge.map((item) => reviewCard(file, item))) : null,
           opaque.length ? h('div', { className: 'ws-cmp-review ws-rv-opaque' },
             h('div', { className: 'ws-rv-head' },
@@ -5389,9 +5443,35 @@ window.__ModuleLoader__.load({
           if (data.error) return h('p', { className: 'ma-hint ma-error' }, data.error)
           const rows = data.changes ?? []
           const full = data.all === true
-          const visible = compareRows === 'changed' ? rows.filter((row) => !row.same || row.flagged) : rows
+          // Judgement items sit in the row whose text holds them (same field
+          // preferred); the rest keep a card above the table.
+          const judgeItems = (reviewFile?.items ?? []).filter((item) => !isOpaque(item))
+          const hosts = new Map() // row index -> items
+          const unlocated = []
+          for (const item of judgeItems) {
+            let at = -1
+            if (item.text) {
+              const textOf = (change) => (change.same ? change.before : change.after)
+              const sameField = (change) => item.field && String(change.field ?? '').split(' · ')[0] === item.field
+              at = rows.findIndex((change) => sameField(change) && flagAt(textOf(change), item.text) >= 0)
+              if (at < 0) at = rows.findIndex((change) => flagAt(textOf(change), item.text) >= 0)
+            }
+            if (at < 0) { unlocated.push(item); continue }
+            hosts.set(at, [...(hosts.get(at) ?? []), item])
+          }
+          const openHere = judgeItems.filter((item) => !item.decision)
+          const mode = rowMode === 'judge' && openHere.length === 0 ? 'all' : rowMode
+          const indexed = rows.map((change, index) => ({ change, index }))
+          const visible = mode === 'judge'
+            ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => !item.decision))
+            : mode === 'changed' ? indexed.filter(({ change, index }) => !change.same || change.flagged || hosts.has(index)) : indexed
+          const judgeFlags = openHere.filter((item) => item.text).map((item) => item.text)
+          // A long cell holding an item is shown as a window scrolled to it.
+          const clip = (content, length, rowKey) => (length > CLIP_CHARS && !expanded[rowKey]
+            ? h('div', { key: `${selected.n}:${rowKey}`, className: 'ws-cmp-clip', ref: scrollToFlag }, content)
+            : content)
           return h(React.Fragment, {},
-            reviewFile ? reviewBlocks(reviewFile) : null,
+            reviewFile ? reviewBlocks(reviewFile, unlocated) : null,
             h('div', { className: 'ws-cmp-rowbar' },
               h('span', { className: 'ma-hint' }, full ? t('ws.cmp.legend') : t('ws.cmp.legacy')),
               full && adviceRunId ? h('span', { className: 'ma-hint ws-mx-tip' }, t('ws.mx.tip')) : null),
@@ -5400,21 +5480,37 @@ window.__ModuleLoader__.load({
               : h('table', { className: 'ws-cmp-table', onMouseUp: (event) => onCompareSelect(event, selected) },
                 h('thead', {}, h('tr', {}, h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
                 // Rows flagged for review stay listed beyond the page size.
-                h('tbody', {}, visible.filter((change, index) => index < compareShow || change.flagged).map((change, row) => {
+                h('tbody', {}, visible.filter(({ change, index }, position) => position < compareShow || change.flagged || hosts.has(index)).flatMap(({ change, index: row }) => {
                   const after = change.same ? change.before : change.after
-                  const flaggedRow = change.flagged && flags.some((flag) => flagAt(after, flag) >= 0)
+                  const here = hosts.get(row) ?? []
+                  const flaggedRow = here.some((item) => !item.decision) || (change.flagged && flags.some((flag) => flagAt(after, flag) >= 0))
                   const onPseudo = (event, token) => openManual(event, { kind: 'revert', text: token, relPath: selected.relPath, n: selected.n })
+                  const rowKey = change.id ?? row
+                  const longest = Math.max(String(change.before ?? '').length, after.length)
+                  const marks = here.length ? judgeFlags : []
+                  let cells
                   if (change.same) {
-                    return h('tr', { key: change.id ?? row, className: `ws-cmp-same${flaggedRow ? ' ws-cmp-flagged' : ''}` },
-                      h('td', { className: 'ws-cmp-field' }, change.field ?? '—'),
-                      h('td', { className: 'ws-cmp-src' }, change.before),
-                      h('td', { className: 'ws-cmp-dst' }, renderAfterCell(after, null, flags, `s${row}`, onPseudo)))
+                    cells = [
+                      h('td', { key: 'f', className: 'ws-cmp-field' }, change.field ?? '—'),
+                      h('td', { key: 's', className: 'ws-cmp-src' }, clip(marks.length ? markFlags(change.before, marks, `b${row}`) : change.before, longest, rowKey)),
+                      h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, null, flags, `s${row}`, onPseudo), longest, rowKey)),
+                    ]
+                  } else {
+                    const ops = diffTexts(change.before, after)
+                    cells = [
+                      h('td', { key: 'f', className: 'ws-cmp-field' }, change.field ?? '—'),
+                      h('td', { key: 's', className: 'ws-cmp-src' }, clip(ops.filter((op) => op.t !== 'ins').map((op, i) => op.t === 'del' ? h('del', { key: i }, op.s) : h(React.Fragment, { key: i }, marks.length ? markFlags(op.s, marks, `b${row}-${i}`) : op.s)), longest, rowKey)),
+                      h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, ops, flags, `${row}-`, onPseudo), longest, rowKey)),
+                    ]
                   }
-                  const ops = diffTexts(change.before, after)
-                  return h('tr', { key: change.id ?? row, className: flaggedRow ? 'ws-cmp-flagged' : '' },
-                    h('td', { className: 'ws-cmp-field' }, change.field ?? '—'),
-                    h('td', { className: 'ws-cmp-src' }, ops.filter((op) => op.t !== 'ins').map((op, i) => op.t === 'del' ? h('del', { key: i }, op.s) : h(React.Fragment, { key: i }, op.s))),
-                    h('td', { className: 'ws-cmp-dst' }, renderAfterCell(after, ops, flags, `${row}-`, onPseudo)))
+                  const out = [h('tr', { key: rowKey, className: `${change.same ? 'ws-cmp-same' : ''}${flaggedRow ? ' ws-cmp-flagged' : ''}${here.length ? ' ws-cmp-hosted' : ''}` }, cells)]
+                  if (here.length) {
+                    out.push(h('tr', { key: `${rowKey}-rv`, className: 'ws-cmp-actrow' },
+                      h('td', { colSpan: 3 },
+                        here.map((item) => reviewInline(reviewFile, item)),
+                        longest > CLIP_CHARS ? h('button', { type: 'button', className: 'ma-link ws-cmp-expand', onClick: () => setExpanded({ ...expanded, [rowKey]: !expanded[rowKey] }) }, expanded[rowKey] ? t('ws.cmp.collapse') : t('ws.cmp.expand')) : null)))
+                  }
+                  return out
                 }))),
             visible.length > compareShow ? h('button', { className: 'ma-btn ma-small ws-cmp-more', onClick: () => setCompareShow(compareShow + 300) }, t('ws.cmp.more', { shown: compareShow, total: visible.length })) : null,
             selected.truncated ? h('p', { className: 'ma-hint' }, t('ws.cmp.truncated', { shown: selected.truncated, total: selected.total })) : null)
@@ -5434,6 +5530,7 @@ window.__ModuleLoader__.load({
                 const entry = list.find((candidate) => candidate.relPath === file.relPath)
                 if (compareFilter !== 'all' && !(compareFilter === 'review')) setCompareFilter('review')
                 if (entry) setCompareSel(entry.n)
+                setCompareRows('judge')
                 setFocusReview(item.id)
               }
               return h('div', { className: 'ws-cmp-judge' },
@@ -5476,13 +5573,20 @@ window.__ModuleLoader__.load({
               h('span', { className: 'ma-mono ws-cmp-path', title: selected?.relPath ?? '' }, selected?.relPath ?? ''),
               selected ? h('span', { className: 'ma-hint' }, t('ws.cmp.stats', { changed: selected.changed, total: selected.total })) : null,
               // Stays in the fixed bar, so it is reachable however far the table is scrolled.
-              h('label', { className: 'ma-check ws-cmp-only', title: t('ws.cmp.onlyHint') },
-                h('input', { type: 'checkbox', checked: compareRows === 'changed', onChange: (event) => { setCompareRows(event.target.checked ? 'changed' : 'all'); setCompareShow(300) } }),
-                t('ws.cmp.only')),
+              (() => {
+                const openJudge = (reviewFile?.items ?? []).filter((item) => !item.decision && !isOpaque(item)).length
+                const current = compareRows === 'judge' && openJudge === 0 ? 'all' : compareRows
+                return h('div', { className: 'ws-cmp-modes', role: 'radiogroup' }, ['all', 'changed', 'judge'].map((id) => (id === 'judge' && openJudge === 0 ? null : h('button', {
+                  key: id, type: 'button', role: 'radio', 'aria-checked': current === id ? 'true' : 'false',
+                  className: `ws-cmp-mode${current === id ? ' ws-on' : ''}${id === 'judge' ? ' ws-cmp-mode-judge' : ''}`,
+                  title: id === 'changed' ? t('ws.cmp.onlyHint') : undefined,
+                  onClick: () => { setCompareRows(id); setCompareShow(300) },
+                }, t(`ws.cmp.mode.${id}`), id === 'judge' ? h('i', {}, String(openJudge)) : null))))
+              })(),
               h('span', { className: 'ma-mono' }, shown.length ? `${position < 0 ? '—' : position + 1} / ${shown.length}` : ''),
               h('button', { className: 'ma-btn ma-small', disabled: position <= 0, onClick: () => go(-1) }, `↑ ${t('ws.cmp.prev')}`),
               h('button', { className: 'ma-btn ma-small', disabled: position < 0 || position >= shown.length - 1, onClick: () => go(1) }, `↓ ${t('ws.cmp.next')}`)),
-            reviewNote ? h('p', { className: reviewNote.ok ? 'ma-hint ma-ok' : 'ma-hint ma-error' }, reviewNote.text) : null,
+            reviewNote ? h('p', { className: `ws-cmp-note ${reviewNote.ok ? 'ma-hint ma-ok' : 'ma-hint ma-error'}` }, reviewNote.text) : null,
             h('div', { className: 'ws-cmp-pane' }, pane())))
       }
 
