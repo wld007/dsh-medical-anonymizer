@@ -2573,7 +2573,7 @@ window.__ModuleLoader__.load({
       .wd-lg b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);margin-left:3px}
       .wd-path{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--wd-ink3);min-width:0}
       .wd-path span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-      .wd-ov-tr{top:40px;right:12px;width:300px;max-height:calc(100% - 90px);overflow:auto;gap:2px;padding:6px 10px}
+      .wd-ov-tr{top:10px;right:12px;width:300px;max-height:calc(100% - 60px);overflow:auto;gap:2px;padding:6px 10px}
       .wd-al-head{display:flex;align-items:center;gap:6px;width:100%;padding:2px 0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}
       .wd-al-head b{font-size:12px;font-weight:600;letter-spacing:1px}
       .wd-al-head .wd-en{margin-left:2px}
@@ -6123,8 +6123,7 @@ window.__ModuleLoader__.load({
                     h('span', {}, h('i', { style: { background: 'var(--dsw-alias-state-success-primary)' } }), t('ws.kDone')),
                     h('span', {}, h('i', { style: { background: 'var(--dsw-alias-state-warn-primary)' } }), t('wd.kReview')),
                     h('span', {}, h('i', { style: { background: 'var(--wd-empty)' } }), t('ws.kIdle'))),
-                  h('span', { className: 'wd-sp' }),
-                  h('span', { className: 'wd-cap' }, t('wd.clickStation'))),
+                  h('span', { className: 'wd-sp' })),
                 h(IsoLine, {
                   states: stationStates, labels: stationLabels, load, belt: running ? Math.min(30, inflight.length * 2) : 0,
                   dicom: dicomBypass, loopLabel: t('wd.loop', { rounds: Number(current?.config?.maxRounds ?? config?.maxRounds ?? 3) }),
@@ -6198,7 +6197,7 @@ window.__ModuleLoader__.load({
                 stationSel
                   ? stationDetail(stationSel)
                   : h(React.Fragment, {},
-                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), enKicker('BATCH OVERVIEW')),
+                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), enKicker('BATCH OVERVIEW'), h('small', {}, t('wd.clickStation'))),
                     modelOverview(),
                     block('wd.secCross', 'CROSS-CHECK', crossCheckPanel({ open: true })))))) : null,
           compareOpen ? h('section', { className: 'wd-full wd-cmp-page' },
