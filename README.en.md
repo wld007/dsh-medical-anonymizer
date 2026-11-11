@@ -44,17 +44,19 @@ Anonymization** in the left sidebar.
 
 ## Model
 
-The plugin only uses the OpenAI-compatible endpoint you configure and never calls a built-in cloud model. Leave the
-model empty to run the rule layer only.
+Under **Settings → Medical Data Anonymization → Model**, enter an OpenAI-compatible `/v1` endpoint, the model
+name, and an optional API key, then use **Test connection**.
 
-| Runtime | Base URL |
-| --- | --- |
-| Ollama | `http://127.0.0.1:11434/v1` |
-| LM Studio | `http://127.0.0.1:1234/v1` |
-| vLLM / llama.cpp | your `/v1` endpoint |
+- **Detection model**: finds identifiers and re-judges what the verification model reports.
+- **Verification model** (optional): runs the blind review, may use another endpoint and API key; when empty, the
+  detection model does it. Each model has its own concurrency, adjusted to measured throughput by default.
+- **Disable thinking** (on by default): requests carry `chat_template_kwargs: {enable_thinking: false}`; servers that
+  reject the field are retried once without it.
+- With no model name only the rule layer runs (ID checksums, phone, email, labeled fields, column/key policies); many
+  names and addresses in free text will be missed.
+- Text is sent to the endpoint you configure. Use a local or institution-internal service for patient data.
 
-A separate verification model can be set for the blind review. Use a local or institution-controlled endpoint for
-patient data; keep **Disable thinking** on for reasoning models.
+Used in development and testing: `qwen3.6-35b-a3b` (detection) and `gemma-4-26b-a4b-it` (verification) served by vLLM.
 
 ## Usage
 
