@@ -277,6 +277,7 @@ window.__ModuleLoader__.load({
       'wd.strip': '文件带 · 每格 1 个文件',
       'wd.stripGroup': '文件带 · 每格约 {n} 个文件',
       'wd.overview': '批次概览',
+      'wd.pctEta': '完成 · 约 {eta}{unit}',
       'wd.peakAt': '峰值 {pct}%',
       'wd.rss': '进程常驻',
       'wd.rssPeak': '峰值 {gb}G',
@@ -1104,6 +1105,7 @@ window.__ModuleLoader__.load({
       'wd.strip': 'Files · one cell per file',
       'wd.stripGroup': 'Files · about {n} per cell',
       'wd.overview': 'Batch overview',
+      'wd.pctEta': 'done · ~{eta}{unit} left',
       'wd.peakAt': 'peak {pct}%',
       'wd.rss': 'process RSS',
       'wd.rssPeak': 'peak {gb}G',
@@ -1839,6 +1841,9 @@ window.__ModuleLoader__.load({
       .ws-clock{display:flex;flex-direction:column;align-items:flex-end;line-height:16px;padding:0 4px}
       .ws-clock span{font-size:10px;color:var(--dsw-alias-label-secondary);letter-spacing:1px}
       .ws-clock b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:18px;font-weight:600;letter-spacing:1px;line-height:22px}
+      .ws-clock.wd-pct{padding-right:14px;margin-right:6px;border-right:1px solid var(--dsw-alias-border-l1)}
+      .ws-clock.wd-pct b{color:var(--ws-accent)}
+      .ws-clock.wd-pct small{font-size:11px;font-weight:400;margin-left:1px;color:var(--dsw-alias-label-secondary)}
       .ws-stop{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}
       .ws-lamp{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--dsw-alias-border-l2);flex:none}
       .ws-s-running .ws-lamp{background:var(--dsw-alias-state-warn-primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-state-warn-primary) 25%,transparent);animation:ws-blink 1.2s infinite}
@@ -6211,6 +6216,10 @@ window.__ModuleLoader__.load({
                 ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
                 : (current?.source ? sourceLabel(current.source) : null))),
           h('span', { className: 'wd-sp' }),
+          // Completion beside the clock: visible on every tab.
+          current ? h('div', { className: 'ws-clock wd-pct', title: `${done} / ${planned || '—'} ${t('ws.unitFiles')}` },
+            h('span', {}, running && etaMin !== null ? t('wd.pctEta', { eta: fmtEta(etaMin), unit: etaMin >= 60 ? 'h' : t('wd.min') }) : t('wd.bFiles')),
+            h('b', {}, String(percent), h('small', {}, '%'))) : null,
           h('div', { className: 'ws-clock' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           h('div', { className: 'wd-act' },
             running
