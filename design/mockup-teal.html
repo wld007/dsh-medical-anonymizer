@@ -52,7 +52,7 @@
   .strip { position: absolute; left: 14px; right: 14px; bottom: 10px; }
   .ov { position: absolute; border: 1px solid var(--line2); background: rgba(10,22,27,.82); backdrop-filter: blur(4px); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
   .ov-tl { left: 14px; bottom: 44px; width: 390px; }
-  .ov-br { left: 14px; top: 38px; width: 340px; border-color: rgba(245,165,36,.45); }
+  .ov-br { right: 14px; top: 38px; width: 340px; border-color: rgba(245,165,36,.45); }
   .ovh { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; white-space: nowrap; }
   .ovh .btn { white-space: nowrap; }
   .ovr { display: grid; grid-template-columns: minmax(0,1fr) 54px 32px; gap: 8px; font-size: 11px; color: var(--ink2); align-items: center; }
@@ -257,9 +257,10 @@ for (let j = -1; j <= 3; j++) { const a = P(-200, j * 100 - 20), b = P(1200, j *
 box(-60, -60, -14, 1140, 290, 14, '#14262d', { stroke: 'rgba(160,230,235,.07)' })
 
 const ST = [
-  ['S01', '预扫描', 'done', '8531'], ['S02', '解析·拆层', 'done', '8531'], ['S03', '识别·替换', 'active', '6107'],
-  ['S04', '规则核验', 'active', '6102'], ['S05', '独立盲审', 'active', '6094'], ['S06', '复判修正', 'done', 'R2 1683'],
-  ['S07', '批次复扫', 'idle', '42/43'], ['S08', '比对·打包', 'idle', '—'], ['S09', '人工复核', 'warn', '214'], ['S10', '交付', 'idle', '暂扣'],
+  // [code, name, state, line 1: passed / total (or the station's own unit), line 2: avg time · queue (running only)]
+  ['S01', '预扫描', 'done', '8531 / 8531', ''], ['S02', '解析·拆层', 'done', '8531 / 8531', ''], ['S03', '识别·替换', 'active', '6107 / 8531', '18s · 排队 12'],
+  ['S04', '规则核验', 'active', '6102 / 8531', '0.4s · 排队 0'], ['S05', '独立盲审', 'active', '6094 / 8531', '3.1s · 排队 146'], ['S06', '复判修正', 'done', 'R2 1683 · R3 40', ''],
+  ['S07', '批次复扫', 'idle', '第 42 / 43 组', ''], ['S08', '比对·打包', 'active', '6090 / 8531', '0.2s · 排队 0'], ['S09', '人工复核', 'warn', '214 项待处理', ''], ['S10', '交付', 'idle', '暂扣', ''],
 ]
 const STEP = 108
 const pools = el('g', {})
@@ -278,7 +279,7 @@ for (let x = -30; x < 1070; x += 22) { const a = P(x, 104, 7.2), b = P(x, 126, 7
 
 const COLORS = { done: '#2c4049', active: '#2f4750', warn: '#3a3f3c', idle: '#1f3036' }
 const LED = { done: '#46d17f', active: '#22c7c0', warn: '#f5a524', idle: '#2f4952' }
-ST.forEach(([code, name, state, stat], i) => {
+ST.forEach(([code, name, state, stat, line2], i) => {
   const x = i * STEP, y = 20
   const c = COLORS[state]
   if (state === 'active' || state === 'warn') {
@@ -311,11 +312,12 @@ ST.forEach(([code, name, state, stat], i) => {
   // label above
   const tip = P(x + 35, y + 31, state === 'idle' ? 40 : 46)
   const ly = 58 - (i % 2) * 0
-  const lx = tip[0], top = tip[1] - 54
-  el('line', { x1: lx, y1: tip[1] - 4, x2: lx, y2: top + 34, stroke: LED[state], 'stroke-width': 1, 'stroke-dasharray': '2 3', opacity: .7 })
+  const lx = tip[0], top = tip[1] - (line2 ? 66 : 54)
+  el('line', { x1: lx, y1: tip[1] - 4, x2: lx, y2: top + (line2 ? 46 : 34), stroke: LED[state], 'stroke-width': 1, 'stroke-dasharray': '2 3', opacity: .7 })
   el('text', { x: lx, y: top + 4, fill: '#58717a', 'font-size': 9.5, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle', 'letter-spacing': 1 }).textContent = code
   el('text', { x: lx, y: top + 19, fill: state === 'idle' ? '#6f8a92' : '#e2eef0', 'font-size': 12.5, 'font-weight': 600, 'text-anchor': 'middle' }).textContent = name
   el('text', { x: lx, y: top + 32, fill: state === 'warn' ? '#f5a524' : state === 'active' ? '#7fe9e2' : '#8ba5ad', 'font-size': 10.5, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle' }).textContent = stat
+  if (line2) el('text', { x: lx, y: top + 44, fill: line2.includes('排队 146') ? '#f5a524' : '#8ba5ad', 'font-size': 9.5, 'font-family': 'SF Mono, Menlo, monospace', 'text-anchor': 'middle' }).textContent = line2
 })
 
 // waiting files piled in front of each station: height = queue length
@@ -348,18 +350,6 @@ for (let k = 0; k < 34; k++) {
   el('text', { x: mx, y: my + 12, fill: '#7fe9e2', 'font-size': 11, 'text-anchor': 'middle', 'font-family': 'SF Mono, Menlo, monospace' }).textContent = '复判修正 → 规则核验 · 最多 3 轮 · R2 1683'
 })()
 
-// hover card on S05
-;(() => {
-  const p = P(4 * STEP + 40, 40, 52)
-  const gx = p[0] + 300, gy = p[1] - 165
-  el('polyline', { points: `${p[0]},${p[1]} ${p[0] + 70},${gy + 70} ${gx},${gy + 70}`, fill: 'none', stroke: '#22c7c0', 'stroke-width': 1, opacity: .6 })
-  el('rect', { x: gx, y: gy, width: 200, height: 82, rx: 4, fill: 'rgba(13,26,32,.95)', stroke: '#22c7c0', 'stroke-opacity': .55 })
-  const t = (x, y, txt, attrs) => { el('text', { x, y, ...attrs }).textContent = txt }
-  t(gx + 12, gy + 20, 'S05', { fill: '#7fe9e2', 'font-size': 12, 'font-weight': 700, 'font-family': 'SF Mono, Menlo, monospace' })
-  t(gx + 44, gy + 20, '独立盲审 · gemma-4-26b', { fill: '#8ba5ad', 'font-size': 11 })
-  const rows = [['进行 / 排队', '3/4 · +146'], ['平均耗时', '3.1 s'], ['本轮报出', '1 770 次']]
-  rows.forEach(([k, v], i) => { t(gx + 12, gy + 40 + i * 15, k, { fill: '#58717a', 'font-size': 10.5 }); t(gx + 188, gy + 40 + i * 15, v, { fill: '#e2eef0', 'font-size': 11, 'text-anchor': 'end', 'font-family': 'SF Mono, Menlo, monospace' }) })
-})()
 
 // put glow pools at the back
 svg.insertBefore(pools, svg.children[2])
