@@ -387,9 +387,9 @@ window.__ModuleLoader__.load({
       'ws.m.cThrOut': '输出',
       'ws.m.cPeakShort': '峰值',
       'ws.m.cHint': '实线与面积：实际在途请求；虚线阶梯：并发上限（自动调并发会改它）；紫线：吞吐（每秒完成的输入 + 输出 token，30 秒窗口，右侧刻度）；轴下：插件内排队。',
-      'ws.m.lgAct': '在途请求',
-      'ws.m.lgLim': '并发上限',
-      'ws.m.lgThr': '吞吐 tok/s',
+      'ws.m.lgAct': '在途',
+      'ws.m.lgLim': '上限',
+      'ws.m.lgThr': '吞吐',
       'ws.m.lgQ': '排队',
       'ws.m.cUp': '↑ 满载，加并发',
       'ws.m.cFlat': '↩ 吞吐不升，退回',
@@ -1215,7 +1215,7 @@ window.__ModuleLoader__.load({
       'ws.m.cHint': 'Solid line and area: requests actually in flight; dashed steps: the concurrency limit (moved by automatic concurrency); violet: throughput (input + output tokens per second of completed calls, 30 s window, scale on the right); below the axis: queued in the plugin.',
       'ws.m.lgAct': 'in flight',
       'ws.m.lgLim': 'limit',
-      'ws.m.lgThr': 'throughput tok/s',
+      'ws.m.lgThr': 'throughput',
       'ws.m.lgQ': 'queued',
       'ws.m.cUp': '↑ saturated, step up',
       'ws.m.cFlat': '↩ no gain, back',
@@ -2212,9 +2212,9 @@ window.__ModuleLoader__.load({
       .wd-conc-thr em{color:var(--wd-vio)}
       .wd-conc-rg{flex:none;width:26px;position:relative;font-size:9.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--wd-vio)}
       .wd-conc-rg span{position:absolute;left:0;top:-1px}
-      .wd-conc-lg{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:10.5px;color:var(--dsw-alias-label-secondary)}
+      .wd-conc-lg{display:flex;flex-wrap:nowrap;gap:10px;white-space:nowrap;overflow:hidden;font-size:10.5px;color:var(--dsw-alias-label-secondary)}
       .wd-conc-lg span{display:inline-flex;align-items:center;gap:4px}
-      .wd-conc-lg i{display:inline-block;width:14px;height:0;border-top:2px solid var(--dsw-alias-label-primary)}
+      .wd-conc-lg i{display:inline-block;width:12px;height:0;border-top:2px solid var(--dsw-alias-label-primary)}
       .wd-conc-lg i.wd-lg-lim{border-top:1px dashed var(--dsw-alias-label-secondary);opacity:.6}
       .wd-conc-lg i.wd-lg-thr{border-top:1px solid var(--wd-vio);opacity:.6}
       .wd-conc-srvq{fill:none;stroke:var(--dsw-alias-state-warn-primary);stroke-width:1;stroke-dasharray:2 2;vector-effect:non-scaling-stroke;opacity:.7}
@@ -5851,7 +5851,8 @@ window.__ModuleLoader__.load({
                   h('span', {}, h('i', { className: 'wd-lg-lim' }), t('ws.m.lgLim')),
                   h('span', {}, h('i', { className: 'wd-lg-thr' }), t('ws.m.lgThr')),
                   h('span', {}, h('i', { className: 'wd-lg-q' }), t('ws.m.lgQ')),
-                  cols.some((key) => current?.server?.[key]?.available) ? h('span', {}, h('i', { className: 'wd-lg-srvq' }), t('ws.m.lgSrvQ')) : null)
+                  // Only when a server queue line is actually drawn.
+                  (series?.srv ?? []).some((row) => (row ?? []).some((cell) => (cell?.[1] ?? 0) > 0)) ? h('span', {}, h('i', { className: 'wd-lg-srvq' }), t('ws.m.lgSrvQ')) : null)
                 const concPanels = h('div', { className: 'wd-concs' }, concLegend, cols.map((key) => concPanel(key)))
                 return h(React.Fragment, {},
                   block('wd.secLoad', 'WORKLOAD', splitBar, sumLine),
