@@ -6049,7 +6049,7 @@ window.__ModuleLoader__.load({
                 stationSel
                   ? stationDetail(stationSel)
                   : h(React.Fragment, {},
-                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview')), h('small', {}, t('wd.clickStation'))),
+                    h('div', { className: 'wd-sh' }, h('b', {}, t('wd.overview'))),
                     h('span', { className: 'wd-sub' }, t('wd.models')),
                     modelOverview(),
                     h('div', { className: 'wd-sep' }),
