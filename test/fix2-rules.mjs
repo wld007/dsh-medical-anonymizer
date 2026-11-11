@@ -407,7 +407,14 @@ await check('R2 端到端：月份后的计数/分型在日期平移时不变', 
   await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'rr2', maxRounds: 2, llm: null, policy: { quasiIdentifiers: true } } })
   const text = await readFile(outJoin(await outDirOf(root, 'rr2'), 'a.txt'), 'utf8')
   assert.match(text, /^\d{4}年\d{1,2}月2型糖尿病确诊，\d{4}年\d{1,2}月2周后复查，\d{4}年\d{1,2}月3次化疗。/, text)
-  assert.ok(!text.includes('2019年5月'), text)
+  // The shift comes from the vault's random salt; a shift of a couple of
+  // weeks can leave the month as it was, so check it against the shift.
+  const { dateShiftDays } = await import('../lib/policy.js')
+  const { Vault } = await import('../lib/pseudonym.js')
+  const vault = new Vault(join(root, '_records', 'vault.json'))
+  await vault.load()
+  const moved = new Date(Date.UTC(2019, 4, 15) + dateShiftDays(vault.salt) * 86400000)
+  assert.ok(text.startsWith(`${moved.getUTCFullYear()}年${moved.getUTCMonth() + 1}月2型糖尿病确诊`), `${text} (shift ${dateShiftDays(vault.salt)})`)
 })
 
 await check('R3 路径：「标签-号码」中的号码被替换（文件名、目录名、报告）', async () => {

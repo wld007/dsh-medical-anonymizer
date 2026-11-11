@@ -2614,8 +2614,7 @@ window.__ModuleLoader__.load({
       .ws-vis-row .ma-btn{display:inline-flex;align-items:center;gap:4px;align-self:flex-start}
       .ws-vis-sum{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .ma-warn-text{color:var(--dsw-alias-state-warn-primary)!important}
-      .wd-imgline{align-items:center}
-      .wd-imgline .ws-img-glyph{color:var(--wd-ink3)}
+      .wd-imgline .ws-img-glyph{color:var(--wd-ink3);margin-right:3px}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -2916,8 +2915,8 @@ window.__ModuleLoader__.load({
       .wd-rank>div>i{display:block;height:100%;border-radius:2px}
       .wd-rank>b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:var(--dsw-alias-label-primary);text-align:right}
       .wd-ovr-list{display:flex;flex-direction:column;gap:3px}
-      .wd-bottom{flex:none;display:grid;grid-template-columns:1.15fr 1.3fr .8fr;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper);min-height:150px}
-      .wd-ro{padding:10px 14px 12px;border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;justify-content:space-between;gap:7px;min-width:0}
+      .wd-bottom{flex:none;display:grid;grid-template-columns:1.15fr 1.3fr .8fr;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper)}
+      .wd-ro{padding:8px 14px 9px;border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;justify-content:space-between;gap:5px;min-width:0}
       .wd-ro>.wd-roh{flex:none}
       .wd-ro>.wd-gauges{flex:1;align-items:center}
       .wd-types{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--wd-ink3)}
@@ -2931,8 +2930,10 @@ window.__ModuleLoader__.load({
       .wd-big div b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:24px;font-weight:600;letter-spacing:.5px;line-height:28px;white-space:nowrap}
       .wd-big div b small{font-size:11px;color:var(--wd-ink3);font-weight:400;margin-left:2px}
       .wd-track{height:9px;position:relative;background:repeating-linear-gradient(90deg,var(--wd-track) 0 2px,transparent 2px 5px)}
-      .wd-stack{display:flex;height:9px;gap:1px;border-radius:2px;overflow:hidden;background:var(--wd-empty)}
-      .wd-lg{display:flex;gap:12px;font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden}
+      .wd-stack{display:flex;height:6px;gap:1px;border-radius:2px;overflow:hidden;background:var(--wd-empty)}
+      .wd-lg{display:flex;gap:12px;font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;align-items:center}
+      .wd-lg .wd-imgline{display:inline-flex;align-items:center;gap:3px;padding-left:12px;border-left:1px solid var(--dsw-alias-border-l2);color:var(--wd-ink3)}
+      .wd-lg .wd-imgline b{margin:0 0 0 2px}
       .wd-lg b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-primary);margin-left:3px}
       .wd-path{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--wd-ink3);min-width:0}
       .wd-path span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
@@ -2997,7 +2998,12 @@ window.__ModuleLoader__.load({
       .wd-ro .ws-spark{gap:2px}
       .wd-side .wd-ovr{grid-template-columns:minmax(0,1fr) 40px 40px}
       .wd-ro .ws-spark-head{display:none}
-      .wd-big.wd-big-prog{display:grid;grid-template-columns:repeat(3,max-content);column-gap:22px;row-gap:4px}
+      .wd-big.wd-big-prog{display:flex;flex-wrap:nowrap;gap:18px;align-items:flex-end}
+      .wd-big .wd-big-pair{display:flex;flex-direction:column;justify-content:flex-end;gap:1px;min-width:0}
+      .wd-big .wd-big-pair p{margin:0;display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+      .wd-big .wd-big-pair p span{display:inline;min-width:36px}
+      .wd-big .wd-big-pair p b{font-size:13px;line-height:18px;font-weight:600;letter-spacing:0}
+      .wd-big .wd-big-pair p b small{font-size:10.5px}
       .wd-big div.wd-big-sub b{font-size:20px}
       .wd-big div.wd-big-sub b small{font-size:11px}
       .wd-line{font-size:11.5px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -3005,7 +3011,7 @@ window.__ModuleLoader__.load({
       .wd-gauges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;align-items:start}
       .wd-ro .wd-gauges{grid-template-columns:repeat(2,minmax(0,1fr))}
       .wd-gauge{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;text-align:center}
-      .wd-gauge svg{width:68px;height:68px}
+      .wd-gauge svg{width:56px;height:56px}
       .wd-res-line{display:flex;justify-content:center;align-items:baseline;gap:6px;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .wd-res-line b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;color:var(--dsw-alias-label-primary)}
       .wd-res-line span{color:var(--wd-ink3)}
@@ -6896,8 +6902,10 @@ window.__ModuleLoader__.load({
                   running || !current
                     ? h('div', {}, h('span', {}, t('wd.bEta')), h('b', { style: { color: 'var(--dsw-alias-label-secondary)' } }, etaMin === null ? '—' : fmtEta(etaMin), h('small', {}, etaMin !== null && etaMin >= 60 ? 'h' : etaMin !== null ? t('wd.min') : '')))
                     : h('div', { title: t('wd.bPerFileHint') }, h('span', {}, t('wd.bPerFile')), h('b', { style: { color: 'var(--dsw-alias-label-secondary)' } }, done > 0 ? (elapsed / done / 1000).toFixed(elapsed / done < 10000 ? 1 : 0) : '—', h('small', {}, 's'))),
-                  h('div', { className: 'wd-big-sub' }, h('span', {}, t('wd.bDone')), h('b', {}, String(done), h('small', {}, ` / ${planned || '—'}`))),
-                  plannedBytes ? h('div', { className: 'wd-big-sub' }, h('span', {}, t('wd.bData')), h('b', {}, fmtBytes(Math.min(processedBytes, plannedBytes)), processedBytes < plannedBytes ? h('small', {}, ` / ${fmtBytes(plannedBytes)}`) : null)) : null),
+                  // Files and data: two small lines in one column of the same row.
+                  h('div', { className: 'wd-big-pair' },
+                    h('p', {}, h('span', {}, t('wd.bDone')), h('b', {}, String(done), h('small', {}, ` / ${planned || '—'}`))),
+                    plannedBytes ? h('p', {}, h('span', {}, t('wd.bData')), h('b', {}, fmtBytes(Math.min(processedBytes, plannedBytes)), processedBytes < plannedBytes ? h('small', {}, ` / ${fmtBytes(plannedBytes)}`) : null)) : null)),
                 spark()),
               // Results
               h('div', { className: 'wd-ro' },
@@ -6909,15 +6917,15 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'wd-stack' }, ['clean', 'review', 'failed'].map((key) => counts[key] > 0
                   ? h('i', { key, style: { flex: counts[key], background: key === 'clean' ? 'var(--dsw-alias-state-success-primary)' : key === 'review' ? 'var(--dsw-alias-state-warn-primary)' : 'var(--dsw-alias-state-error-primary)' } })
                   : null)),
+                // Outcome and, after a divider, the embedded images in one line.
                 h('div', { className: 'wd-lg' },
                   h('span', {}, t('file.clean'), h('b', {}, String(counts.clean))),
                   h('span', {}, t('file.review'), h('b', { style: counts.review ? { color: 'var(--dsw-alias-state-warn-primary)' } : undefined }, String(counts.review))),
-                  null),
-                imageItems.length ? h('div', { className: 'wd-types wd-imgline', title: t('wd.imgLineHint') }, imageGlyph(),
-                  h('span', {}, t('wd.imgLine'), h('b', {}, String(imageItems.length))),
-                  imagesSeen.length ? h('span', {}, t('wd.imgSeen'), h('b', {}, String(imagesSeen.length))) : null,
-                  imageSuggest.remove ? h('span', {}, t('ws.vis.s.remove'), h('b', {}, String(imageSuggest.remove))) : null,
-                  h('span', {}, t('wd.imgDone'), h('b', {}, `${imageItems.length - imagesOpen.length}`))) : null,
+                  imageItems.length ? h('span', { className: 'wd-imgline', title: t('wd.imgLineHint') }, imageGlyph(),
+                    t('wd.imgLine'), h('b', {}, String(imageItems.length)),
+                    imagesSeen.length && imagesSeen.length < imageItems.length ? h(React.Fragment, {}, ` · ${t('wd.imgSeen')}`, h('b', {}, String(imagesSeen.length))) : null,
+                    imageSuggest.remove ? h(React.Fragment, {}, ` · ${t('ws.vis.s.remove')}`, h('b', { style: { color: 'var(--dsw-alias-state-error-primary)' } }, String(imageSuggest.remove))) : null,
+                    ` · ${t('wd.imgDone')}`, h('b', {}, `${imageItems.length - imagesOpen.length}`)) : null),
                 byType.length ? h('div', { className: 'wd-types', title: t('ws.byType') }, byType.slice(0, 5).map(([type, value]) => h('span', { key: type }, type, h('b', {}, `${Math.round((value / sumType) * 100)}%`)))) : null,
                 !current?.withheld && (current?.output || current?.runDir)
                   ? h('div', { className: 'wd-path' }, h('span', { title: current.output ?? current.runDir }, current.output ?? current.runDir), h('button', { className: 'ma-btn ma-small', onClick: copyPath }, copied ? t('detail.copied') : t('detail.copy')))
