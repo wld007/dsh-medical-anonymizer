@@ -13,6 +13,9 @@
         maxFiles: 200
         # Files processed at the same time. Model calls are never capped.
         concurrency: 4
+        # Let each model's concurrency follow its measured throughput, starting
+        # from the value above (and verifyConcurrency for the verifier).
+        autoConcurrency: true
         # DICOM files (header only, no model calls) have their own cap.
         maxDicomFiles: 50000
         disableThinking: true

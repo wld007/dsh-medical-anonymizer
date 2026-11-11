@@ -8,7 +8,7 @@ import { readFile, writeFile, rm, stat, mkdir, readdir } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as XLSX from '../vendor/xlsx.mjs'
-import { runBatch, echoesPseudonym, parseServerMetrics } from '../lib/pipeline.js'
+import { runBatch, echoesPseudonym, parseServerMetrics, createConcurrencyTuner } from '../lib/pipeline.js'
 import { createLlm } from '../lib/llm.js'
 import { createService } from '../lib/service.js'
 import { Vault } from '../lib/pseudonym.js'
@@ -1025,6 +1025,69 @@ async function main() {
     assert.deepEqual(parseServerMetrics(text, 'a'), { running: 3, waiting: 2, kv: 0.42, generated: 1500000 })
     assert.equal(parseServerMetrics('ollama_up 1', 'a'), null)
   })
+  await check('自动调并发：满载加、吞吐不涨退回并记上限、报错或服务器排队降低', () => {
+    let clock = 0
+    const run = { totals: { models: { detect: { okN: 0, ioTokens: 0, fails: {} } } } }
+    const stats = { active: 4, queued: 10, limit: 4 }
+    const limiter = { setLimit(n) { stats.limit = n } }
+    const tune = createConcurrencyTuner({ run, key: 'detect', limiter, stats, windowMs: 1000, now: () => clock })
+    const m = run.totals.models.detect
+    // One window: `calls` completed, `tokens` processed, all slots busy.
+    const window = (calls, tokens, busy = true) => {
+      m.okN += calls
+      m.ioTokens += tokens
+      for (let i = 0; i < 4; i += 1) {
+        stats.active = busy ? stats.limit : 1
+        stats.queued = busy ? 10 : 0
+        clock += 250
+        tune()
+      }
+    }
+    window(10, 1000) // first window: baseline, busy → up
+    assert.equal(stats.limit, 6)
+    window(15, 1500) // +50 % → up again
+    assert.equal(stats.limit, 9)
+    window(15, 1520) // +1 % → back, ceiling 9
+    assert.equal(stats.limit, 6)
+    assert.equal(run.autoTune.detect.ceiling, 9)
+    window(15, 1500) // busy but capped below the ceiling
+    assert.equal(stats.limit, 8)
+    window(10, 1000, false) // gain < 5 % after the step up → back to 6
+    assert.equal(stats.limit, 6)
+    window(3, 300, false) // not busy: hold
+    assert.equal(stats.limit, 6)
+    m.fails.timeout = 2
+    window(10, 1000) // errors ≥ 5 % → down by a quarter
+    assert.equal(stats.limit, 4)
+    run.server = { detect: { available: true, samples: [[4, 3, 0.5, 0]] } }
+    window(10, 1000) // server queueing → down
+    assert.equal(stats.limit, 3)
+    assert.deepEqual(run.autoTune.detect.history.map((step) => step.reason), ['up', 'up', 'flat', 'up', 'flat', 'errors', 'server'])
+  })
+  await check('自动调并发：调低后不再放出名额，调高后立即放出排队的请求', async () => {
+    const gate = []
+    const slow = { model: 'm', chatJson: () => new Promise((resolve) => gate.push(resolve)) }
+    const stats = { active: 0, queued: 0, limit: 0 }
+    const run = await (async () => {
+      const { limitRequestsForTest } = await import('../lib/pipeline.js')
+      return limitRequestsForTest(slow, 2, stats)
+    })()
+    const calls = Array.from({ length: 6 }, () => run.chatJson([]))
+    await new Promise((r) => setTimeout(r, 10))
+    assert.deepEqual([stats.active, stats.queued], [2, 4])
+    run.setLimit(4)
+    await new Promise((r) => setTimeout(r, 10))
+    assert.deepEqual([stats.active, stats.queued], [4, 2])
+    run.setLimit(1)
+    gate.shift()({ json: {} }); gate.shift()({ json: {} })
+    await new Promise((r) => setTimeout(r, 10))
+    assert.deepEqual([stats.active, stats.queued], [2, 2]) // still above 1: nothing granted
+    while (gate.length) gate.shift()({ json: {} })
+    await new Promise((r) => setTimeout(r, 10))
+    assert.equal(stats.active, 1)
+    while (stats.active || stats.queued) { while (gate.length) gate.shift()({ json: {} }); await new Promise((r) => setTimeout(r, 5)) }
+    await Promise.all(calls)
+  })
 
   // One large file: its batches run concurrently, never above the limit;
   // a separate verifier has its own slots and overlaps with detection.
@@ -1261,6 +1324,26 @@ async function main() {
     assert.equal(info.concurrency, 4)
     const report = await readFile(join(ovRun.runDir, 'report.md'), 'utf8')
     assert.match(report, /本批单独设置/)
+  })
+
+  // Automatic concurrency inside a batch: the tuner runs, records its state
+  // and the report says so.
+  const autoModel = { model: 'auto-m', async chatJson(messages) {
+    await new Promise((r) => setTimeout(r, 30))
+    const p = messages.map((m) => m.content).join('\n')
+    if (p.includes('独立的数据安全审查员')) return { json: { issues: [] }, usage: { prompt_tokens: 500, completion_tokens: 5, total_tokens: 505 } }
+    return { json: { e: [] }, usage: { prompt_tokens: 500, completion_tokens: 5, total_tokens: 505 } }
+  } }
+  const autoIn = join(tmp, 'auto-in')
+  await mkdir(autoIn, { recursive: true })
+  for (let i = 0; i < 12; i += 1) await writeFile(join(autoIn, `n${i}.txt`), `${'病程记录：患者头痛三天，予以对症治疗，复查血常规。'.repeat(80)}\n${i}\n`)
+  const autoRun = await runBatch({ inputDir: autoIn, outputRoot: join(tmp, 'auto-out'), options: { runId: 'auto-1', llm: autoModel, concurrency: 1, autoConcurrency: true, autoTuneMs: 200, maxRounds: 1 } })
+  await check('自动调并发在批次中运行：记录起始值、调整记录与报告说明', async () => {
+    assert.equal(autoRun.config.autoConcurrency, true)
+    assert.equal(autoRun.autoTune.detect.start, 1)
+    assert.ok(autoRun.loadSeries.limits.length === autoRun.loadSeries.points.length)
+    const report = await readFile(join(autoRun.runDir, 'report.md'), 'utf8')
+    assert.match(report, /自动调并发：模型 1/)
   })
 
   mock.kill('SIGTERM')

@@ -122,6 +122,7 @@ window.__ModuleLoader__.load({
       'field.maxFiles': '每组文件数',
       'field.concurrency': '模型并发',
       'field.verifyConcurrency': '核验并发',
+      'field.autoConcurrency': '自动调并发',
       'field.maxDicomFiles': 'DICOM 上限',
       'field.timeoutMs': '模型超时',
       'field.temperature': '温度',
@@ -263,6 +264,20 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': '批次运行中，参数已锁定。',
       'ws.paramsHint': '保存为默认值，下一批次生效',
       'ws.unitFiles': '文件',
+      'run.autoConcurrency': '自动调整并发（按吞吐量自动加减）',
+      'run.startPrefix': '起始',
+      'run.autoConcurrencyHint': '开启后，上面的并发只是起始值：每 30 秒按各模型的吞吐量调整一次。名额全满且有排队时加一半；加了吞吐涨不到 5% 就退回，并把那一档记为上限（10 分钟后再试）；服务器内部排队、KV 缓存将满或出现超时、连接错误时降低。最多 64。',
+      'ws.ps.auto': ' · 自动',
+      'ws.m.aTag': '自动',
+      'ws.m.aPath': '{path}，{reason}',
+      'ws.m.aHold': '保持 {n}（名额未满或数据不足，暂不调整）',
+      'ws.m.aCeil': '；上限 {n}',
+      'ws.m.aUp': '满载，加并发',
+      'ws.m.aFlat': '吞吐不再上升，退回',
+      'ws.m.aServer': '服务器排队或 KV 将满，降低',
+      'ws.m.aErrors': '出现超时或连接错误，降低',
+      'ws.m.aThr': '吞吐 {n} tok/s',
+      'ws.m.aHint': '自动调并发：每 30 秒按吞吐量（每秒处理的输入 + 输出 token）调整一次。悬停每行看调整记录。',
       'run.concurrencyDetect': '识别并发',
       'run.concurrencyVerify': '核验并发',
       'ws.ps.concurrency2': '并发 {d}/{v}',
@@ -795,6 +810,7 @@ window.__ModuleLoader__.load({
       'field.maxFiles': 'files per chunk',
       'field.concurrency': 'concurrency',
       'field.verifyConcurrency': 'verifier concurrency',
+      'field.autoConcurrency': 'automatic concurrency',
       'field.maxDicomFiles': 'DICOM cap',
       'field.timeoutMs': 'model timeout',
       'field.temperature': 'temperature',
@@ -936,6 +952,20 @@ window.__ModuleLoader__.load({
       'ws.paramsLocked': 'Locked while a batch runs.',
       'ws.paramsHint': 'Saved as defaults for the next batch',
       'ws.unitFiles': 'files',
+      'run.autoConcurrency': 'Automatic concurrency (follow throughput)',
+      'run.startPrefix': 'Initial ',
+      'run.autoConcurrencyHint': 'When on, the values above are starting points: every 30 s each model’s concurrency follows its throughput. It grows by half while all slots are busy with a queue; it goes back when a step up gains less than 5 % (that level becomes a ceiling for 10 min); it drops when the server queues, its KV cache is nearly full, or calls time out. At most 64.',
+      'ws.ps.auto': ' · auto',
+      'ws.m.aTag': 'Auto',
+      'ws.m.aPath': '{path}, {reason}',
+      'ws.m.aHold': 'holding {n} (slots not full or too little data)',
+      'ws.m.aCeil': '; ceiling {n}',
+      'ws.m.aUp': 'saturated, step up',
+      'ws.m.aFlat': 'no gain, back',
+      'ws.m.aServer': 'server queueing or KV nearly full, lower',
+      'ws.m.aErrors': 'timeouts or connection errors, lower',
+      'ws.m.aThr': '{n} tok/s',
+      'ws.m.aHint': 'Automatic concurrency: adjusted every 30 s by throughput (input + output tokens per second). Hover a line for its history.',
       'run.concurrencyDetect': 'Detector concurrency',
       'run.concurrencyVerify': 'Verifier concurrency',
       'ws.ps.concurrency2': 'conc {d}/{v}',
@@ -2383,6 +2413,7 @@ window.__ModuleLoader__.load({
       const [maxFiles, setMaxFiles] = React.useState(200)
       const [concurrency, setConcurrency] = React.useState(4)
       const [verifyConcurrency, setVerifyConcurrency] = React.useState(4)
+      const [autoConcurrency, setAutoConcurrency] = React.useState(true)
       const [maxDicomFiles, setMaxDicomFiles] = React.useState(50000)
       const [timeoutSec, setTimeoutSec] = React.useState(120)
       const [temperature, setTemperature] = React.useState(0)
@@ -2420,6 +2451,7 @@ window.__ModuleLoader__.load({
         setMaxFiles(Number(info.maxFiles ?? 200))
         setConcurrency(Number(info.concurrency ?? 4))
         setVerifyConcurrency(Number(info.verifyConcurrency ?? info.concurrency ?? 4))
+        setAutoConcurrency(info.autoConcurrency !== false)
         setMaxDicomFiles(Number(info.maxDicomFiles ?? 50000))
         setTimeoutSec(Math.round(Number(info.timeoutMs ?? 120000) / 1000))
         setTemperature(Number(info.temperature ?? 0))
@@ -2467,6 +2499,7 @@ window.__ModuleLoader__.load({
         ['maxFiles', Number(maxFiles) !== Number(config.maxFiles ?? 200)],
         ['concurrency', Number(concurrency) !== Number(config.concurrency ?? 4)],
         ['verifyConcurrency', Number(verifyConcurrency) !== Number(config.verifyConcurrency ?? config.concurrency ?? 4)],
+        ['autoConcurrency', autoConcurrency !== (config.autoConcurrency !== false)],
         ['maxDicomFiles', Number(maxDicomFiles) !== Number(config.maxDicomFiles ?? 50000)],
         ['timeoutMs', Number(timeoutSec) * 1000 !== Number(config.timeoutMs ?? 120000)],
         ['temperature', Number(temperature) !== Number(config.temperature ?? 0)],
@@ -2521,6 +2554,7 @@ window.__ModuleLoader__.load({
             maxFiles: Number(maxFiles),
             concurrency: Number(concurrency),
             verifyConcurrency: Number(verifyConcurrency),
+            autoConcurrency,
             maxDicomFiles: Number(maxDicomFiles),
             timeoutMs: Math.round(Number(timeoutSec) * 1000),
             temperature: Number(temperature),
@@ -2576,7 +2610,7 @@ window.__ModuleLoader__.load({
       const tabFields = {
         model: ['baseURL', 'model', 'apiKey', 'verifyModel', 'disableThinking', 'timeoutMs', 'temperature'],
         rules: ['rules'],
-        batch: ['outputRoot', 'maxRounds', 'maxFiles', 'concurrency', 'verifyConcurrency', 'maxDicomFiles', 'vaultPassphrase', 'showSidebarEntry'],
+        batch: ['outputRoot', 'maxRounds', 'maxFiles', 'concurrency', 'verifyConcurrency', 'autoConcurrency', 'maxDicomFiles', 'vaultPassphrase', 'showSidebarEntry'],
         guide: [],
       }
       const tabs = ['model', 'rules', 'batch', 'guide']
@@ -2794,12 +2828,12 @@ window.__ModuleLoader__.load({
                 className: 'ma-input', type: 'number', min: 1, max: 2000, value: maxFiles,
                 onChange: (event) => setMaxFiles(Number(event.target.value)),
               })),
-            h('label', { className: 'ma-field' }, verifyModelName.trim() ? t('run.concurrencyDetect') : t('run.concurrency'),
+            h('label', { className: 'ma-field' }, `${autoConcurrency ? t('run.startPrefix') : ''}${verifyModelName.trim() ? t('run.concurrencyDetect') : t('run.concurrency')}`,
               h('input', {
                 className: 'ma-input', type: 'number', min: 1, max: 64, value: concurrency,
                 onChange: (event) => setConcurrency(Number(event.target.value)),
               })),
-            verifyModelName.trim() ? h('label', { className: 'ma-field' }, t('run.concurrencyVerify'),
+            verifyModelName.trim() ? h('label', { className: 'ma-field' }, `${autoConcurrency ? t('run.startPrefix') : ''}${t('run.concurrencyVerify')}`,
               h('input', {
                 className: 'ma-input', type: 'number', min: 1, max: 64, value: verifyConcurrency,
                 onChange: (event) => setVerifyConcurrency(Number(event.target.value)),
@@ -2810,7 +2844,10 @@ window.__ModuleLoader__.load({
                 onChange: (event) => setMaxDicomFiles(Number(event.target.value)),
               })),
           ),
-          h('p', { className: 'ma-hint' }, t('run.concurrencyHint')),
+          h('label', { className: 'ma-check' },
+            h('input', { type: 'checkbox', checked: autoConcurrency, onChange: (event) => setAutoConcurrency(event.target.checked) }),
+            t('run.autoConcurrency')),
+          h('p', { className: 'ma-hint' }, autoConcurrency ? t('run.autoConcurrencyHint') : t('run.concurrencyHint')),
           h('hr', { className: 'ma-divider' }),
           h('h3', {}, t('vault.title')),
           h('p', { className: 'ma-hint' }, t('vault.hint')),
@@ -3285,6 +3322,7 @@ window.__ModuleLoader__.load({
         maxRounds: Number(info?.maxRounds ?? 3),
         concurrency: Number(info?.concurrency ?? 4),
         verifyConcurrency: Number(info?.verifyConcurrency ?? info?.concurrency ?? 4),
+        autoConcurrency: info?.autoConcurrency !== false,
         maxFiles: Number(info?.maxFiles ?? 200),
         timeoutSec: Math.round(Number(info?.timeoutMs ?? 120000) / 1000),
         temperature: Number(info?.temperature ?? 0),
@@ -3569,6 +3607,7 @@ window.__ModuleLoader__.load({
             maxRounds: draft.maxRounds,
             concurrency: draft.concurrency,
             verifyConcurrency: draft.verifyConcurrency,
+            autoConcurrency: draft.autoConcurrency,
             maxFiles: draft.maxFiles,
             timeoutMs: Math.round(Number(draft.timeoutSec) * 1000),
             temperature: draft.temperature,
@@ -3654,6 +3693,7 @@ window.__ModuleLoader__.load({
         maxRounds: Number(current.config.maxRounds ?? draft?.maxRounds),
         concurrency: Number(current.config.concurrency ?? draft?.concurrency),
         verifyConcurrency: Number(current.config.verifyConcurrency ?? current.config.concurrency ?? draft?.verifyConcurrency),
+        autoConcurrency: current.config.autoConcurrency === true,
         maxFiles: Number(current.config.chunkSize ?? draft?.maxFiles),
         timeoutSec: current.config.timeoutMs ? Math.round(current.config.timeoutMs / 1000) : draft?.timeoutSec,
         temperature: Number(current.config.temperature ?? draft?.temperature ?? 0),
@@ -3667,7 +3707,7 @@ window.__ModuleLoader__.load({
         const shown = runParams ?? draft
         const summaryText = [
           t('ws.ps.rounds', { n: shown.maxRounds }),
-          (running ? current?.config?.verifyModel : config?.verifyModel) ? t('ws.ps.concurrency2', { d: shown.concurrency, v: shown.verifyConcurrency }) : t('ws.ps.concurrency', { n: shown.concurrency }),
+          `${(running ? current?.config?.verifyModel : config?.verifyModel) ? t('ws.ps.concurrency2', { d: shown.concurrency, v: shown.verifyConcurrency }) : t('ws.ps.concurrency', { n: shown.concurrency })}${shown.autoConcurrency ? t('ws.ps.auto') : ''}`,
           t('ws.ps.chunk', { n: shown.maxFiles }),
           `${shown.timeoutSec}s`,
           t('ws.ps.temp', { n: Number(shown.temperature).toFixed(1) }),
@@ -5178,9 +5218,29 @@ window.__ModuleLoader__.load({
                   if (samples.length) return { tone: 'up', text: t('ws.m.vUp', { running: running_.toFixed(1), kv: Math.round(kv * 100), next: Math.min(64, limit * 2) }) }
                   return { tone: 'up', text: t(queuedShare > 0.5 ? 'ws.m.vTry' : 'ws.m.vTryLite', { next: Math.min(64, limit * 2) }) }
                 }
-                const verdicts = running ? cols.map((key) => [key, verdict(key)]).filter(([, v]) => v) : []
+                // Automatic concurrency: the tuner's path and its last reason.
+                const AUTO_REASON = { up: t('ws.m.aUp'), flat: t('ws.m.aFlat'), server: t('ws.m.aServer'), errors: t('ws.m.aErrors') }
+                const autoLine = (key) => {
+                  const state = current?.autoTune?.[key]
+                  if (!state) return null
+                  const steps = state.history ?? []
+                  const path = [state.start, ...steps.map((step) => step.to)].slice(-6).join('→')
+                  const lastStep = steps[steps.length - 1]
+                  const text = steps.length
+                    ? t('ws.m.aPath', { path, reason: AUTO_REASON[lastStep.reason] ?? '' })
+                    : t('ws.m.aHold', { n: state.limit })
+                  const tone = lastStep?.reason === 'up' ? 'up' : lastStep && lastStep.reason !== 'up' ? 'full' : 'idle'
+                  const title = steps.length
+                    ? steps.map((step) => `${hhmmss(new Date(step.at))}  ${step.from}→${step.to}  ${AUTO_REASON[step.reason] ?? step.reason}（${t('ws.m.aThr', { n: step.thr })}）`).join('\n')
+                    : t('ws.m.aHint')
+                  return { tone, text: `${t('ws.m.aTag')} ${text}${state.ceiling ? t('ws.m.aCeil', { n: state.ceiling }) : ''}`, title }
+                }
+                const autoOn = current?.config?.autoConcurrency === true
+                const verdicts = autoOn
+                  ? cols.map((key) => [key, autoLine(key)]).filter(([, v]) => v)
+                  : (running ? cols.map((key) => [key, verdict(key)]).filter(([, v]) => v) : [])
                 const verdictBox = verdicts.length
-                  ? h('div', { className: 'ws-verdicts', title: t('ws.m.verdictHint') }, verdicts.map(([key, v]) => h('div', { key, className: `ws-verdict ws-verdict-${v.tone}` },
+                  ? h('div', { className: 'ws-verdicts', title: autoOn ? t('ws.m.aHint') : t('ws.m.verdictHint') }, verdicts.map(([key, v]) => h('div', { key, className: `ws-verdict ws-verdict-${v.tone}`, title: v.title ?? '' },
                     h('b', {}, key === 'verify' ? t('ws.verifyModel') : (separate ? t('ws.model') : t('ws.modelShared'))), h('span', {}, v.text))))
                   : null
                 // Failed calls (cancelled ones excluded) and retries per model.
@@ -5257,7 +5317,13 @@ window.__ModuleLoader__.load({
                   // line means "all of that model's slots in use".
                   const vLimit = Number(current?.requests?.verify?.limit ?? current?.config?.verifyConcurrency ?? limit)
                   const up = (value, lim = limit) => AX - (Math.min(value, lim) / lim) * (AX - 3)
-                  const line = (pick, lim = limit) => points.map((p, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${up(pick(p), lim).toFixed(1)}`).join(' ')
+                  // The limit at each sample (it moves with automatic concurrency).
+                  const limitsAt = series?.limits ?? []
+                  const line = (pick, lim = limit, slot = 0) => points.map((p, index) => {
+                    const at = limitsAt[index]
+                    const own = at ? (at[slot] ?? at[0]) : lim
+                    return `${index ? 'L' : 'M'}${x(index).toFixed(1)} ${up(pick(p), own || lim).toFixed(1)}`
+                  }).join(' ')
                   const qMax = Math.max(1, ...points.map((p) => Math.max(p[1], p[3] ?? 0)))
                   void qMax
                   const down = (value) => AX + (value / qMax) * (AX - 3)
@@ -5284,10 +5350,10 @@ window.__ModuleLoader__.load({
                         !empty && hasVerify ? h('path', { className: 'ws-busy-lv ws-busy-q', d: qLine((p) => p[3] ?? 0) }) : null,
                         // Light fill between the in-flight lines and the axis.
                         empty ? null : h('path', { className: 'ws-busy-fd', d: `${line((p) => p[0])} L${W} ${AX} L0 ${AX} Z` }),
-                        !empty && hasVerify ? h('path', { className: 'ws-busy-fv', d: `${line((p) => p[2] ?? 0, vLimit)} L${W} ${AX} L0 ${AX} Z` }) : null,
+                        !empty && hasVerify ? h('path', { className: 'ws-busy-fv', d: `${line((p) => p[2] ?? 0, vLimit, 1)} L${W} ${AX} L0 ${AX} Z` }) : null,
                         h('line', { className: 'ws-busy-axis', x1: 0, x2: W, y1: AX, y2: AX }),
                         empty ? null : h('path', { className: 'ws-busy-ld', d: line((p) => p[0]) }),
-                        !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0, vLimit) }) : null),
+                        !empty && hasVerify ? h('path', { className: 'ws-busy-lv', d: line((p) => p[2] ?? 0, vLimit, 1) }) : null),
                       empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null,
                     ))
                 })()
