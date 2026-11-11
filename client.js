@@ -2916,7 +2916,7 @@ window.__ModuleLoader__.load({
       .wd-rank>b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;color:var(--dsw-alias-label-primary);text-align:right}
       .wd-ovr-list{display:flex;flex-direction:column;gap:3px}
       .wd-bottom{flex:none;display:grid;grid-template-columns:1.15fr 1.3fr .8fr;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--ws-paper)}
-      .wd-ro{padding:8px 14px 9px;border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;justify-content:space-between;gap:5px;min-width:0}
+      .wd-ro{padding:8px 14px 9px;border-right:1px solid var(--dsw-alias-border-l1);display:flex;flex-direction:column;justify-content:space-between;gap:5px;min-width:0;overflow:hidden;container-type:inline-size}
       .wd-ro>.wd-roh{flex:none}
       .wd-ro>.wd-gauges{flex:1;align-items:center}
       .wd-types{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--wd-ink3)}
@@ -2998,7 +2998,10 @@ window.__ModuleLoader__.load({
       .wd-ro .ws-spark{gap:2px}
       .wd-side .wd-ovr{grid-template-columns:minmax(0,1fr) 40px 40px}
       .wd-ro .ws-spark-head{display:none}
-      .wd-big.wd-big-prog{display:flex;flex-wrap:nowrap;gap:18px;align-items:flex-end}
+      .wd-big.wd-big-prog{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:flex-end}
+      /* Narrow column: smaller numbers first, the file/data pair wraps last. */
+      @container (max-width:460px){.wd-big.wd-big-prog{column-gap:10px}.wd-big.wd-big-prog>div>b{font-size:19px;line-height:23px}.wd-big.wd-big-prog>div>b small{margin-left:1px}.wd-big .wd-big-pair p{gap:4px}.wd-big .wd-big-pair p span{min-width:0}.wd-big .wd-big-pair p b{font-size:12px}}
+      @container (max-width:520px){.wd-ro>.wd-big:not(.wd-big-prog){column-gap:12px}.wd-ro>.wd-big:not(.wd-big-prog)>div>b{font-size:20px;line-height:24px}}
       .wd-big .wd-big-pair{display:flex;flex-direction:column;justify-content:flex-end;gap:1px;min-width:0}
       .wd-big .wd-big-pair p{margin:0;display:flex;align-items:baseline;gap:6px;white-space:nowrap}
       .wd-big .wd-big-pair p span{display:inline;min-width:36px}
