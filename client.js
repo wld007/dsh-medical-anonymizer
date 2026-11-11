@@ -652,7 +652,7 @@ window.__ModuleLoader__.load({
       'ws.cmp.scope.file': '本文件',
       'ws.cmp.scope.batch': '全批次',
       'ws.cmp.scopeHint': '右侧按钮作用于本文件还是整个批次',
-      'ws.cmp.noImagesHere': '这份文件没有待处理的图片等内容；右侧可选「全批次」处理其他文件的。',
+      'ws.cmp.noImagesHere': '这份文件没有图片等内容；右侧可选「全批次」处理其他文件的。',
       'ws.op.verifier': '核验',
       'ws.op.detector': '识别复判',
       'ws.op.round': '第 {n} 轮',
@@ -766,7 +766,7 @@ window.__ModuleLoader__.load({
       'ws.cmp.f.changed': '有改动',
       'ws.cmp.f.review': '待复核',
       'ws.cmp.f.images': '图片',
-      'ws.cmp.f.imagesHint': '只列还有图片等内容待处理的文件',
+      'ws.cmp.f.imagesHint': '列出含图片等内容的文件（含已处理的）；还没处理完的也在「待复核」里',
       'ws.cmp.skipped.too-large': '文件超过 50 MB，未生成比对记录。',
       'ws.cmp.skipped.error': '生成比对记录时出错。',
       'ws.cmp.rowHint': '点击查看原文与结果比对',
@@ -1569,7 +1569,7 @@ window.__ModuleLoader__.load({
       'ws.cmp.scope.file': 'This file',
       'ws.cmp.scope.batch': 'Whole batch',
       'ws.cmp.scopeHint': 'Whether the buttons act on this file or the whole batch',
-      'ws.cmp.noImagesHere': 'Nothing of this kind left in this file; pick "Whole batch" on the right to handle the other files.',
+      'ws.cmp.noImagesHere': 'No images or similar content in this file; pick "Whole batch" on the right to handle the other files.',
       'ws.op.verifier': 'Verifier',
       'ws.op.detector': 'Detector re-judge',
       'ws.op.round': 'Round {n}',
@@ -1683,7 +1683,7 @@ window.__ModuleLoader__.load({
       'ws.cmp.f.changed': 'Changed',
       'ws.cmp.f.review': 'To review',
       'ws.cmp.f.images': 'Images',
-      'ws.cmp.f.imagesHint': 'Only files with images (or other unreadable content) still to handle',
+      'ws.cmp.f.imagesHint': 'Files with images (or other unreadable content), handled ones included; those still open are also under To review',
       'ws.cmp.skipped.too-large': 'File over 50 MB; no comparison recorded.',
       'ws.cmp.skipped.error': 'The comparison could not be built.',
       'ws.cmp.rowHint': 'Click to compare original and result',
@@ -5829,8 +5829,9 @@ window.__ModuleLoader__.load({
         const extra = (reviewData?.files ?? []).filter((file) => !listed.has(file.relPath))
           .map((file) => ({ n: `rv:${file.relPath}`, relPath: file.relPath, status: 'review', changed: 0, total: 0, reviewOnly: true }))
         list = [...extra, ...list]
-        // Files with images (or other unreadable content) still to handle.
-        const hasImages = (relPath) => (reviewByPath.get(relPath)?.items ?? []).some((item) => !item.decision && isOpaque(item))
+        // Files with images (or other unreadable content), handled or not:
+        // the ones still open are also under "to review".
+        const hasImages = (relPath) => (reviewByPath.get(relPath)?.items ?? []).some((item) => isOpaque(item))
         const shown = list.filter((entry) => compareFilter === 'all' ? true
           : compareFilter === 'changed' ? entry.changed > 0
             : compareFilter === 'images' ? hasImages(entry.relPath)
@@ -5854,7 +5855,9 @@ window.__ModuleLoader__.load({
         const batchOpaqueOpen = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision && isOpaque(item))
         const fileOpaqueOpen = (reviewFile?.items ?? []).filter((item) => !item.decision && isOpaque(item))
         const fileJudgeOpen = (reviewFile?.items ?? []).filter((item) => !item.decision && !isOpaque(item)).length
-        const viewMode = (compareRows === 'judge' && fileJudgeOpen === 0) || (compareRows === 'opaque' && batchOpaqueOpen.length === 0) ? 'all' : compareRows
+        const batchOpaqueAll = (reviewData?.files ?? []).some((file) => file.items.some(isOpaque))
+        const fileOpaqueAll = (reviewFile?.items ?? []).filter(isOpaque)
+        const viewMode = (compareRows === 'judge' && fileJudgeOpen === 0) || (compareRows === 'opaque' && !batchOpaqueAll) ? 'all' : compareRows
         const pane = () => {
           if (!selected) return h('p', { className: 'ma-empty' }, t('ws.cmp.pick'))
           if (selected.reviewOnly) {
@@ -5907,7 +5910,7 @@ window.__ModuleLoader__.load({
           const indexed = rows.map((change, index) => ({ change, index }))
           const visible = mode === 'judge'
             ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => !item.decision))
-            : mode === 'opaque' ? indexed.filter(({ index }) => (opHosts.get(index) ?? []).some((item) => !item.decision))
+            : mode === 'opaque' ? indexed.filter(({ index }) => opHosts.has(index))
               : mode === 'changed' ? indexed.filter(({ change, index }) => !change.same || change.flagged || hosts.has(index)) : indexed
           const judgeFlags = openHere.filter((item) => item.text).map((item) => item.text)
           // Only rows holding a review item are clipped (they carry the expand link).
@@ -5919,7 +5922,7 @@ window.__ModuleLoader__.load({
           return h(React.Fragment, {},
             reviewFile ? reviewBlocks(reviewFile, unlocated, opUnlocated) : null,
             full ? null : h('p', { className: 'ma-hint' }, t('ws.cmp.legacy')),
-            mode === 'opaque' && openOpaque.length === 0 ? h('p', { className: 'ma-empty' }, t('ws.cmp.noImagesHere')) : null,
+            mode === 'opaque' && opaqueItems.length === 0 ? h('p', { className: 'ma-empty' }, t('ws.cmp.noImagesHere')) : null,
             compareFrom > 0 && visible.length > 0 ? h('button', { className: 'ma-btn ma-small ws-cmp-more', onClick: () => { const from = Math.max(0, compareFrom - 300); setCompareShow(compareShow + (compareFrom - from)); setCompareFrom(from) } }, t('ws.cmp.earlier', { n: compareFrom })) : null,
             visible.length === 0
               ? (mode === 'opaque' ? null : h('p', { className: 'ma-empty' }, rows.length === 0 ? t('ws.cmp.empty') : t('ws.cmp.nochange')))
@@ -5979,7 +5982,7 @@ window.__ModuleLoader__.load({
         } },
           manualPopover(),
           h('aside', { className: 'ws-cmp-side' },
-            h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'review', 'images'].map((id) => {
+            h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'images', 'review'].map((id) => {
               const n = id === 'all' ? list.length : id === 'changed' ? list.filter((entry) => entry.changed > 0).length : id === 'images' ? list.filter((entry) => hasImages(entry.relPath)).length : list.filter((entry) => reviewByPath.has(entry.relPath)).length
               return h('button', {
                 key: id, type: 'button', className: `ws-cmp-filter${compareFilter === id ? ' ws-on' : ''}`, disabled: id === 'images' && n === 0 && compareFilter !== 'images',
@@ -6055,7 +6058,7 @@ window.__ModuleLoader__.load({
                     key: id, type: 'button', role: 'radio', 'aria-checked': viewMode === id ? 'true' : 'false',
                     className: `ws-cmp-mode${viewMode === id ? ' ws-on' : ''}${id === 'judge' ? ' ws-cmp-mode-judge' : ''}`,
                     title: id === 'changed' ? t('ws.cmp.onlyHint') : id === 'opaque' ? t('ws.rv.bulkHint') : undefined,
-                    disabled: (id === 'judge' && fileJudgeOpen === 0) || (id === 'opaque' && batchOpaqueOpen.length === 0),
+                    disabled: (id === 'judge' && fileJudgeOpen === 0) || (id === 'opaque' && fileOpaqueAll.length === 0 && batchOpaqueOpen.length === 0),
                     onClick: () => { setCompareRows(id); setCompareShow(300); setCompareFrom(0); setJumpRow(null) },
                   }, id === 'opaque' ? imageGlyph() : null, t(`ws.cmp.mode.${id}`), id in count ? h('i', { className: id === 'judge' && count.judge > 0 ? 'ws-cnt-hot' : '' }, String(count[id])) : null))),
                   // Jump to a row number (the # column): shown in the full view.
