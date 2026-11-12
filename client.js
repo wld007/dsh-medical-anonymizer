@@ -813,6 +813,16 @@ window.__ModuleLoader__.load({
       'ws.rv.replaced': '已替换为 {to}（{count} 处）',
       'ws.rv.allowed': '已确认不是标识符，并加入不匹配的值',
       'ws.rv.accepted': '已确认保留',
+      'ws.rv.rowsHere': '本文件这个字段共 {n} 行，一次处理',
+      'ws.rv.whole': '整值替换为',
+      'ws.rv.wholeHint': '这个值整体就是标识符：把整个原值换成一个假名（同一原值在哪里都是同一个假名），和这个字段其他行的处理一致',
+      'ws.rv.wholeDone': '已整值替换为{type}假名（{count} 处）',
+      'ws.rv.wholeWith': '已随同一个值的另一项整值替换为{type}假名',
+      'ws.rv.habit': '这个字段的其他 {n} 行都整值替换成了{type}假名，建议同样处理',
+      'ws.rv.habitHint': '结构化数据里同一个字段含义相同；只替换了一段的这几行，大多是规则把长编号里的一截误当成了电话、银行卡',
+      'ws.rv.allField': '本批次这个字段的 {n} 项都这样处理',
+      'ws.rv.allFieldHint': '对本批次所有文件里这个字段的「假名嵌入编码 / 数值被部分替换」项做同样的处理',
+      'ws.rv.fieldDone': '字段 {field}：已处理 {n} 项',
       'ws.rv.unglue': '还原原值',
       'ws.rv.unglueHint': '这个值本身不是标识符（如记录号、编码），只是其中一段恰好和某个标识符相同而被替换了。把嵌在里面的假名换回原文，恢复完整的值；只改这些位置。',
       'ws.rv.unglued': '已还原 {count} 处',
@@ -1755,6 +1765,16 @@ window.__ModuleLoader__.load({
       'ws.rv.replaced': 'Replaced with {to} ({count}×)',
       'ws.rv.allowed': 'Confirmed not an identifier; added to allowed values',
       'ws.rv.accepted': 'Kept',
+      'ws.rv.rowsHere': '{n} rows of this field in this file, handled at once',
+      'ws.rv.whole': 'Replace whole value as',
+      'ws.rv.wholeHint': 'The value as a whole is an identifier: replace the whole original by one pseudonym (the same original gets the same pseudonym everywhere), like the other rows of this field',
+      'ws.rv.wholeDone': 'Whole value replaced by a {type} pseudonym ({count})',
+      'ws.rv.wholeWith': 'Replaced as a whole ({type}) with another item on the same value',
+      'ws.rv.habit': 'The other {n} rows of this field were replaced as a whole ({type}); handle these the same way',
+      'ws.rv.habitHint': 'In structured data a field means the same thing in every row; rows where only a piece was replaced are mostly a rule mistaking part of a long number for a phone or card number',
+      'ws.rv.allField': 'Do the same for all {n} items of this field in the batch',
+      'ws.rv.allFieldHint': 'Apply to every "pseudonym inside a code / partly replaced value" item naming this field, in every file of the batch',
+      'ws.rv.fieldDone': 'Field {field}: {n} items handled',
       'ws.rv.unglue': 'Restore the value',
       'ws.rv.unglueHint': 'The value itself is not an identifier (a record number, a code); only part of it matched one and was replaced. Puts the original back for the pseudonym embedded there, restoring the whole value; only these places change.',
       'ws.rv.unglued': 'Restored {count}',
@@ -2738,6 +2758,13 @@ window.__ModuleLoader__.load({
       .ws-count.ws-out-keep{color:var(--dsw-alias-label-secondary);background:transparent;border-color:var(--dsw-alias-border-l2)}
       .ws-count.ws-out-drop{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent)}
       .ws-rv-how{font-size:11.5px;color:var(--dsw-alias-label-secondary);padding:4px 12px 2px 16px}
+      .ws-rv-mangled{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+      .ws-rv-habit{font-size:11px;color:var(--dsw-alias-state-success-primary)}
+      .ws-rv-whole{display:inline-flex;align-items:center;gap:0}
+      .ws-rv-whole .ma-btn{border-top-right-radius:0;border-bottom-right-radius:0}
+      .ws-rv-type{height:26px;padding:0 4px;font-size:11.5px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px;width:auto}
+      .ws-rv-all{font-size:11.5px;margin-left:6px;white-space:nowrap}
+      .ws-rv-rows{font-style:normal;margin-left:8px;font-size:11px;color:var(--wd-ink3)}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -4379,6 +4406,34 @@ window.__ModuleLoader__.load({
         zoom ? h('div', { className: 'ws-pv-zoom', role: 'dialog', onClick: () => setZoom(null) }, h('img', { src: zoom, alt: '' })) : null)
     }
 
+    // Buttons of a value replaced in part: replace it as a whole (what the
+    // rest of the field got), restore it, or keep it; optionally for every
+    // open item of this field in the batch (same field, same meaning).
+    const TYPE_CHOICES = ['病历号', '住院号', '就诊号', '身份证号', '社保号', '银行卡号', '电话', '医院', '姓名', '医生', '地址', '邮箱']
+    function MangledActions({ file, item, busy, decide, decideField }) {
+      const t = services.t
+      const habit = item.habit ?? null
+      const suggestWhole = Boolean(habit?.type) && habit.whole >= Math.max(1, habit.kept)
+      const [type, setType] = React.useState(habit?.type ?? '病历号')
+      const [all, setAll] = React.useState(false)
+      const field = item.field ?? null
+      const run = (action, extra = {}) => (all && field ? decideField(field, action, extra.type ?? null) : decide(file, item, action, extra))
+      const whole = h('span', { key: 'w', className: 'ws-rv-whole' },
+        h('button', { className: `ma-btn ma-small${suggestWhole ? ' ma-primary' : ''}`, disabled: busy || !file.editable || item.stale, title: !file.editable ? file.reason : t('ws.rv.wholeHint'), onClick: () => run('whole', { type }) }, t('ws.rv.whole')),
+        h('select', { className: 'ma-input ws-rv-type', value: type, disabled: busy || item.stale, onChange: (event) => setType(event.target.value) }, TYPE_CHOICES.map((choice) => h('option', { key: choice, value: choice }, choice))))
+      const restore = h('button', { key: 'r', className: `ma-btn ma-small${suggestWhole ? '' : ' ma-primary'}`, disabled: busy || !file.editable, title: !file.editable ? file.reason : t('ws.rv.unglueHint'), onClick: () => run('unglue') }, item.stale ? t('ws.rv.settle') : t('ws.rv.unglue'))
+      const keep = h('button', { key: 'k', className: 'ma-btn ma-small', disabled: busy, title: t('ws.rv.acceptHint'), onClick: () => run('accept') }, t('ws.rv.accept'))
+      return h('div', { className: 'ws-rv-mangled' },
+        suggestWhole && !item.stale
+          ? h('span', { className: 'ws-rv-habit', title: t('ws.rv.habitHint') }, t('ws.rv.habit', { field: field ?? '', n: habit.whole, type: habit.type }))
+          : null,
+        h('div', { className: 'ma-actions' },
+          ...(item.stale ? [restore, keep] : suggestWhole ? [whole, restore, keep] : [restore, whole, keep]),
+          field && item.batchOpen > 1 ? h('label', { className: 'ma-check ws-rv-all', title: t('ws.rv.allFieldHint') },
+            h('input', { type: 'checkbox', checked: all, disabled: busy, onChange: (event) => setAll(event.target.checked) }),
+            t('ws.rv.allField', { n: item.batchOpen })) : null))
+    }
+
     // Field column: which record (for files that are lists of records) and the field.
     function fieldCell(change) {
       const record = /^(\d+)\//.exec(String(change.id ?? ''))
@@ -5084,7 +5139,7 @@ window.__ModuleLoader__.load({
             await saveAndReload({ allowValues: [...new Set([...(config.allowValues ?? []), item.text])] })
           }
           await loadReview(adviceRunId)
-          if ((action === 'replace' || action === 'absorb' || action === 'unglue') && Array.isArray(compareByRun[adviceRunId])) {
+          if (['replace', 'absorb', 'unglue', 'whole'].includes(action) && Array.isArray(compareByRun[adviceRunId])) {
             const hit = compareByRun[adviceRunId].find((entry) => entry.relPath === file.relPath)
             if (hit) await loadCompareFile(adviceRunId, hit.n, true)
           }
@@ -5716,6 +5771,24 @@ window.__ModuleLoader__.load({
         }
       }
 
+      // One decision for every open mangled value of this field in the batch.
+      async function decideField(field, action, type = null) {
+        setReviewBusy('field')
+        setReviewNote(null)
+        try {
+          const result = await call('reviewField', { runId: adviceRunId, field, action, type })
+          await loadReview(adviceRunId)
+          setCompareFiles({})
+          if (typeof compareSel === 'number') await loadCompareFile(adviceRunId, compareSel, true)
+          if (result.completed) { forgetReport(adviceRunId); setDetail(null); await refreshRuns() }
+          setReviewNote({ ok: true, text: t('ws.rv.fieldDone', { field, n: result.decided }) })
+        } catch (cause) {
+          setReviewNote({ ok: false, text: message(cause) })
+        } finally {
+          setReviewBusy(null)
+        }
+      }
+
       const codeLabel = (item) => (t(`ws.rv.code.${item.code}`) === `ws.rv.code.${item.code}` ? item.code : t(`ws.rv.code.${item.code}`))
       // A pseudonym right before or after the item's text in its context: the
       // text is the rest of that value (split by markup) and can be merged in.
@@ -5728,6 +5801,7 @@ window.__ModuleLoader__.load({
           ? t('ws.rv.replaced', { to: item.decision.replacement, count: item.decision.count })
           : item.decision.action === 'absorb' ? t('ws.rv.absorbed', { count: item.decision.count })
           : item.decision.action === 'unglue' ? (item.decision.count ? t('ws.rv.unglued', { count: item.decision.count }) : t('ws.rv.ungluedWith'))
+          : item.decision.action === 'whole' ? (item.decision.count ? t('ws.rv.wholeDone', { type: item.decision.type ?? '', count: item.decision.count }) : t('ws.rv.wholeWith', { type: item.decision.type ?? '' }))
           : item.decision.action === 'split' ? t('ws.rv.split', { removed: item.decision.removed?.length ?? 0, kept: item.decision.kept ?? 0 })
           : item.decision.action === 'remove' ? t('ws.rv.removed')
             : item.decision.action === 'allow' ? t('ws.rv.allowed') : t('ws.rv.accepted'))
@@ -5738,10 +5812,7 @@ window.__ModuleLoader__.load({
               : null,
             h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, item.image && Number(item.count ?? 1) > 1 ? t('ws.pv.keepAll') : t('ws.rv.keepOpaque')))
           : (item.code === 'embedded' || item.code === 'partial') && !item.text
-            ? h('div', { className: 'ma-actions' },
-              h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable, title: !file.editable ? file.reason : t('ws.rv.unglueHint'), onClick: () => decideReview(file, item, 'unglue') },
-                reviewBusy === item.id ? t('save.saving') : item.stale ? t('ws.rv.settle') : t('ws.rv.unglue')),
-              h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.acceptHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept')))
+            ? h(MangledActions, { file, item, busy: reviewBusy !== null, decide: decideReview, decideField })
           : h('div', { className: 'ma-actions' },
             neighbour(item) ? h('button', {
               className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable,
@@ -5806,8 +5877,8 @@ window.__ModuleLoader__.load({
           item.text ? h('mark', { className: 'ws-rv-text' }, item.text)
             : item.stale ? h('span', { className: 'ws-rv-why' }, t('ws.rv.staleValue'))
             : READ_REVIEW.has(item.code) ? h('span', { className: 'ws-rv-why' }, item.detail)
-            : item.token ? h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedToken', { token: item.token }))
-              : h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedValue')),
+            : item.token ? h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedToken', { token: item.token }), item.places > 1 ? h('em', { className: 'ws-rv-rows' }, t('ws.rv.rowsHere', { n: item.places })) : null)
+              : h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedValue'), item.places > 1 ? h('em', { className: 'ws-rv-rows' }, t('ws.rv.rowsHere', { n: item.places })) : null),
           h('span', { className: 'wd-sp' }),
           reviewActions(file, item)),
         item.decision ? null : opinions(item),
@@ -5995,8 +6066,31 @@ window.__ModuleLoader__.load({
             }
             return found
           }
+          // How the rest of a field was treated in this file: the most common
+          // label of rows replaced as a whole ("病历-…"), to suggest the same.
+          const LABEL_TYPE = { 化名: '姓名', 医生: '医生', 证件: '身份证号', 电话: '电话', 邮箱: '邮箱', 地址: '地址', 病历: '病历号', 住院: '住院号', 就诊: '就诊号', 社保: '社保号', 银行卡: '银行卡号', 医院: '医院' }
+          const WHOLE = /^(化名|医生|证件|电话|邮箱|地址|病历|住院|就诊|社保|银行卡|医院)-[0-9A-F]{6}$/
+          const fieldHabit = (name) => {
+            const counts = {}
+            let whole = 0
+            let kept = 0
+            for (const change of rows) {
+              if (String(change.field ?? '正文').split(' · ')[0] !== name) continue
+              if (change.same) { kept += 1; continue }
+              const label = WHOLE.exec(String(change.after ?? '').trim())?.[1]
+              if (label) { whole += 1; counts[label] = (counts[label] ?? 0) + 1 }
+            }
+            const top = Object.entries(counts).sort((x, y) => y[1] - x[1])[0]
+            return { whole, kept, type: top ? LABEL_TYPE[top[0]] : null }
+          }
           for (const original of judgeItems) {
             let item = original
+            const fieldsOfItem = (candidate) => candidate.fields ?? ((/字段：([^）]+)）/.exec(String(candidate.detail ?? ''))?.[1] ?? '').replace(/\s*等 \d+ 个字段$/, '').split('、').map((part) => part.replace(/×\d+$/, '').trim()).filter(Boolean))
+            if (!item.text && (item.code === 'embedded' || item.code === 'partial') && fieldsOfItem(item).length === 1) {
+              const name = fieldsOfItem(item)[0]
+              const batchOpen = (reviewData?.files ?? []).reduce((sum, other) => sum + other.items.filter((candidate) => !candidate.decision && !candidate.text && (candidate.code === 'embedded' || candidate.code === 'partial') && fieldsOfItem(candidate).includes(name)).length, 0)
+              item = { ...item, field: name, habit: fieldHabit(name), batchOpen }
+            }
             let at = -1
             if (item.text) {
               const sameField = (change) => item.field && String(change.field ?? '').split(' · ')[0] === item.field
@@ -6021,6 +6115,7 @@ window.__ModuleLoader__.load({
               })
               if (places.length) {
                 at = places[0]
+                item = { ...item, places: places.length }
                 for (const index of places.slice(1)) alsoRows.set(index, item)
               }
             }
@@ -6177,7 +6272,7 @@ window.__ModuleLoader__.load({
                     ]
                   }
                   const out = [h('tr', { key: rowKey, id: number !== null ? `ws-row-${number}` : undefined, className: `${change.same ? 'ws-cmp-same' : ''}${flaggedRow ? ' ws-cmp-flagged' : ''}${here.length ? ' ws-cmp-hosted' : ''}${jumpRow !== null && number === jumpRow ? ' ws-cmp-jumped' : ''}` }, cells)]
-                  if (also && !here.length && !byField.has(also.id) && (!also.decision || showDecided) && (mode === 'judge' || mode === 'all' || mode === 'changed')) {
+                  if (also && !here.length && !byField.has(also.id) && also.code !== 'embedded' && also.code !== 'partial' && (!also.decision || showDecided) && (mode === 'judge' || mode === 'all' || mode === 'changed')) {
                     out.push(h('tr', { key: `${rowKey}-also`, className: 'ws-cmp-actrow' },
                       h('td', { className: 'ws-cmp-no' }),
                       h('td', { colSpan: 3 }, h('div', { className: 'ws-rv-also' }, also.decision ? t('ws.rv.alsoDone', { code: codeLabel(also) }) : t('ws.rv.alsoHere', { code: codeLabel(also) })))))
@@ -6231,7 +6326,7 @@ window.__ModuleLoader__.load({
                   : isDone(entry.relPath)
                     ? (() => {
                       // What was done: replaced, restored, kept as it was, removed.
-                      const KIND = { replace: 'swap', absorb: 'swap', unglue: 'restore', accept: 'keep', allow: 'keep', remove: 'drop', split: 'drop' }
+                      const KIND = { replace: 'swap', absorb: 'swap', whole: 'swap', unglue: 'restore', accept: 'keep', allow: 'keep', remove: 'drop', split: 'drop' }
                       const tally = {}
                       for (const item of reviewByPath.get(entry.relPath)?.items ?? []) {
                         const kind = KIND[item.decision?.action] ?? 'keep'

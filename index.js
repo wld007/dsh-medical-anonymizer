@@ -361,6 +361,8 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.compareList(request.runId) }
         case 'compareFile':
           return { ok: true, value: await service.compareFile(request.runId, request.n) }
+        case 'reviewField':
+          return { ok: true, value: await service.reviewField(request.runId, request.field, request.action, { type: typeof request.type === 'string' ? request.type : null }) }
         case 'imageCheck':
           return { ok: true, value: await service.imageCheck(request.runId, { only: Array.isArray(request.itemIds) ? request.itemIds : null }) }
         case 'opaquePreview':
@@ -374,7 +376,7 @@ export function apply(ctx, config = {}) {
         case 'manualEdits':
           return { ok: true, value: await service.manualEdits(request.runId) }
         case 'reviewDecide':
-          return { ok: true, value: await service.reviewDecide(request.runId, request.itemId, request.action, { removeIndexes: Array.isArray(request.removeIndexes) ? request.removeIndexes : null }) }
+          return { ok: true, value: await service.reviewDecide(request.runId, request.itemId, request.action, { removeIndexes: Array.isArray(request.removeIndexes) ? request.removeIndexes : null, type: typeof request.type === 'string' ? request.type : null }) }
         case 'calls':
           return { ok: true, value: await service.calls(request.runId, request.since) }
         case 'start':

@@ -81,6 +81,8 @@ const handlers = {
   compareList: (p) => service.compareList(p.runId),
   compareFile: (p) => service.compareFile(p.runId, p.n),
   opaquePreview: (p) => service.opaquePreview(p.runId, p.itemId),
+  reviewField: (p) => service.reviewField(p.runId, p.field, p.action, { type: p.type ?? null }),
+  reviewDecide: (p) => service.reviewDecide(p.runId, p.itemId, p.action, { removeIndexes: p.removeIndexes ?? null, type: p.type ?? null }),
   imageCheck: (p) => service.imageCheck(p.runId, { only: p.itemIds ?? null }),
 }
 
