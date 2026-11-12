@@ -821,7 +821,7 @@ window.__ModuleLoader__.load({
       'ws.rv.gluedToken': '{token} 嵌在更长的值里',
       'ws.rv.gluedValue': '数字 / 日期值被替换了一部分',
       'ws.rv.alsoHere': '同一问题（{code}），在上方第一处统一处理',
-      'ws.rv.unreadableHow': '怎么处理：看上面这几行的原文。是编码、记录号这类不含身份信息的值，点「确认保留」；里面能看出姓名、证件号等，按行选中补替换。',
+      'ws.rv.unreadableHow': '怎么处理：看上面这几行的原文（同一字段里的长字符串都已列出）。是编码、记录号这类不含身份信息的值，点「确认保留」；能看出姓名、证件号等，在那一行选中文字补替换。',
       'ws.rv.alsoDone': '同一项（{code}）也改了这一行，结果见上方第一处',
       'ws.rv.absorb': '并入 {token}（删掉残留）',
       'ws.rv.absorbHint': '「{text}」紧挨着假名 {token}，是同一个值没替换完的部分（原文被标签或字段隔开）。删掉紧挨着假名的「{text}」，让假名代表整个值；文件里其他地方的「{text}」不动。',
@@ -2732,6 +2732,7 @@ window.__ModuleLoader__.load({
       .ws-count.ws-out-restore{color:#2f6fd6;background:color-mix(in srgb,#2f6fd6 12%,transparent)}
       .ws-count.ws-out-keep{color:var(--dsw-alias-label-secondary);background:transparent;border-color:var(--dsw-alias-border-l2)}
       .ws-count.ws-out-drop{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent)}
+      .ws-rv-how{font-size:11.5px;color:var(--dsw-alias-label-secondary);padding:4px 12px 2px 16px}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -4220,6 +4221,11 @@ window.__ModuleLoader__.load({
     }
 
     const OPAQUE_REVIEW = new Set(['opaque', 'opaque-token', 'unreadable', 'zip-failed', 'over-limit', 'opaque-check', 'dicom-document'])
+    // Long strings / short tokens the plugin could not read: text in a field,
+    // judged by looking at the values (with the items to judge, not images).
+    const READ_REVIEW = new Set(['unreadable', 'opaque-token'])
+    // Embedded content (images, PDF, binary …) and batch-level items.
+    const isImageLike = (code) => OPAQUE_REVIEW.has(code) && !READ_REVIEW.has(code)
 
     // Token-level diff (Myers) between an original segment and its result.
     // Tokens: Latin/digit runs, single CJK characters, single other chars.
@@ -5671,7 +5677,7 @@ window.__ModuleLoader__.load({
       // `pick` narrows the items (e.g. only those the model suggests removing).
       async function bulkReview(action, files = reviewData?.files ?? [], pick = null, bySuggestion = false) {
         const ids = files.flatMap((file) => file.items)
-          .filter((item) => !item.decision && OPAQUE_REVIEW.has(item.code) && (action === 'accept' || item.code === 'opaque') && (!pick || pick(item)))
+          .filter((item) => !item.decision && isImageLike(item.code) && (action === 'accept' || item.code === 'opaque') && (!pick || pick(item)))
           .map((item) => item.id)
         if (ids.length === 0) return
         setReviewBusy('bulk')
@@ -5786,15 +5792,17 @@ window.__ModuleLoader__.load({
           item.type ? h('b', {}, item.type) : null,
           item.text ? h('mark', { className: 'ws-rv-text' }, item.text)
             : item.stale ? h('span', { className: 'ws-rv-why' }, t('ws.rv.staleValue'))
+            : READ_REVIEW.has(item.code) ? h('span', { className: 'ws-rv-why' }, item.detail)
             : item.token ? h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedToken', { token: item.token }))
               : h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedValue')),
           h('span', { className: 'wd-sp' }),
           reviewActions(file, item)),
-        item.decision ? null : opinions(item))
+        item.decision ? null : opinions(item),
+        !item.decision && READ_REVIEW.has(item.code) ? h('div', { className: 'ws-rv-how' }, t('ws.rv.unreadableHow')) : null)
 
       // One file's review items: what needs a human judgement first, then the
       // content that cannot be checked (images …) folded into one bar.
-      const isOpaque = (item) => OPAQUE_REVIEW.has(item.code)
+      const isOpaque = (item) => isImageLike(item.code)
       // judgeShown / opaqueShown: only these items (the ones the table cannot
       // place); null = every item of the file (no table to place them in).
       const reviewBlocks = (file, judgeShown = null, opaqueShown = null) => {
@@ -6029,7 +6037,12 @@ window.__ModuleLoader__.load({
               const fields = new Set([...(item.fields ?? []), ...(item.field ? [item.field] : [])])
               if (fields.size) {
                 const places = []
-                rows.forEach((change, index) => { if (fields.has(String(change.field ?? '正文').split(' · ')[0])) places.push(index) })
+                const longOnly = READ_REVIEW.has(item.code)
+                rows.forEach((change, index) => {
+                  if (!fields.has(String(change.field ?? '正文').split(' · ')[0])) return
+                  if (longOnly && !/^[A-Za-z0-9+/=_\-:.]{24,}$/.test(String(change.before ?? '').trim())) return
+                  places.push(index)
+                })
                 if (places.length) {
                   at = places[0]
                   byField.add(item.id)
@@ -6758,7 +6771,7 @@ window.__ModuleLoader__.load({
       const disk = current?.disk ?? null
       const failOf = (m) => (m?.calls ? Object.values(m.fails ?? {}).reduce((a, b) => a + b, 0) / m.calls : 0)
       const reviewItemsOpen = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision)
-      const judgeOpen = reviewItemsOpen.filter((item) => !OPAQUE_REVIEW.has(item.code)).length
+      const judgeOpen = reviewItemsOpen.filter((item) => !isImageLike(item.code)).length
       // Embedded images under review and what the model made of them.
       const imageItems = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => item.code === 'opaque' && item.image)
       const imagesOpen = imageItems.filter((item) => !item.decision)
