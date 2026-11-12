@@ -821,6 +821,7 @@ window.__ModuleLoader__.load({
       'ws.rv.gluedToken': '{token} 嵌在更长的值里',
       'ws.rv.gluedValue': '数字 / 日期值被替换了一部分',
       'ws.rv.alsoHere': '同一问题（{code}），在上方第一处统一处理',
+      'ws.rv.unreadableHow': '怎么处理：看上面这几行的原文。是编码、记录号这类不含身份信息的值，点「确认保留」；里面能看出姓名、证件号等，按行选中补替换。',
       'ws.rv.alsoDone': '同一项（{code}）也改了这一行，结果见上方第一处',
       'ws.rv.absorb': '并入 {token}（删掉残留）',
       'ws.rv.absorbHint': '「{text}」紧挨着假名 {token}，是同一个值没替换完的部分（原文被标签或字段隔开）。删掉紧挨着假名的「{text}」，让假名代表整个值；文件里其他地方的「{text}」不动。',
@@ -1760,6 +1761,7 @@ window.__ModuleLoader__.load({
       'ws.rv.gluedToken': '{token} sits inside a longer value',
       'ws.rv.gluedValue': 'Part of a number / date was replaced',
       'ws.rv.alsoHere': 'Same issue ({code}); handle it at its first place above',
+      'ws.rv.unreadableHow': 'How: look at the original values in the rows above. Codes or record numbers with nothing identifying: Keep. If you can see a name, ID number or similar, select it in the row to replace it.',
       'ws.rv.alsoDone': 'The same item ({code}) changed this row too; outcome at its first place above',
       'ws.rv.absorb': 'Merge into {token} (delete the rest)',
       'ws.rv.absorbHint': '"{text}" sits right against the pseudonym {token}: the part of the same value left over (split by markup or a field). Deletes "{text}" where it touches a pseudonym, so the pseudonym stands for the whole value; "{text}" elsewhere in the file is untouched.',
@@ -5757,10 +5759,12 @@ window.__ModuleLoader__.load({
       const opaqueInline = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-inline ws-rv-inline-op${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
         h('div', { className: 'ws-rv-op-meta' },
           h('span', { className: 'ws-rv-code ws-rv-code-op' }, codeLabel(item)),
-          h('span', { className: 'ws-rv-op-kind' }, item.kind ?? item.detail ?? ''),
+          item.kind ? h('span', { className: 'ws-rv-op-kind' }, item.kind) : null,
           item.field ? h('span', { className: 'ma-mono' }, item.field) : null,
           visionChip(item)),
-        item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove', busy: reviewBusy !== null || !file.editable, onSplit: (removeIndexes) => decideReview(file, item, 'split', { removeIndexes }) }) : h('div', { className: 'ws-pv-note' }, item.detail),
+        item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove', busy: reviewBusy !== null || !file.editable, onSplit: (removeIndexes) => decideReview(file, item, 'split', { removeIndexes }) })
+          : !item.baseId && (item.code === 'unreadable' || item.code === 'opaque-token') ? h('div', { className: 'ws-pv-note' }, item.detail, h('br'), h('b', {}, t('ws.rv.unreadableHow')))
+            : h('div', { className: 'ws-pv-note' }, item.detail),
         reviewActions(file, item))
       // Both models' opinions, round by round (cross-checked items).
       const OUTCOME = { dismissed: 'ws.op.dismissed', disputed: 'ws.op.disputed', confirmed: 'ws.op.confirmed', unjudged: 'ws.op.unjudged' }
@@ -6026,6 +6030,7 @@ window.__ModuleLoader__.load({
           // the record (base segment) that embeds them.
           const opaqueItems = (reviewFile?.items ?? []).filter(isOpaque)
           const opHosts = new Map() // row index -> items
+          const opAlso = new Map() // row index -> item (further rows of a field-wide item)
           const opUnlocated = []
           if (opaqueItems.length) {
             const firstRow = new Map()
@@ -6034,8 +6039,22 @@ window.__ModuleLoader__.load({
               const base = id.includes('#') ? id.slice(0, id.indexOf('#')) : id
               if (!firstRow.has(base)) firstRow.set(base, index)
             })
+            // Unreadable strings / undecodable tokens carry only their field:
+            // the rows of that field holding a long code-like value.
+            const LONG_CODE = /^[A-Za-z0-9+/=_\-:.]{24,}$/
             for (const item of opaqueItems) {
-              const at = item.baseId ? firstRow.get(item.baseId) : undefined
+              let at = item.baseId ? firstRow.get(item.baseId) : undefined
+              if (at === undefined && !item.baseId && item.field) {
+                const places = []
+                rows.forEach((change, index) => {
+                  if (String(change.field ?? '正文').split(' · ')[0] !== item.field) return
+                  if (LONG_CODE.test(String(change.before ?? '').trim())) places.push(index)
+                })
+                if (places.length) {
+                  at = places[0]
+                  for (const index of places.slice(1)) if (!opAlso.has(index)) opAlso.set(index, item)
+                }
+              }
               if (at === undefined) { opUnlocated.push(item); continue }
               opHosts.set(at, [...(opHosts.get(at) ?? []), item])
             }
@@ -6046,7 +6065,7 @@ window.__ModuleLoader__.load({
           const indexed = rows.map((change, index) => ({ change, index }))
           const visible = mode === 'judge'
             ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => showDecided || !item.decision) || (alsoRows.has(index) && (showDecided || !alsoRows.get(index).decision)))
-            : mode === 'opaque' ? indexed.filter(({ index }) => opHosts.has(index))
+            : mode === 'opaque' ? indexed.filter(({ index }) => opHosts.has(index) || opAlso.has(index))
               : mode === 'changed' ? indexed.filter(({ change, index }) => !change.same || change.flagged || hosts.has(index)) : indexed
           const judgeFlags = openHere.filter((item) => item.text).map((item) => item.text)
           // Only rows holding a review item are clipped (they carry the expand link).
@@ -6065,7 +6084,7 @@ window.__ModuleLoader__.load({
               : h('table', { className: 'ws-cmp-table', onMouseUp: (event) => onCompareSelect(event, selected) },
                 h('thead', {}, h('tr', {}, h('th', { className: 'ws-cmp-no', title: t('ws.cmp.noHint') }, '#'), h('th', {}, t('ws.cmp.field')), h('th', {}, t('ws.cmp.before')), h('th', {}, t('ws.cmp.after')))),
                 // Rows flagged for review stay listed beyond the page size.
-                h('tbody', {}, visible.filter(({ change, index }, position) => (position >= compareFrom && position < compareFrom + compareShow) || change.flagged || hosts.has(index) || (mode === 'opaque' && opHosts.has(index))).flatMap(({ change, index: row }) => {
+                h('tbody', {}, visible.filter(({ change, index }, position) => (position >= compareFrom && position < compareFrom + compareShow) || change.flagged || hosts.has(index) || (mode === 'opaque' && (opHosts.has(index) || opAlso.has(index)))).flatMap(({ change, index: row }) => {
                   const after = change.same ? change.before : change.after
                   const here = hosts.get(row) ?? []
                   const also = alsoRows.get(row) ?? null

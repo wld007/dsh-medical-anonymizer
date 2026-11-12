@@ -417,6 +417,20 @@ await check('R2 端到端：月份后的计数/分型在日期平移时不变', 
   assert.ok(text.startsWith(`${moved.getUTCFullYear()}年${moved.getUTCMonth() + 1}月2型糖尿病确诊`), `${text} (shift ${dateShiftDays(vault.salt)})`)
 })
 
+await check('R9 用 + 连接的编码列表（检验项目码）不当作无法解读的内容', async () => {
+  const { isCodeList } = await import('../lib/layers.js')
+  assert.ok(isCodeList('LIS10234+LIS567+LIS89012'))
+  assert.ok(!isCodeList('Q3Jhc2g+dGVzdC9mb28xMjM0NTY3ODkw'))
+  const input = join(tmp, 'in-r9')
+  await mkdir(input, { recursive: true })
+  const rows = Array.from({ length: 4 }, (_, i) => ({ TEST_ITM_CD: 'LIS10234+LIS56789+LIS90123+LIS445566+LIS77881+LIS3' + i, TEST_ITM_NM: '血常规' }))
+  await writeFile(join(input, 'a.json'), JSON.stringify(rows))
+  const root = join(tmp, 'out-r9')
+  const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'r9', maxRounds: 1, llm: null } })
+  const codes = run.files.flatMap((file) => (file.issues ?? []).map((issue) => issue.code))
+  assert.ok(!codes.includes('unreadable') && !codes.includes('opaque-token'), codes.join(','))
+})
+
 await check('R3 路径：「标签-号码」中的号码被替换（文件名、目录名、报告）', async () => {
   const vault = new Vault(join(tmp, 'vault-paths.json'))
   await vault.load()
