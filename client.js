@@ -800,6 +800,12 @@ window.__ModuleLoader__.load({
       'ws.rv.replaced': '已替换为 {to}（{count} 处）',
       'ws.rv.allowed': '已确认不是标识符，并加入不匹配的值',
       'ws.rv.accepted': '已确认保留',
+      'ws.rv.unglue': '还原原值',
+      'ws.rv.unglueHint': '这个值本身不是标识符（如记录号、编码），只是其中一段恰好和某个标识符相同而被替换了。把嵌在里面的假名换回原文，恢复完整的值；只改这些位置。',
+      'ws.rv.unglued': '已还原 {count} 处',
+      'ws.rv.gluedToken': '{token} 嵌在更长的值里',
+      'ws.rv.gluedValue': '数字 / 日期值被替换了一部分',
+      'ws.rv.alsoHere': '同一问题（{code}），在上方第一处统一处理',
       'ws.rv.absorb': '并入 {token}（删掉残留）',
       'ws.rv.absorbHint': '「{text}」紧挨着假名 {token}，是同一个值没替换完的部分（原文被标签或字段隔开）。删掉紧挨着假名的「{text}」，让假名代表整个值；文件里其他地方的「{text}」不动。',
       'ws.rv.absorbed': '已删除紧挨着假名的残留 {count} 处',
@@ -1717,6 +1723,12 @@ window.__ModuleLoader__.load({
       'ws.rv.replaced': 'Replaced with {to} ({count}×)',
       'ws.rv.allowed': 'Confirmed not an identifier; added to allowed values',
       'ws.rv.accepted': 'Kept',
+      'ws.rv.unglue': 'Restore the value',
+      'ws.rv.unglueHint': 'The value itself is not an identifier (a record number, a code); only part of it matched one and was replaced. Puts the original back for the pseudonym embedded there, restoring the whole value; only these places change.',
+      'ws.rv.unglued': 'Restored {count}',
+      'ws.rv.gluedToken': '{token} sits inside a longer value',
+      'ws.rv.gluedValue': 'Part of a number / date was replaced',
+      'ws.rv.alsoHere': 'Same issue ({code}); handle it at its first place above',
       'ws.rv.absorb': 'Merge into {token} (delete the rest)',
       'ws.rv.absorbHint': '"{text}" sits right against the pseudonym {token}: the part of the same value left over (split by markup or a field). Deletes "{text}" where it touches a pseudonym, so the pseudonym stands for the whole value; "{text}" elsewhere in the file is untouched.',
       'ws.rv.absorbed': 'Deleted the leftover next to the pseudonym ({count})',
@@ -2674,6 +2686,8 @@ window.__ModuleLoader__.load({
       .ws-pv-opt:first-child{border-left:0}
       .ws-pv-opt-remove.ws-on{background:var(--dsw-alias-state-error-primary);color:#fff}
       .ws-pv-opt-keep.ws-on{background:var(--dsw-alias-state-success-primary);color:#fff}
+      .ws-rv-why{font-size:12px;color:var(--dsw-alias-label-primary)}
+      .ws-rv-also{font-size:11px;color:var(--wd-ink3);padding:2px 10px 4px;border-left:3px solid color-mix(in srgb,var(--dsw-alias-state-error-primary) 30%,transparent)}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -4371,6 +4385,8 @@ window.__ModuleLoader__.load({
 
     // Vault pseudonyms in a result cell: clickable for "revert" (false positive).
     const PSEUDO_CLICK = /(?:化名|患者|医生|证件|电话|邮箱|地址|病历|住院|就诊|社保|银行卡|医院)-(?=[0-9]*[A-F])[0-9A-F]{6}(?![0-9A-Za-z])/g
+    // Any vault pseudonym, glued or not (to find one cut into a longer value).
+    const PSEUDO_GLUED_SOURCE = '(?:化名|患者|医生|证件|电话|邮箱|地址|病历|住院|就诊|社保|银行卡|医院)-[0-9A-F]{6}'
 
     /**
      * The result cell of one comparison row: inserted text as <ins>, every
@@ -5005,7 +5021,7 @@ window.__ModuleLoader__.load({
             await saveAndReload({ allowValues: [...new Set([...(config.allowValues ?? []), item.text])] })
           }
           await loadReview(adviceRunId)
-          if ((action === 'replace' || action === 'absorb') && Array.isArray(compareByRun[adviceRunId])) {
+          if ((action === 'replace' || action === 'absorb' || action === 'unglue') && Array.isArray(compareByRun[adviceRunId])) {
             const hit = compareByRun[adviceRunId].find((entry) => entry.relPath === file.relPath)
             if (hit) await loadCompareFile(adviceRunId, hit.n, true)
           }
@@ -5648,6 +5664,7 @@ window.__ModuleLoader__.load({
         ? h('div', { className: 'ws-rv-result' }, item.decision.action === 'replace'
           ? t('ws.rv.replaced', { to: item.decision.replacement, count: item.decision.count })
           : item.decision.action === 'absorb' ? t('ws.rv.absorbed', { count: item.decision.count })
+          : item.decision.action === 'unglue' ? t('ws.rv.unglued', { count: item.decision.count })
           : item.decision.action === 'split' ? t('ws.rv.split', { removed: item.decision.removed?.length ?? 0, kept: item.decision.kept ?? 0 })
           : item.decision.action === 'remove' ? t('ws.rv.removed')
             : item.decision.action === 'allow' ? t('ws.rv.allowed') : t('ws.rv.accepted'))
@@ -5657,6 +5674,11 @@ window.__ModuleLoader__.load({
               ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable, title: file.editable ? t('ws.rv.removeHint') : file.reason, onClick: () => decideReview(file, item, 'remove') }, reviewBusy === item.id ? t('save.saving') : t('ws.rv.remove'))
               : null,
             h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, item.image && Number(item.count ?? 1) > 1 ? t('ws.pv.keepAll') : t('ws.rv.keepOpaque')))
+          : (item.code === 'embedded' || item.code === 'partial') && !item.text
+            ? h('div', { className: 'ma-actions' },
+              h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable, title: !file.editable ? file.reason : t('ws.rv.unglueHint'), onClick: () => decideReview(file, item, 'unglue') },
+                reviewBusy === item.id ? t('save.saving') : t('ws.rv.unglue')),
+              h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.acceptHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept')))
           : h('div', { className: 'ma-actions' },
             neighbour(item) ? h('button', {
               className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable,
@@ -5716,7 +5738,9 @@ window.__ModuleLoader__.load({
         h('div', { className: `ws-rv-inline${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
           h('span', { className: 'ws-rv-code' }, codeLabel(item)),
           item.type ? h('b', {}, item.type) : null,
-          h('mark', { className: 'ws-rv-text' }, item.text),
+          item.text ? h('mark', { className: 'ws-rv-text' }, item.text)
+            : item.token ? h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedToken', { token: item.token }))
+              : h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedValue')),
           h('span', { className: 'wd-sp' }),
           reviewActions(file, item)),
         item.decision ? null : opinions(item))
@@ -5875,13 +5899,43 @@ window.__ModuleLoader__.load({
           const judgeItems = (reviewFile?.items ?? []).filter((item) => !isOpaque(item))
           const hosts = new Map() // row index -> items
           const unlocated = []
+          // Mangled values (a pseudonym cut into a longer ID): rows by segment
+          // id, or for older records by field and the glued pseudonym.
+          const textOf = (change) => (change.same ? change.before : change.after)
+          const alsoRows = new Map() // row index -> item (further places of a mangled value)
+          const gluedTokens = new Map() // row index -> pseudonyms glued there
+          const glued = (text, token = null) => {
+            const found = []
+            PSEUDO_CLICK.lastIndex = 0
+            for (const match of String(text).matchAll(new RegExp(PSEUDO_GLUED_SOURCE, 'g'))) {
+              const at = match.index
+              const end = at + match[0].length
+              if ((token && match[0] !== token)) continue
+              if (/[0-9A-Za-z]/.test(text[at - 1] ?? '') || /[0-9A-Za-z]/.test(text[end] ?? '')) found.push(match[0])
+            }
+            return found
+          }
           for (const item of judgeItems) {
             let at = -1
             if (item.text) {
-              const textOf = (change) => (change.same ? change.before : change.after)
               const sameField = (change) => item.field && String(change.field ?? '').split(' · ')[0] === item.field
               at = rows.findIndex((change) => sameField(change) && flagAt(textOf(change), item.text) >= 0)
               if (at < 0) at = rows.findIndex((change) => flagAt(textOf(change), item.text) >= 0)
+            } else if (item.segments?.length || item.fields?.length || item.token) {
+              const ids = item.segments ? new Set(item.segments) : null
+              const fields = item.fields?.length ? new Set(item.fields) : null
+              const places = []
+              rows.forEach((change, index) => {
+                if (ids ? !ids.has(String(change.id)) : (fields && !fields.has(String(change.field ?? '正文').split(' · ')[0]))) return
+                const tokens = glued(textOf(change), item.token ?? null)
+                if (tokens.length === 0) return
+                places.push(index)
+                gluedTokens.set(index, [...new Set([...(gluedTokens.get(index) ?? []), ...tokens])])
+              })
+              if (places.length) {
+                at = places[0]
+                for (const index of places.slice(1)) alsoRows.set(index, item)
+              }
             }
             if (at < 0) { unlocated.push(item); continue }
             hosts.set(at, [...(hosts.get(at) ?? []), item])
@@ -5909,7 +5963,7 @@ window.__ModuleLoader__.load({
           const mode = viewMode
           const indexed = rows.map((change, index) => ({ change, index }))
           const visible = mode === 'judge'
-            ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => !item.decision))
+            ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => !item.decision) || (alsoRows.has(index) && !alsoRows.get(index).decision))
             : mode === 'opaque' ? indexed.filter(({ index }) => opHosts.has(index))
               : mode === 'changed' ? indexed.filter(({ change, index }) => !change.same || change.flagged || hosts.has(index)) : indexed
           const judgeFlags = openHere.filter((item) => item.text).map((item) => item.text)
@@ -5932,9 +5986,12 @@ window.__ModuleLoader__.load({
                 h('tbody', {}, visible.filter(({ change, index }, position) => (position >= compareFrom && position < compareFrom + compareShow) || change.flagged || hosts.has(index) || (mode === 'opaque' && opHosts.has(index))).flatMap(({ change, index: row }) => {
                   const after = change.same ? change.before : change.after
                   const here = hosts.get(row) ?? []
+                  const also = alsoRows.get(row) ?? null
+                  // Glued pseudonyms of an open mangled value are marked in the result.
+                  const rowFlags = gluedTokens.has(row) && [...here, also].some((item) => item && !item.decision) ? [...flags, ...gluedTokens.get(row)] : flags
                   // Images are listed under their row in the full and image views.
                   const opHere = mode === 'all' || mode === 'opaque' ? (opHosts.get(row) ?? []) : []
-                  const flaggedRow = here.some((item) => !item.decision) || (change.flagged && flags.some((flag) => flagAt(after, flag) >= 0))
+                  const flaggedRow = here.some((item) => !item.decision) || (also && !also.decision) || (change.flagged && flags.some((flag) => flagAt(after, flag) >= 0))
                   const onPseudo = (event, token) => openManual(event, { kind: 'revert', text: token, relPath: selected.relPath, n: selected.n })
                   const rowKey = change.id ?? row
                   // Row number: the segment's place in the file. Older records
@@ -5949,7 +6006,7 @@ window.__ModuleLoader__.load({
                       noCell,
                       h('td', { key: 'f', className: 'ws-cmp-field' }, change.field ?? '—'),
                       h('td', { key: 's', className: 'ws-cmp-src' }, clip(marks.length ? markFlags(change.before, marks, `b${row}`) : change.before, longest, rowKey)),
-                      h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, null, flags, `s${row}`, onPseudo), longest, rowKey)),
+                      h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, null, rowFlags, `s${row}`, onPseudo), longest, rowKey)),
                     ]
                   } else {
                     const ops = diffTexts(change.before, after)
@@ -5957,10 +6014,15 @@ window.__ModuleLoader__.load({
                       noCell,
                       h('td', { key: 'f', className: 'ws-cmp-field' }, change.field ?? '—'),
                       h('td', { key: 's', className: 'ws-cmp-src' }, clip(ops.filter((op) => op.t !== 'ins').map((op, i) => op.t === 'del' ? h('del', { key: i }, op.s) : h(React.Fragment, { key: i }, marks.length ? markFlags(op.s, marks, `b${row}-${i}`) : op.s)), longest, rowKey)),
-                      h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, ops, flags, `${row}-`, onPseudo), longest, rowKey)),
+                      h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, ops, rowFlags, `${row}-`, onPseudo), longest, rowKey)),
                     ]
                   }
                   const out = [h('tr', { key: rowKey, id: number !== null ? `ws-row-${number}` : undefined, className: `${change.same ? 'ws-cmp-same' : ''}${flaggedRow ? ' ws-cmp-flagged' : ''}${here.length ? ' ws-cmp-hosted' : ''}${jumpRow !== null && number === jumpRow ? ' ws-cmp-jumped' : ''}` }, cells)]
+                  if (also && !here.length && !also.decision && (mode === 'judge' || mode === 'all' || mode === 'changed')) {
+                    out.push(h('tr', { key: `${rowKey}-also`, className: 'ws-cmp-actrow' },
+                      h('td', { className: 'ws-cmp-no' }),
+                      h('td', { colSpan: 3 }, h('div', { className: 'ws-rv-also' }, t('ws.rv.alsoHere', { code: codeLabel(also) })))))
+                  }
                   if (here.length || opHere.length) {
                     out.push(h('tr', { key: `${rowKey}-rv`, className: 'ws-cmp-actrow' },
                       h('td', { className: 'ws-cmp-no' }),
