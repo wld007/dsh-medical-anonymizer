@@ -813,6 +813,7 @@ window.__ModuleLoader__.load({
       'ws.rv.gluedToken': '{token} 嵌在更长的值里',
       'ws.rv.gluedValue': '数字 / 日期值被替换了一部分',
       'ws.rv.alsoHere': '同一问题（{code}），在上方第一处统一处理',
+      'ws.rv.alsoDone': '同一项（{code}）也改了这一行，结果见上方第一处',
       'ws.rv.absorb': '并入 {token}（删掉残留）',
       'ws.rv.absorbHint': '「{text}」紧挨着假名 {token}，是同一个值没替换完的部分（原文被标签或字段隔开）。删掉紧挨着假名的「{text}」，让假名代表整个值；文件里其他地方的「{text}」不动。',
       'ws.rv.absorbed': '已删除紧挨着假名的残留 {count} 处',
@@ -1743,6 +1744,7 @@ window.__ModuleLoader__.load({
       'ws.rv.gluedToken': '{token} sits inside a longer value',
       'ws.rv.gluedValue': 'Part of a number / date was replaced',
       'ws.rv.alsoHere': 'Same issue ({code}); handle it at its first place above',
+      'ws.rv.alsoDone': 'The same item ({code}) changed this row too; outcome at its first place above',
       'ws.rv.absorb': 'Merge into {token} (delete the rest)',
       'ws.rv.absorbHint': '"{text}" sits right against the pseudonym {token}: the part of the same value left over (split by markup or a field). Deletes "{text}" where it touches a pseudonym, so the pseudonym stands for the whole value; "{text}" elsewhere in the file is untouched.',
       'ws.rv.absorbed': 'Deleted the leftover next to the pseudonym ({count})',
@@ -5777,7 +5779,7 @@ window.__ModuleLoader__.load({
         const unfolded = opaqueOpen[file.relPath] === true
         return h(React.Fragment, {},
           judge.length ? h('div', { className: 'ws-rv-loose' },
-            h('div', { className: 'ws-rv-loose-h' }, t('ws.rv.looseHead', { n: judge.filter((item) => !item.decision).length })),
+            h('div', { className: 'ws-rv-loose-h' }, t('ws.rv.looseHead', { n: judge.filter((item) => !item.decision).length || judge.length })),
             judge.map((item) => reviewInline(file, item))) : null,
           opaque.length ? h('div', { className: 'ws-cmp-review ws-rv-opaque' },
             h('div', { className: 'ws-rv-head' },
@@ -5968,6 +5970,26 @@ window.__ModuleLoader__.load({
                 for (const index of places.slice(1)) alsoRows.set(index, item)
               }
             }
+            // A restored value has no pseudonym left to find: its rows come from
+            // the decision, the original put back, or the item it was settled with.
+            if (at < 0 && item.decision?.action === 'unglue') {
+              const byId = new Map(rows.map((change, index) => [String(change.id), index]))
+              const placesOf = (entry, depth = 0) => {
+                const ids = entry.decision?.rows
+                if (ids?.length) return ids.map((rowId) => byId.get(String(rowId))).filter((index) => index !== undefined)
+                if (entry.restored) {
+                  const fields = entry.fields?.length ? new Set(entry.fields) : null
+                  return rows.map((change, index) => (fields && !fields.has(String(change.field ?? '正文').split(' · ')[0])) || !String(textOf(change)).includes(entry.restored) ? -1 : index).filter((index) => index >= 0)
+                }
+                const other = entry.decision?.with && depth < 2 ? judgeItems.find((candidate) => candidate.id === entry.decision.with) : null
+                return other ? placesOf(other, depth + 1) : []
+              }
+              const places = placesOf(item)
+              if (places.length) {
+                at = places[0]
+                for (const index of places.slice(1)) if (!alsoRows.has(index)) alsoRows.set(index, item)
+              }
+            }
             // Once handled, a mangled value may no longer be found (the pseudonym
             // was taken out): its outcome needs no card above the table.
             if (at < 0) { if (!item.decision || showDecided) unlocated.push(!item.decision && !item.text && (item.code === 'embedded' || item.code === 'partial') ? { ...item, stale: true } : item); continue }
@@ -6051,10 +6073,10 @@ window.__ModuleLoader__.load({
                     ]
                   }
                   const out = [h('tr', { key: rowKey, id: number !== null ? `ws-row-${number}` : undefined, className: `${change.same ? 'ws-cmp-same' : ''}${flaggedRow ? ' ws-cmp-flagged' : ''}${here.length ? ' ws-cmp-hosted' : ''}${jumpRow !== null && number === jumpRow ? ' ws-cmp-jumped' : ''}` }, cells)]
-                  if (also && !here.length && !also.decision && (mode === 'judge' || mode === 'all' || mode === 'changed')) {
+                  if (also && !here.length && (!also.decision || showDecided) && (mode === 'judge' || mode === 'all' || mode === 'changed')) {
                     out.push(h('tr', { key: `${rowKey}-also`, className: 'ws-cmp-actrow' },
                       h('td', { className: 'ws-cmp-no' }),
-                      h('td', { colSpan: 3 }, h('div', { className: 'ws-rv-also' }, t('ws.rv.alsoHere', { code: codeLabel(also) })))))
+                      h('td', { colSpan: 3 }, h('div', { className: 'ws-rv-also' }, also.decision ? t('ws.rv.alsoDone', { code: codeLabel(also) }) : t('ws.rv.alsoHere', { code: codeLabel(also) })))))
                   }
                   if (here.length || opHere.length) {
                     out.push(h('tr', { key: `${rowKey}-rv`, className: 'ws-cmp-actrow' },
