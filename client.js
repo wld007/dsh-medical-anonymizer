@@ -5937,7 +5937,9 @@ window.__ModuleLoader__.load({
                 for (const index of places.slice(1)) alsoRows.set(index, item)
               }
             }
-            if (at < 0) { unlocated.push(item); continue }
+            // Once handled, a mangled value may no longer be found (the pseudonym
+            // was taken out): its outcome needs no card above the table.
+            if (at < 0) { if (!item.decision) unlocated.push(item); continue }
             hosts.set(at, [...(hosts.get(at) ?? []), item])
           }
           // Images and other unreadable content sit under the first row of
