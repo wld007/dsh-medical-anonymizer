@@ -5954,6 +5954,12 @@ window.__ModuleLoader__.load({
               const sameField = (change) => item.field && String(change.field ?? '').split(' · ')[0] === item.field
               at = rows.findIndex((change) => sameField(change) && flagAt(textOf(change), item.text) >= 0)
               if (at < 0) at = rows.findIndex((change) => flagAt(textOf(change), item.text) >= 0)
+              // Replaced (or merged) already: the text is gone from the result
+              // but still in the original column.
+              if (at < 0 && item.decision) {
+                at = rows.findIndex((change) => sameField(change) && flagAt(String(change.before ?? ''), item.text) >= 0)
+                if (at < 0) at = rows.findIndex((change) => flagAt(String(change.before ?? ''), item.text) >= 0)
+              }
             } else if (item.segments?.length || item.fields?.length || item.token) {
               const ids = item.segments ? new Set(item.segments) : null
               const fields = item.fields?.length ? new Set(item.fields) : null
