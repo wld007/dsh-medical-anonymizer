@@ -671,7 +671,6 @@ window.__ModuleLoader__.load({
       'ws.cmp.mode.judge': '待判断',
       'ws.cmp.expand': '展开全文',
       'ws.cmp.collapse': '收起',
-      'ws.rv.unlocatedHead': '需要你判断 · 表格中定位不到的 {n} 项',
       'ws.cmp.onlyHint': '只显示被替换过的段落和待复核的段落；取消勾选显示全部内容',
       'ws.stage1': '① 批次准备',
       'ws.stage2': '② 逐个文件 · 并行',
@@ -730,7 +729,6 @@ window.__ModuleLoader__.load({
       'ws.mx.reverted': '已把 {token} 还原为原文：{count} 处，{files} 个文件。',
       'ws.mx.added': '已替换为 {token}：{count} 处，{files} 个文件。',
       'ws.rv.judgeTitle': '需要你判断 {count} 项',
-      'ws.rv.judgeHead': '需要你判断 · 待处理 {n} / {total}',
       'ws.rv.opaqueHead': '无法检查的内容（图片等） · 待处理 {n} / {total}',
       'ws.rv.fileRemove': '移除本文件全部',
       'ws.rv.fileKeep': '本文件全部保留',
@@ -804,6 +802,9 @@ window.__ModuleLoader__.load({
       'ws.rv.unglueHint': '这个值本身不是标识符（如记录号、编码），只是其中一段恰好和某个标识符相同而被替换了。把嵌在里面的假名换回原文，恢复完整的值；只改这些位置。',
       'ws.rv.unglued': '已还原 {count} 处',
       'ws.rv.ungluedWith': '同一个值已随另一项还原',
+      'ws.rv.looseHead': '表格中找不到对应行的 {n} 项',
+      'ws.rv.staleValue': '表格里已找不到被嵌入的假名，多半已随同一个值的另一项还原',
+      'ws.rv.settle': '标记为已处理',
       'ws.rv.gluedToken': '{token} 嵌在更长的值里',
       'ws.rv.gluedValue': '数字 / 日期值被替换了一部分',
       'ws.rv.alsoHere': '同一问题（{code}），在上方第一处统一处理',
@@ -1595,7 +1596,6 @@ window.__ModuleLoader__.load({
       'ws.cmp.mode.judge': 'To judge',
       'ws.cmp.expand': 'Show all',
       'ws.cmp.collapse': 'Collapse',
-      'ws.rv.unlocatedHead': 'Needs your judgement · {n} not found in the table',
       'ws.cmp.onlyHint': 'Show only replaced and flagged segments; untick to show all content',
       'ws.stage1': '① PREPARE',
       'ws.stage2': '② PER FILE · PARALLEL',
@@ -1654,7 +1654,6 @@ window.__ModuleLoader__.load({
       'ws.mx.reverted': '{token} restored: {count} places in {files} files.',
       'ws.mx.added': 'Replaced with {token}: {count} places in {files} files.',
       'ws.rv.judgeTitle': '{count} need your judgement',
-      'ws.rv.judgeHead': 'Needs your judgement · {n} / {total} open',
       'ws.rv.opaqueHead': 'Cannot be checked (images …) · {n} / {total} open',
       'ws.rv.fileRemove': 'Remove all in file',
       'ws.rv.fileKeep': 'Keep all in file',
@@ -1728,6 +1727,9 @@ window.__ModuleLoader__.load({
       'ws.rv.unglueHint': 'The value itself is not an identifier (a record number, a code); only part of it matched one and was replaced. Puts the original back for the pseudonym embedded there, restoring the whole value; only these places change.',
       'ws.rv.unglued': 'Restored {count}',
       'ws.rv.ungluedWith': 'Already restored with another item on the same value',
+      'ws.rv.looseHead': '{n} not found in the table',
+      'ws.rv.staleValue': 'The embedded pseudonym is no longer in the table; most likely restored with another item on the same value',
+      'ws.rv.settle': 'Mark as handled',
       'ws.rv.gluedToken': '{token} sits inside a longer value',
       'ws.rv.gluedValue': 'Part of a number / date was replaced',
       'ws.rv.alsoHere': 'Same issue ({code}); handle it at its first place above',
@@ -2690,6 +2692,8 @@ window.__ModuleLoader__.load({
       .ws-pv-opt-keep.ws-on{background:var(--dsw-alias-state-success-primary);color:#fff}
       .ws-rv-why{font-size:12px;color:var(--dsw-alias-label-primary)}
       .ws-rv-also{font-size:11px;color:var(--wd-ink3);padding:2px 10px 4px;border-left:3px solid color-mix(in srgb,var(--dsw-alias-state-error-primary) 30%,transparent)}
+      .ws-rv-loose{display:flex;flex-direction:column;gap:2px}
+      .ws-rv-loose-h{font-size:11px;color:var(--wd-ink3);padding:0 2px}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -5679,7 +5683,7 @@ window.__ModuleLoader__.load({
           : (item.code === 'embedded' || item.code === 'partial') && !item.text
             ? h('div', { className: 'ma-actions' },
               h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable, title: !file.editable ? file.reason : t('ws.rv.unglueHint'), onClick: () => decideReview(file, item, 'unglue') },
-                reviewBusy === item.id ? t('save.saving') : t('ws.rv.unglue')),
+                reviewBusy === item.id ? t('save.saving') : item.stale ? t('ws.rv.settle') : t('ws.rv.unglue')),
               h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.acceptHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept')))
           : h('div', { className: 'ma-actions' },
             neighbour(item) ? h('button', {
@@ -5741,6 +5745,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'ws-rv-code' }, codeLabel(item)),
           item.type ? h('b', {}, item.type) : null,
           item.text ? h('mark', { className: 'ws-rv-text' }, item.text)
+            : item.stale ? h('span', { className: 'ws-rv-why' }, t('ws.rv.staleValue'))
             : item.token ? h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedToken', { token: item.token }))
               : h('span', { className: 'ws-rv-why' }, t('ws.rv.gluedValue')),
           h('span', { className: 'wd-sp' }),
@@ -5758,9 +5763,9 @@ window.__ModuleLoader__.load({
         const opaqueLeft = opaque.filter((item) => !item.decision)
         const unfolded = opaqueOpen[file.relPath] === true
         return h(React.Fragment, {},
-          judge.length ? h('div', { className: 'ws-cmp-review ws-rv-judge' },
-            h('div', { className: 'ws-rv-head' }, judgeShown ? t('ws.rv.unlocatedHead', { n: judge.filter((item) => !item.decision).length }) : t('ws.rv.judgeHead', { n: judge.filter((item) => !item.decision).length, total: judge.length })),
-            judge.map((item) => reviewCard(file, item))) : null,
+          judge.length ? h('div', { className: 'ws-rv-loose' },
+            h('div', { className: 'ws-rv-loose-h' }, t('ws.rv.looseHead', { n: judge.filter((item) => !item.decision).length })),
+            judge.map((item) => reviewInline(file, item))) : null,
           opaque.length ? h('div', { className: 'ws-cmp-review ws-rv-opaque' },
             h('div', { className: 'ws-rv-head' },
               h('button', { type: 'button', className: 'ma-link', onClick: () => setOpaqueOpen({ ...opaqueOpen, [file.relPath]: !unfolded }) }, `${unfolded ? '▾' : '▸'} ${opaqueShown ? t('ws.rv.opaqueUnlocated', { n: opaqueLeft.length }) : t('ws.rv.opaqueHead', { n: opaqueLeft.length, total: opaque.length })}`),
@@ -5941,7 +5946,7 @@ window.__ModuleLoader__.load({
             }
             // Once handled, a mangled value may no longer be found (the pseudonym
             // was taken out): its outcome needs no card above the table.
-            if (at < 0) { if (!item.decision) unlocated.push(item); continue }
+            if (at < 0) { if (!item.decision) unlocated.push(!item.text && (item.code === 'embedded' || item.code === 'partial') ? { ...item, stale: true } : item); continue }
             hosts.set(at, [...(hosts.get(at) ?? []), item])
           }
           // Images and other unreadable content sit under the first row of
