@@ -12,8 +12,8 @@ Configuration only, with a collapsible **How it works** guide at the top:
 - **Vault encryption**: set, change, or clear `vaultPassphrase` (entered twice, never shown again). Saving a new passphrase (or clearing it) on the settings page immediately re-encrypts the vaults in the output locations used on this machine (clearing turns them back into plaintext); vaults elsewhere that were encrypted with the old passphrase need the old passphrase to be read. After a passphrase is first enabled, a still-plaintext vault is encrypted at the next batch's save at the latest.
 - **Anonymization rules**: treatment per identifier type, the quasi-identifier
   switch, and treatment per quasi-identifier type, each with a live example; content
-  that cannot be checked (images …), and "read images with the model" (off by default;
-  when on, images under review go to the detection model, which sorts them and suggests
+  that cannot be checked (images …), and "read images with the model" (on by default;
+  images under review go to the detection model, which sorts them and suggests
   remove or keep, nothing is decided automatically).
 - **Interface**: show or hide the **Medical Anonymization** entry in the left
   sidebar. When hidden, `/anonymize` and the agent tools still work.

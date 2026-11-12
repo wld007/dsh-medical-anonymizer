@@ -24,9 +24,9 @@
         # encodings): review (default, hold for a human) | remove (placeholder).
         opaquePolicy: review
         # Send embedded images under review to the detection model to sort them
-        # (signature, seal, chart …) and suggest remove / keep. Off by default:
-        # the images are sent to the model endpoint. Needs a vision model.
-        imageCheck: false
+        # (signature, seal, chart …) and suggest remove / keep. The images are
+        # sent to the model endpoint; needs a vision model. Set false to turn off.
+        imageCheck: true
         # Anonymization rules. Defaults: every identifier -> stable pseudonym;
         # quasi-identifiers untouched. Strategies:
         #   identifiers: pseudonym | mask | redact | keep

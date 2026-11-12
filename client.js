@@ -3392,7 +3392,7 @@ window.__ModuleLoader__.load({
       const [skipText, setSkipText] = React.useState('')
       const [forceText, setForceText] = React.useState('')
       const [opaquePolicy, setOpaquePolicy] = React.useState('review')
-      const [imageCheckOn, setImageCheckOn] = React.useState(false)
+      const [imageCheckOn, setImageCheckOn] = React.useState(true)
       const [testing, setTesting] = React.useState(false)
       const [ping, setPing] = React.useState(null)
       const [saving, setSaving] = React.useState(false)
@@ -3431,7 +3431,7 @@ window.__ModuleLoader__.load({
         setForceText((info.forceValues ?? []).join('\n'))
         setSkipText((info.skipFields ?? []).join('\n'))
         setOpaquePolicy(info.opaquePolicy === 'remove' ? 'remove' : 'review')
-        setImageCheckOn(info.imageCheck === true)
+        setImageCheckOn(info.imageCheck !== false)
       }
       const lines = (text) => [...new Set(String(text ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean))]
       const sameList = (text, list) => JSON.stringify(lines(text)) === JSON.stringify(list ?? [])
@@ -3446,7 +3446,7 @@ window.__ModuleLoader__.load({
         setSkipText('')
         setForceText('')
         setOpaquePolicy('review')
-        setImageCheckOn(false)
+        setImageCheckOn(true)
       }
 
       React.useEffect(() => {
@@ -3476,7 +3476,7 @@ window.__ModuleLoader__.load({
           || !sameMap(quasiPolicy, config.quasiPolicy)
           || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields) || !sameList(forceText, config.forceValues)
           || opaquePolicy !== (config.opaquePolicy === 'remove' ? 'remove' : 'review')
-          || imageCheckOn !== (config.imageCheck === true)],
+          || imageCheckOn !== (config.imageCheck !== false)],
       ].filter(([, changed]) => changed).map(([key]) => key) : []
 
       // Tests and model listings only use a saved key against the endpoint it
@@ -6381,7 +6381,7 @@ window.__ModuleLoader__.load({
               const suggestKeep = scoped.filter((item) => item.vision?.suggestion === 'keep').length
               const cats = Object.entries(scoped.filter((item) => item.vision && !item.vision.error).reduce((map, item) => ({ ...map, [item.vision.category]: (map[item.vision.category] ?? 0) + 1 }), {})).sort((x, y) => y[1] - x[1])
               const checking = imageJob?.state === 'running'
-              const visionOn = config?.imageCheck === true
+              const visionOn = config?.imageCheck !== false
               const busy = reviewBusy !== null
               return h('div', { className: 'ws-cmp-tools' },
                 h('div', { className: 'ws-cmp-view' },
