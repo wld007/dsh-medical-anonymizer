@@ -816,7 +816,7 @@ window.__ModuleLoader__.load({
       'ws.rv.unglued': '已还原 {count} 处',
       'ws.rv.ungluedWith': '同一个值已随另一项还原',
       'ws.rv.looseHead': '表格中找不到对应行的 {n} 项',
-      'ws.rv.staleValue': '表格里已找不到被嵌入的假名，多半已随同一个值的另一项还原',
+      'ws.rv.staleValue': '这个字段的各行原文和结果已经一致，说明已随同一个值的另一项还原',
       'ws.rv.settle': '标记为已处理',
       'ws.rv.gluedToken': '{token} 嵌在更长的值里',
       'ws.rv.gluedValue': '数字 / 日期值被替换了一部分',
@@ -1756,7 +1756,7 @@ window.__ModuleLoader__.load({
       'ws.rv.unglued': 'Restored {count}',
       'ws.rv.ungluedWith': 'Already restored with another item on the same value',
       'ws.rv.looseHead': '{n} not found in the table',
-      'ws.rv.staleValue': 'The embedded pseudonym is no longer in the table; most likely restored with another item on the same value',
+      'ws.rv.staleValue': 'Original and result already match in every row of this field: restored with another item on the same value',
       'ws.rv.settle': 'Mark as handled',
       'ws.rv.gluedToken': '{token} sits inside a longer value',
       'ws.rv.gluedValue': 'Part of a number / date was replaced',
@@ -5961,6 +5961,7 @@ window.__ModuleLoader__.load({
           // id, or for older records by field and the glued pseudonym.
           const textOf = (change) => (change.same ? change.before : change.after)
           const alsoRows = new Map() // row index -> item (further places of a mangled value)
+          const byField = new Set() // items shown on all rows of their field (no note per row)
           const gluedTokens = new Map() // row index -> pseudonyms glued there
           const glued = (text, token = null) => {
             const found = []
@@ -5973,7 +5974,8 @@ window.__ModuleLoader__.load({
             }
             return found
           }
-          for (const item of judgeItems) {
+          for (const original of judgeItems) {
+            let item = original
             let at = -1
             if (item.text) {
               const sameField = (change) => item.field && String(change.field ?? '').split(' · ')[0] === item.field
@@ -6019,6 +6021,22 @@ window.__ModuleLoader__.load({
               if (places.length) {
                 at = places[0]
                 for (const index of places.slice(1)) if (!alsoRows.has(index)) alsoRows.set(index, item)
+              }
+            }
+            // Still nowhere: show the rows of the item's fields, so what is under
+            // review is always visible (original and result side by side).
+            if (at < 0) {
+              const fields = new Set([...(item.fields ?? []), ...(item.field ? [item.field] : [])])
+              if (fields.size) {
+                const places = []
+                rows.forEach((change, index) => { if (fields.has(String(change.field ?? '正文').split(' · ')[0])) places.push(index) })
+                if (places.length) {
+                  at = places[0]
+                  byField.add(item.id)
+                  // A mangled value whose rows all match the original: nothing left to restore.
+                  if (!item.decision && !item.text && (item.code === 'embedded' || item.code === 'partial') && places.every((index) => rows[index].same)) item = { ...item, stale: true }
+                  for (const index of places.slice(1, 200)) if (!alsoRows.has(index)) alsoRows.set(index, item)
+                }
               }
             }
             // Once handled, a mangled value may no longer be found (the pseudonym
@@ -6119,7 +6137,7 @@ window.__ModuleLoader__.load({
                     ]
                   }
                   const out = [h('tr', { key: rowKey, id: number !== null ? `ws-row-${number}` : undefined, className: `${change.same ? 'ws-cmp-same' : ''}${flaggedRow ? ' ws-cmp-flagged' : ''}${here.length ? ' ws-cmp-hosted' : ''}${jumpRow !== null && number === jumpRow ? ' ws-cmp-jumped' : ''}` }, cells)]
-                  if (also && !here.length && (!also.decision || showDecided) && (mode === 'judge' || mode === 'all' || mode === 'changed')) {
+                  if (also && !here.length && !byField.has(also.id) && (!also.decision || showDecided) && (mode === 'judge' || mode === 'all' || mode === 'changed')) {
                     out.push(h('tr', { key: `${rowKey}-also`, className: 'ws-cmp-actrow' },
                       h('td', { className: 'ws-cmp-no' }),
                       h('td', { colSpan: 3 }, h('div', { className: 'ws-rv-also' }, also.decision ? t('ws.rv.alsoDone', { code: codeLabel(also) }) : t('ws.rv.alsoHere', { code: codeLabel(also) })))))
