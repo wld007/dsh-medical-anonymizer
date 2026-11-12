@@ -803,6 +803,7 @@ window.__ModuleLoader__.load({
       'ws.rv.unglue': '还原原值',
       'ws.rv.unglueHint': '这个值本身不是标识符（如记录号、编码），只是其中一段恰好和某个标识符相同而被替换了。把嵌在里面的假名换回原文，恢复完整的值；只改这些位置。',
       'ws.rv.unglued': '已还原 {count} 处',
+      'ws.rv.ungluedWith': '同一个值已随另一项还原',
       'ws.rv.gluedToken': '{token} 嵌在更长的值里',
       'ws.rv.gluedValue': '数字 / 日期值被替换了一部分',
       'ws.rv.alsoHere': '同一问题（{code}），在上方第一处统一处理',
@@ -1726,6 +1727,7 @@ window.__ModuleLoader__.load({
       'ws.rv.unglue': 'Restore the value',
       'ws.rv.unglueHint': 'The value itself is not an identifier (a record number, a code); only part of it matched one and was replaced. Puts the original back for the pseudonym embedded there, restoring the whole value; only these places change.',
       'ws.rv.unglued': 'Restored {count}',
+      'ws.rv.ungluedWith': 'Already restored with another item on the same value',
       'ws.rv.gluedToken': '{token} sits inside a longer value',
       'ws.rv.gluedValue': 'Part of a number / date was replaced',
       'ws.rv.alsoHere': 'Same issue ({code}); handle it at its first place above',
@@ -5664,7 +5666,7 @@ window.__ModuleLoader__.load({
         ? h('div', { className: 'ws-rv-result' }, item.decision.action === 'replace'
           ? t('ws.rv.replaced', { to: item.decision.replacement, count: item.decision.count })
           : item.decision.action === 'absorb' ? t('ws.rv.absorbed', { count: item.decision.count })
-          : item.decision.action === 'unglue' ? t('ws.rv.unglued', { count: item.decision.count })
+          : item.decision.action === 'unglue' ? (item.decision.count ? t('ws.rv.unglued', { count: item.decision.count }) : t('ws.rv.ungluedWith'))
           : item.decision.action === 'split' ? t('ws.rv.split', { removed: item.decision.removed?.length ?? 0, kept: item.decision.kept ?? 0 })
           : item.decision.action === 'remove' ? t('ws.rv.removed')
             : item.decision.action === 'allow' ? t('ws.rv.allowed') : t('ws.rv.accepted'))
