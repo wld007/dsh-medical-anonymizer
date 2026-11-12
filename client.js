@@ -764,8 +764,16 @@ window.__ModuleLoader__.load({
       'ws.cmp.f.changed': '有改动',
       'ws.cmp.f.review': '待复核',
       'ws.cmp.f.images': '图片',
+      'ws.out.swap': '替',
+      'ws.out.restore': '还',
+      'ws.out.keep': '留',
+      'ws.out.drop': '删',
+      'ws.out.swapHint': '替换为假名 {n} 项（含并入相邻假名）',
+      'ws.out.restoreHint': '还原原值 {n} 项（被误替换的编码恢复原样）',
+      'ws.out.keepHint': '保留原文 {n} 项（不是标识符 / 仅本次保留 / 确认保留）',
+      'ws.out.dropHint': '移除图片等 {n} 项',
       'ws.cmp.f.done': '已复核',
-      'ws.cmp.f.doneHint': '所有复核项都已处理的文件；表格切到「已判断」，可以逐项检查处理结果',
+      'ws.cmp.f.doneHint': '所有复核项都已处理的文件；表格切到「已判断」，可以逐项检查处理结果。文件右侧：替＝替换为假名，还＝还原原值，留＝保留原文，删＝移除图片',
       'ws.cmp.f.reviewHint': '还有复核项没处理的文件',
       'ws.cmp.mode.judged': '已判断',
       'ws.rv.doneBadge': '已处理 {n} 项',
@@ -1695,6 +1703,14 @@ window.__ModuleLoader__.load({
       'ws.cmp.f.changed': 'Changed',
       'ws.cmp.f.review': 'To review',
       'ws.cmp.f.images': 'Images',
+      'ws.out.swap': 'Rep',
+      'ws.out.restore': 'Res',
+      'ws.out.keep': 'Kept',
+      'ws.out.drop': 'Del',
+      'ws.out.swapHint': '{n} replaced by a pseudonym (merges included)',
+      'ws.out.restoreHint': '{n} restored (a mangled code put back)',
+      'ws.out.keepHint': '{n} kept as written (not an identifier / keep this once / keep)',
+      'ws.out.dropHint': '{n} images or similar removed',
       'ws.cmp.f.done': 'Reviewed',
       'ws.cmp.f.doneHint': 'Files whose review items are all decided; the table shows the decisions to check',
       'ws.cmp.f.reviewHint': 'Files with review items still open',
@@ -2709,6 +2725,11 @@ window.__ModuleLoader__.load({
       .ws-rv-also{font-size:11px;color:var(--wd-ink3);padding:2px 10px 4px;border-left:3px solid color-mix(in srgb,var(--dsw-alias-state-error-primary) 30%,transparent)}
       .ws-rv-loose{display:flex;flex-direction:column;gap:2px}
       .ws-rv-loose-h{font-size:11px;color:var(--wd-ink3);padding:0 2px}
+      .ws-count.ws-out{font-weight:600;border:1px solid transparent}
+      .ws-count.ws-out-swap{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 13%,transparent)}
+      .ws-count.ws-out-restore{color:#2f6fd6;background:color-mix(in srgb,#2f6fd6 12%,transparent)}
+      .ws-count.ws-out-keep{color:var(--dsw-alias-label-secondary);background:transparent;border-color:var(--dsw-alias-border-l2)}
+      .ws-count.ws-out-drop{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent)}
       .ws-cmp-modes{flex:none;display:inline-flex;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;overflow:hidden}
       .ws-cmp-mode{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:0;border-left:1px solid var(--dsw-alias-border-l2);background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .ws-cmp-mode:first-child{border-left:0}
@@ -6124,14 +6145,23 @@ window.__ModuleLoader__.load({
                 key: entry.n, type: 'button', className: `ws-cmp-item${entry.n === selected?.n ? ' ws-on' : ''}`, title: entry.relPath,
                 onClick: () => { setCompareSel(entry.n); setCompareShow(300) },
               },
-                h('span', { className: `ws-cmp-dot ws-p-${open > 0 ? 'review' : entry.status}` }),
+                h('span', { className: `ws-cmp-dot ws-p-${open > 0 ? 'review' : isDone(entry.relPath) ? 'clean' : entry.status}` }),
                 h('span', { className: 'ws-cmp-name' }, h('b', {}, name(entry.relPath)), dir(entry.relPath) ? h('small', {}, dir(entry.relPath)) : null),
                 open > 0
                   ? h('span', { className: 'ws-cmp-counts' },
                     judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-bad', title: t('ws.rv.judgeBadge') }, String(judgeOf(entry.relPath))) : null,
                     open - judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-muted ws-count-op', title: t('ws.rv.opaqueBadge') }, imageGlyph(), String(open - judgeOf(entry.relPath))) : null)
                   : isDone(entry.relPath)
-                    ? h('span', { className: 'ws-count ws-count-done', title: t('ws.rv.doneBadge', { n: decidedOf(entry.relPath) }) }, `✓ ${decidedOf(entry.relPath)}`)
+                    ? (() => {
+                      // What was done: replaced, restored, kept as it was, removed.
+                      const KIND = { replace: 'swap', absorb: 'swap', unglue: 'restore', accept: 'keep', allow: 'keep', remove: 'drop', split: 'drop' }
+                      const tally = {}
+                      for (const item of reviewByPath.get(entry.relPath)?.items ?? []) {
+                        const kind = KIND[item.decision?.action] ?? 'keep'
+                        tally[kind] = (tally[kind] ?? 0) + 1
+                      }
+                      return h('span', { className: 'ws-cmp-counts' }, ['swap', 'restore', 'keep', 'drop'].filter((kind) => tally[kind]).map((kind) => h('span', { key: kind, className: `ws-count ws-out ws-out-${kind}`, title: t(`ws.out.${kind}Hint`, { n: tally[kind] }) }, `${t(`ws.out.${kind}`)} ${tally[kind]}`)))
+                    })()
                     : h('span', { className: 'ma-mono ws-cmp-n' }, String(entry.changed)))
             }))),
           h('section', { className: 'ws-cmp-main' },
