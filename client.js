@@ -764,6 +764,11 @@ window.__ModuleLoader__.load({
       'ws.cmp.f.changed': '有改动',
       'ws.cmp.f.review': '待复核',
       'ws.cmp.f.images': '图片',
+      'ws.cmp.f.done': '已复核',
+      'ws.cmp.f.doneHint': '所有复核项都已处理的文件；表格切到「已判断」，可以逐项检查处理结果',
+      'ws.cmp.f.reviewHint': '还有复核项没处理的文件',
+      'ws.cmp.mode.judged': '已判断',
+      'ws.rv.doneBadge': '已处理 {n} 项',
       'ws.cmp.f.imagesHint': '列出含图片等内容的文件（含已处理的）；还没处理完的也在「待复核」里',
       'ws.cmp.skipped.too-large': '文件超过 50 MB，未生成比对记录。',
       'ws.cmp.skipped.error': '生成比对记录时出错。',
@@ -1689,6 +1694,11 @@ window.__ModuleLoader__.load({
       'ws.cmp.f.changed': 'Changed',
       'ws.cmp.f.review': 'To review',
       'ws.cmp.f.images': 'Images',
+      'ws.cmp.f.done': 'Reviewed',
+      'ws.cmp.f.doneHint': 'Files whose review items are all decided; the table shows the decisions to check',
+      'ws.cmp.f.reviewHint': 'Files with review items still open',
+      'ws.cmp.mode.judged': 'Judged',
+      'ws.rv.doneBadge': '{n} decided',
       'ws.cmp.f.imagesHint': 'Files with images (or other unreadable content), handled ones included; those still open are also under To review',
       'ws.cmp.skipped.too-large': 'File over 50 MB; no comparison recorded.',
       'ws.cmp.skipped.error': 'The comparison could not be built.',
@@ -2565,7 +2575,10 @@ window.__ModuleLoader__.load({
       .ws-cmp-keys{margin-right:8px}
       .ws-cmp{flex:1;min-height:0;display:grid;grid-template-columns:280px minmax(0,1fr);outline:none}
       .ws-cmp-side{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
-      .ws-cmp-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:8px}
+      .ws-cmp-filters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;padding:8px}
+      .ws-cmp-filters .ws-cmp-filter{grid-column:span 2}
+      .ws-cmp-filters .ws-cmp-filter-review,.ws-cmp-filters .ws-cmp-filter-done{grid-column:span 3}
+      .ws-count.ws-count-done{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 14%,transparent)}
       .ws-cmp-filter{flex:1;min-width:0;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:3px;padding:0 4px;height:26px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);cursor:pointer}
       .ws-cmp-filter:disabled{opacity:.45;cursor:default}
       .ws-cmp-filter .ws-img-glyph{margin:0}
@@ -5863,10 +5876,17 @@ window.__ModuleLoader__.load({
         // Files with images (or other unreadable content), handled or not:
         // the ones still open are also under "to review".
         const hasImages = (relPath) => (reviewByPath.get(relPath)?.items ?? []).some((item) => isOpaque(item))
-        const shown = list.filter((entry) => compareFilter === 'all' ? true
-          : compareFilter === 'changed' ? entry.changed > 0
-            : compareFilter === 'images' ? hasImages(entry.relPath)
-              : reviewByPath.has(entry.relPath))
+        // To review: files with something still open; reviewed: every item decided.
+        const decidedOf = (relPath) => (reviewByPath.get(relPath)?.items ?? []).filter((item) => item.decision).length
+        const isOpen = (relPath) => openOf(relPath) > 0
+        const isDone = (relPath) => reviewByPath.has(relPath) && (reviewByPath.get(relPath).items ?? []).length > 0 && openOf(relPath) === 0
+        const inFilter = (entry, id) => (id === 'all' ? true
+          : id === 'changed' ? entry.changed > 0
+            : id === 'images' ? hasImages(entry.relPath)
+              : id === 'done' ? isDone(entry.relPath)
+                : isOpen(entry.relPath))
+        // The open file stays listed after its last item is decided, until you move on.
+        const shown = list.filter((entry) => inFilter(entry, compareFilter) || (compareFilter === 'review' && entry.n === compareSel && isDone(entry.relPath)))
         const position = shown.findIndex((entry) => entry.n === compareSel)
         // The open file always belongs to the current filter.
         const selected = (position >= 0 ? shown[position] : shown[0]) ?? null
@@ -5886,9 +5906,13 @@ window.__ModuleLoader__.load({
         const batchOpaqueOpen = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision && isOpaque(item))
         const fileOpaqueOpen = (reviewFile?.items ?? []).filter((item) => !item.decision && isOpaque(item))
         const fileJudgeOpen = (reviewFile?.items ?? []).filter((item) => !item.decision && !isOpaque(item)).length
+        // Under "reviewed" the judgement view lists the decided items, to check them.
+        const showDecided = compareFilter === 'done'
+        const fileJudgeDone = (reviewFile?.items ?? []).filter((item) => item.decision && !isOpaque(item)).length
+        const fileJudgeView = showDecided ? fileJudgeDone : fileJudgeOpen
         const batchOpaqueAll = (reviewData?.files ?? []).some((file) => file.items.some(isOpaque))
         const fileOpaqueAll = (reviewFile?.items ?? []).filter(isOpaque)
-        const viewMode = (compareRows === 'judge' && fileJudgeOpen === 0) || (compareRows === 'opaque' && !batchOpaqueAll) ? 'all' : compareRows
+        const viewMode = (compareRows === 'judge' && fileJudgeView === 0) || (compareRows === 'opaque' && !batchOpaqueAll) ? 'all' : compareRows
         const pane = () => {
           if (!selected) return h('p', { className: 'ma-empty' }, t('ws.cmp.pick'))
           if (selected.reviewOnly) {
@@ -5946,7 +5970,7 @@ window.__ModuleLoader__.load({
             }
             // Once handled, a mangled value may no longer be found (the pseudonym
             // was taken out): its outcome needs no card above the table.
-            if (at < 0) { if (!item.decision) unlocated.push(!item.text && (item.code === 'embedded' || item.code === 'partial') ? { ...item, stale: true } : item); continue }
+            if (at < 0) { if (!item.decision || showDecided) unlocated.push(!item.decision && !item.text && (item.code === 'embedded' || item.code === 'partial') ? { ...item, stale: true } : item); continue }
             hosts.set(at, [...(hosts.get(at) ?? []), item])
           }
           // Images and other unreadable content sit under the first row of
@@ -5972,7 +5996,7 @@ window.__ModuleLoader__.load({
           const mode = viewMode
           const indexed = rows.map((change, index) => ({ change, index }))
           const visible = mode === 'judge'
-            ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => !item.decision) || (alsoRows.has(index) && !alsoRows.get(index).decision))
+            ? indexed.filter(({ index }) => (hosts.get(index) ?? []).some((item) => showDecided || !item.decision) || (alsoRows.has(index) && (showDecided || !alsoRows.get(index).decision)))
             : mode === 'opaque' ? indexed.filter(({ index }) => opHosts.has(index))
               : mode === 'changed' ? indexed.filter(({ change, index }) => !change.same || change.flagged || hosts.has(index)) : indexed
           const judgeFlags = openHere.filter((item) => item.text).map((item) => item.text)
@@ -6053,13 +6077,17 @@ window.__ModuleLoader__.load({
         } },
           manualPopover(),
           h('aside', { className: 'ws-cmp-side' },
-            h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'images', 'review'].map((id) => {
-              const n = id === 'all' ? list.length : id === 'changed' ? list.filter((entry) => entry.changed > 0).length : id === 'images' ? list.filter((entry) => hasImages(entry.relPath)).length : list.filter((entry) => reviewByPath.has(entry.relPath)).length
+            h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'images', 'review', 'done'].map((id) => {
+              const n = list.filter((entry) => inFilter(entry, id)).length
               return h('button', {
-                key: id, type: 'button', className: `ws-cmp-filter${compareFilter === id ? ' ws-on' : ''}`, disabled: id === 'images' && n === 0 && compareFilter !== 'images',
-                title: id === 'images' ? t('ws.cmp.f.imagesHint') : undefined,
-                // Picking the image files also shows the image view of the table.
-                onClick: () => { setCompareFilter(id); if (id === 'images') { setCompareRows('opaque'); setCompareShow(300); setCompareFrom(0) } },
+                key: id, type: 'button', className: `ws-cmp-filter ws-cmp-filter-${id}${compareFilter === id ? ' ws-on' : ''}`, disabled: (id === 'images' || id === 'done') && n === 0 && compareFilter !== id,
+                title: id === 'images' ? t('ws.cmp.f.imagesHint') : id === 'done' ? t('ws.cmp.f.doneHint') : id === 'review' ? t('ws.cmp.f.reviewHint') : undefined,
+                // Image files open in the image view; reviewed files show the decisions.
+                onClick: () => {
+                  setCompareFilter(id)
+                  if (id === 'images') { setCompareRows('opaque'); setCompareShow(300); setCompareFrom(0) }
+                  if (id === 'done') { setCompareRows('judge'); setCompareShow(300); setCompareFrom(0) }
+                },
               }, id === 'images' ? imageGlyph() : null, t(`ws.cmp.f.${id}`), h('i', {}, String(n)))
             })),
             h('div', { className: 'ws-cmp-list' }, shown.map((entry) => {
@@ -6074,7 +6102,9 @@ window.__ModuleLoader__.load({
                   ? h('span', { className: 'ws-cmp-counts' },
                     judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-bad', title: t('ws.rv.judgeBadge') }, String(judgeOf(entry.relPath))) : null,
                     open - judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-muted ws-count-op', title: t('ws.rv.opaqueBadge') }, imageGlyph(), String(open - judgeOf(entry.relPath))) : null)
-                  : h('span', { className: 'ma-mono ws-cmp-n' }, String(entry.changed)))
+                  : isDone(entry.relPath)
+                    ? h('span', { className: 'ws-count ws-count-done', title: t('ws.rv.doneBadge', { n: decidedOf(entry.relPath) }) }, `✓ ${decidedOf(entry.relPath)}`)
+                    : h('span', { className: 'ma-mono ws-cmp-n' }, String(entry.changed)))
             }))),
           h('section', { className: 'ws-cmp-main' },
             // Row 2: the open file and moving between files / items to judge.
@@ -6109,7 +6139,7 @@ window.__ModuleLoader__.load({
             })(),
             // Row 3: how the table is shown (left) and what changes the data (right).
             (() => {
-              const count = { changed: Number(selected?.changed ?? 0), judge: fileJudgeOpen, opaque: fileOpaqueOpen.length }
+              const count = { changed: Number(selected?.changed ?? 0), judge: fileJudgeView, opaque: fileOpaqueOpen.length }
               const scope = fileOpaqueOpen.length === 0 ? 'batch' : opScope
               const scoped = scope === 'file' ? fileOpaqueOpen : batchOpaqueOpen
               const scopeFiles = scope === 'file' && reviewFile ? [reviewFile] : undefined
@@ -6129,9 +6159,9 @@ window.__ModuleLoader__.load({
                     key: id, type: 'button', role: 'radio', 'aria-checked': viewMode === id ? 'true' : 'false',
                     className: `ws-cmp-mode${viewMode === id ? ' ws-on' : ''}${id === 'judge' ? ' ws-cmp-mode-judge' : ''}`,
                     title: id === 'changed' ? t('ws.cmp.onlyHint') : id === 'opaque' ? t('ws.rv.bulkHint') : undefined,
-                    disabled: (id === 'judge' && fileJudgeOpen === 0) || (id === 'opaque' && fileOpaqueAll.length === 0 && batchOpaqueOpen.length === 0),
+                    disabled: (id === 'judge' && fileJudgeView === 0) || (id === 'opaque' && fileOpaqueAll.length === 0 && batchOpaqueOpen.length === 0),
                     onClick: () => { setCompareRows(id); setCompareShow(300); setCompareFrom(0); setJumpRow(null) },
-                  }, id === 'opaque' ? imageGlyph() : null, t(`ws.cmp.mode.${id}`), id in count ? h('i', { className: id === 'judge' && count.judge > 0 ? 'ws-cnt-hot' : '' }, String(count[id])) : null))),
+                  }, id === 'opaque' ? imageGlyph() : null, t(id === 'judge' && showDecided ? 'ws.cmp.mode.judged' : `ws.cmp.mode.${id}`), id in count ? h('i', { className: id === 'judge' && count.judge > 0 && !showDecided ? 'ws-cnt-hot' : '' }, String(count[id])) : null))),
                   // Jump to a row number (the # column): shown in the full view.
                   h('form', {
                     className: 'ws-cmp-jump', title: t('ws.cmp.jumpHint'),
