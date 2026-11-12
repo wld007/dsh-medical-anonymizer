@@ -6043,6 +6043,20 @@ window.__ModuleLoader__.load({
                   if (longOnly && !/^[A-Za-z0-9+/=_\-:.]{24,}$/.test(String(change.before ?? '').trim())) return
                   places.push(index)
                 })
+                // A partly replaced value: the rows where a pseudonym sits next to
+                // what is left of the original ("…0000-病历-1A2B3C"), not the whole field.
+                if (item.code === 'embedded' || item.code === 'partial') {
+                  const TOKEN = new RegExp(PSEUDO_GLUED_SOURCE, 'g')
+                  const partly = places.filter((index) => {
+                    const change = rows[index]
+                    if (change.same) return false
+                    const after = String(change.after ?? '').trim()
+                    const tokens = after.match(TOKEN) ?? []
+                    // Has a pseudonym, but is not one whole pseudonym.
+                    return tokens.length > 0 && !(tokens.length === 1 && tokens[0] === after)
+                  })
+                  if (partly.length) places.splice(0, places.length, ...partly)
+                }
                 if (places.length) {
                   at = places[0]
                   byField.add(item.id)
