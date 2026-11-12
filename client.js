@@ -666,6 +666,8 @@ window.__ModuleLoader__.load({
       'ws.pv.keep': '保留',
       'ws.pv.apply': '按所选处理（移除 {remove} 张，保留 {keep} 张）',
       'ws.rv.split': '已移除 {removed} 张，保留 {kept} 张',
+      'ws.cmp.rec': '第{n}条',
+      'ws.cmp.recHint': '这份文件是多条记录的列表，这是第几条记录',
       'ws.cmp.mode.all': '全部',
       'ws.cmp.mode.changed': '只看改动',
       'ws.cmp.mode.judge': '待判断',
@@ -1606,6 +1608,8 @@ window.__ModuleLoader__.load({
       'ws.pv.keep': 'Keep',
       'ws.pv.apply': 'Apply (remove {remove}, keep {keep})',
       'ws.rv.split': 'Removed {removed}, kept {kept}',
+      'ws.cmp.rec': '#{n}',
+      'ws.cmp.recHint': 'This file is a list of records; this is the record number',
       'ws.cmp.mode.all': 'All',
       'ws.cmp.mode.changed': 'Changes',
       'ws.cmp.mode.judge': 'To judge',
@@ -2629,6 +2633,7 @@ window.__ModuleLoader__.load({
       .ws-cmp-table td{padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);vertical-align:top;white-space:pre-wrap;word-break:break-word;line-height:19px}
       .ws-cmp-table td:nth-child(3){background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 3%,transparent)}
       .ws-cmp-table td:nth-child(4){background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 3%,transparent)}
+      .ws-cmp-rec{display:inline-block;margin-right:5px;padding:0 4px;border-radius:3px;font-size:10px;line-height:15px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;white-space:nowrap;color:var(--dsw-alias-label-secondary);background:color-mix(in srgb,var(--dsw-alias-label-primary) 7%,transparent)}
       .ws-cmp-field{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-secondary);word-break:break-all}
       .ws-cmp-table del{text-decoration:none;background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 18%,transparent);color:var(--dsw-alias-state-error-primary);border-radius:3px;padding:0 1px}
       .ws-cmp-table ins{text-decoration:none;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 20%,transparent);color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 75%,#000);border-radius:3px;padding:0 1px;font-weight:600}
@@ -4372,6 +4377,14 @@ window.__ModuleLoader__.load({
           h('button', { className: 'ma-btn ma-small ma-primary', disabled: busy, onClick: () => onSplit(removeList) },
             t('ws.pv.apply', { remove: removeList.length, keep: images.length - removeList.length }))) : null,
         zoom ? h('div', { className: 'ws-pv-zoom', role: 'dialog', onClick: () => setZoom(null) }, h('img', { src: zoom, alt: '' })) : null)
+    }
+
+    // Field column: which record (for files that are lists of records) and the field.
+    function fieldCell(change) {
+      const record = /^(\d+)\//.exec(String(change.id ?? ''))
+      const field = change.field ?? '—'
+      if (!record) return field
+      return h(React.Fragment, {}, h('span', { className: 'ws-cmp-rec', title: services.t('ws.cmp.recHint') }, services.t('ws.cmp.rec', { n: Number(record[1]) + 1 })), field)
     }
 
     // Row number of a comparison row: the segment's place in the file. Older
@@ -6150,7 +6163,7 @@ window.__ModuleLoader__.load({
                   if (change.same) {
                     cells = [
                       noCell,
-                      h('td', { key: 'f', className: 'ws-cmp-field' }, change.field ?? '—'),
+                      h('td', { key: 'f', className: 'ws-cmp-field' }, fieldCell(change)),
                       h('td', { key: 's', className: 'ws-cmp-src' }, clip(marks.length ? markFlags(change.before, marks, `b${row}`) : change.before, longest, rowKey)),
                       h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, null, rowFlags, `s${row}`, onPseudo), longest, rowKey)),
                     ]
@@ -6158,7 +6171,7 @@ window.__ModuleLoader__.load({
                     const ops = diffTexts(change.before, after)
                     cells = [
                       noCell,
-                      h('td', { key: 'f', className: 'ws-cmp-field' }, change.field ?? '—'),
+                      h('td', { key: 'f', className: 'ws-cmp-field' }, fieldCell(change)),
                       h('td', { key: 's', className: 'ws-cmp-src' }, clip(ops.filter((op) => op.t !== 'ins').map((op, i) => op.t === 'del' ? h('del', { key: i }, op.s) : h(React.Fragment, { key: i }, marks.length ? markFlags(op.s, marks, `b${row}-${i}`) : op.s)), longest, rowKey)),
                       h('td', { key: 'd', className: 'ws-cmp-dst' }, clip(renderAfterCell(after, ops, rowFlags, `${row}-`, onPseudo), longest, rowKey)),
                     ]
