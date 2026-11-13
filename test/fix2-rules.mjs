@@ -540,6 +540,16 @@ await check('医院名前的医护职称、"与/已"不并入医院名', () => {
   assert.deepEqual(texts('既往在北京协和医院与浙江省人民医院就诊', '医院'), ['北京协和医院', '浙江省人民医院'])
 })
 
+await check('泛指的“生于原籍”“建议/经上级医院”不当作地址、医院', () => {
+  assert.deepEqual(texts('个人史：生于原籍，久居本地', '地址'), [])
+  assert.deepEqual(texts('个人史：生于萧山，久居萧山。', '地址'), ['萧山'])
+  assert.deepEqual(texts('合并帕金森病，经上级医院专家建议，需转院', '医院'), [])
+  assert.deepEqual(texts('诊断待排，建议上级医院就诊。', '医院'), [])
+  assert.deepEqual(texts('建议东江市第一人民医院就诊', '医院'), ['东江市第一人民医院'])
+  assert.deepEqual(texts('经明州市中心医院确诊', '医院'), ['明州市中心医院'])
+  assert.deepEqual(texts('转至经济开发区医院', '医院'), ['经济开发区医院'])
+})
+
 await check('识别与核验都报出、只因格式不符未替换的值进入人工复核', async () => {
   const value = 'ABCD-1234-XYZ'
   const scripted = (both) => ({

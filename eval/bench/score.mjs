@@ -1,24 +1,26 @@
 /**
- * Scores anonymized outputs against the gold spans.
+ * Scores anonymized outputs against the gold spans of the synthetic corpus.
  *
  *   node eval/bench/score.mjs <workDir> <config...>
  *
  * Original and output are aligned character by character (LCS per line; the
- * pipeline keeps line structure). For each original character we know whether
- * it survived verbatim. Then:
- *   - an identifier occurrence LEAKS when more than half of its characters
- *     survive (a 3-char name with 2 chars left, an ID number left intact);
+ * pipeline keeps line structure). Then:
+ *   - an identifier LEAKS when more than half of its characters survive;
  *   - it is PARTIAL when it does not leak but a run of ≥ 4 identifying
- *     characters (CJK / letters / digits) survives (e.g. a road and number);
- *   - every changed character outside identifier spans is OVER-REDACTION;
- *   - a decoy (eponymous disease, herb, ward, ICD code...) is LOST when it
- *     occurs fewer times in the output than in the original.
- * Writes <workDir>/score.json and prints a Markdown summary.
+ *     characters survives (pseudonym hex digits coincide with 2–3 original
+ *     digits by chance, so shorter runs are noise);
+ *   - changed characters outside identifier and neutral spans are
+ *     OVER-REDACTION (counted in runs that contain a letter, digit or Han);
+ *   - a decoy is LOST when it occurs fewer times in the output than in the
+ *     original;
+ *   - a JSON file whose output no longer parses is BROKEN.
+ * Writes <workDir>/score.json (per configuration, aggregates and the lists
+ * behind them) and prints a summary table.
  */
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const [workDir = 'eval/bench/.work', ...configs] = process.argv.slice(2)
+const [workDir = 'eval/bench/.tmp', ...configs] = process.argv.slice(2)
 const gold = JSON.parse(await readFile(join(workDir, 'gold.json'), 'utf8'))
 
 /** kept[i] = original char i appears unchanged in the LCS with b. */
@@ -26,7 +28,6 @@ function lcsKeep(a, b) {
   const n = a.length
   const m = b.length
   const kept = new Uint8Array(n)
-  // Trim common prefix/suffix first (most of each line).
   let p = 0
   while (p < n && p < m && a[p] === b[p]) { kept[p] = 1; p += 1 }
   let s = 0
@@ -34,7 +35,7 @@ function lcsKeep(a, b) {
   const A = a.slice(p, n - s)
   const B = b.slice(p, m - s)
   if (A.length === 0 || B.length === 0) return kept
-  if (A.length * B.length > 30_000_000) return kept // treat as fully changed (never hit on this corpus)
+  if (A.length * B.length > 30_000_000) return kept
   const w = B.length + 1
   const dp = new Uint16Array((A.length + 1) * w)
   for (let i = A.length - 1; i >= 0; i -= 1) {
@@ -67,27 +68,29 @@ function align(original, output) {
 
 const identifying = (ch) => /[\p{Script=Han}A-Za-z0-9]/u.test(ch)
 const count = (text, term) => text.split(term).length - 1
-const pct = (x, y) => (y ? (100 * x / y).toFixed(1) : '—')
+const inc = (obj, key, field, n = 1) => { const o = (obj[key] ??= { n: 0, leaked: 0, partial: 0, lost: 0 }); o[field] += n }
 
 const results = {}
 for (const config of configs) {
   const byType = {}
+  const byCase = {}
   const byKind = {}
+  const byTrap = {}
   const leaks = []
-  const partials = []
   const overSpans = []
-  let occ = 0, leaked = 0, partial = 0, cleanFiles = 0
+  let occ = 0, leaked = 0, partial = 0, cleanFiles = 0, broken = 0, missing = 0
   let nonIdChars = 0, overChars = 0, decoys = 0, decoysLost = 0
-  const lostDecoys = {}
   for (const file of gold.files) {
     const original = await readFile(join(workDir, 'corpus', file.name), 'utf8')
     let output
-    try { output = await readFile(join(workDir, 'out', config, file.name), 'utf8') } catch { output = '' }
+    try { output = await readFile(join(workDir, 'out', config, file.name), 'utf8') } catch { output = ''; missing += 1 }
+    if (file.name.endsWith('.json') && output) { try { JSON.parse(output) } catch { broken += 1 } }
     const kept = align(original, output)
-    const inId = new Uint8Array(original.length)
+    const skip = new Uint8Array(original.length) // identifier or neutral
+    for (const g of file.neutral ?? []) skip.fill(1, g.start, g.end)
     let fileLeaks = 0
     for (const g of file.identifiers) {
-      for (let i = g.start; i < g.end; i += 1) inId[i] = 1
+      skip.fill(1, g.start, g.end)
       let keptChars = 0
       let run = 0
       let longest = 0
@@ -95,24 +98,26 @@ for (const config of configs) {
         if (kept[i]) { keptChars += 1; if (identifying(original[i])) { run += 1; longest = Math.max(longest, run) } } else run = 0
       }
       const isLeak = keptChars / (g.end - g.start) > 0.5
-      // ≥ 4: pseudonym hex digits coincide with 2–3 original digits by chance.
       const isPartial = !isLeak && longest >= 4
-      const t = (byType[g.type] ??= { n: 0, leaked: 0, partial: 0 })
-      const k = (byKind[file.kind] ??= { n: 0, leaked: 0 })
-      t.n += 1; k.n += 1; occ += 1
-      if (isLeak) { t.leaked += 1; k.leaked += 1; leaked += 1; fileLeaks += 1; leaks.push({ file: file.name, type: g.type, text: g.text, context: original.slice(Math.max(0, g.start - 12), g.end + 12).replace(/\n/g, '⏎') }) }
-      if (isPartial) {
-        t.partial += 1; partial += 1
-        const left = [...g.text].map((ch, i) => (kept[g.start + i] ? ch : '·')).join('')
-        partials.push({ file: file.name, type: g.type, text: g.text, left })
+      occ += 1
+      for (const [obj, key] of [[byType, g.type], [byCase, g.case], [byKind, file.kind]]) {
+        inc(obj, key, 'n')
+        if (isLeak) inc(obj, key, 'leaked')
+        if (isPartial) inc(obj, key, 'partial')
       }
+      if (isLeak) {
+        leaked += 1
+        fileLeaks += 1
+        leaks.push({ file: file.name, type: g.type, case: g.case, text: g.text })
+      }
+      if (isPartial) partial += 1
     }
     if (fileLeaks === 0) cleanFiles += 1
-    // Over-redaction: changed chars outside identifiers, grouped in runs.
     let runStart = -1
     for (let i = 0; i <= original.length; i += 1) {
-      const changed = i < original.length && !inId[i] && !kept[i]
-      if (i < original.length && !inId[i]) { nonIdChars += 1; if (changed) overChars += 1 }
+      const outside = i < original.length && !skip[i]
+      const changed = outside && !kept[i]
+      if (outside) { nonIdChars += 1; if (changed) overChars += 1 }
       if (changed && runStart < 0) runStart = i
       if (!changed && runStart >= 0) {
         const text = original.slice(runStart, i)
@@ -120,40 +125,31 @@ for (const config of configs) {
         runStart = -1
       }
     }
-    for (const term of new Set(file.decoys)) {
-      const before = count(original, term)
-      const after = count(output, term)
+    const seen = new Set()
+    for (const { text, cat } of file.decoys) {
+      if (seen.has(text)) continue
+      seen.add(text)
+      const before = count(original, text)
+      const after = count(output, text)
       decoys += before
-      if (after < before) { decoysLost += before - after; lostDecoys[term] = (lostDecoys[term] ?? 0) + before - after }
+      inc(byTrap, cat, 'n', before)
+      if (after < before) { decoysLost += before - after; inc(byTrap, cat, 'lost', before - after) }
     }
   }
   let run = null
   try { run = JSON.parse(await readFile(join(workDir, 'results', `${config}.json`), 'utf8')) } catch { /* not run */ }
   results[config] = {
-    occurrences: occ, leaked, partial, recall: 1 - leaked / occ, cleanFiles, files: gold.files.length,
-    nonIdChars, overChars, overSpans: overSpans.length, decoys, decoysLost, lostDecoys,
-    byType, byKind, run, leaks, partials, overSpanList: overSpans,
+    occurrences: occ, leaked, partial, recall: 1 - leaked / occ, cleanFiles, files: gold.files.length, broken, missing,
+    nonIdChars, overChars, overSpans: overSpans.length, decoys, decoysLost,
+    byType, byCase, byKind, byTrap, run, leaks, overSpanList: overSpans,
   }
 }
-await writeFile(join(workDir, 'score.json'), JSON.stringify(results, null, 2))
+await writeFile(join(workDir, 'score.json'), JSON.stringify({ kinds: gold.kinds, results }, null, 2))
 
-// ------------------------------------------------------------ summary
-const lines = []
-lines.push('| 配置 | 标识符泄漏 | 召回率 | 部分残留 | 全清文件 | 误改字符 | 误改片段 | 诱饵丢失 | 模型调用 | tokens | 用时 | 待复核文件 |')
-lines.push('|---|---|---|---|---|---|---|---|---|---|---|---|')
+const tokens = (r) => (r.run?.models?.detect?.tokens ?? 0) + (r.run?.models?.verify?.tokens ?? 0)
+const calls = (r) => (r.run?.models?.detect?.calls ?? 0) + (r.run?.models?.verify?.calls ?? 0)
+console.log('| 配置 | 泄漏 | 召回率 | 全清文件 | 误改片段 | 诱饵丢失 | JSON 损坏 | 调用 | tokens | 用时 | 待复核文件 |')
+console.log('|---|---|---|---|---|---|---|---|---|---|---|')
 for (const [config, r] of Object.entries(results)) {
-  const calls = (r.run?.models?.detect?.calls ?? 0) + (r.run?.models?.verify?.calls ?? 0)
-  const tokens = (r.run?.models?.detect?.tokens ?? 0) + (r.run?.models?.verify?.tokens ?? 0)
-  lines.push(`| ${config} | ${r.leaked}/${r.occurrences} | ${(100 * r.recall).toFixed(1)}% | ${r.partial} | ${r.cleanFiles}/${r.files} | ${r.overChars} (${pct(r.overChars, r.nonIdChars)}%) | ${r.overSpans} | ${r.decoysLost}/${r.decoys} | ${calls} | ${tokens} | ${r.run ? Math.round(r.run.ms / 1000) + 's' : '—'} | ${r.run?.filesReview ?? '—'} |`)
+  console.log(`| ${config} | ${r.leaked}/${r.occurrences} | ${(100 * r.recall).toFixed(1)}% | ${r.cleanFiles}/${r.files} | ${r.overSpans} | ${r.decoysLost}/${r.decoys} | ${r.broken} | ${calls(r)} | ${tokens(r)} | ${r.run ? Math.round(r.run.ms / 1000) + 's' : '—'} | ${r.run?.filesReview ?? '—'} |`)
 }
-lines.push('')
-const types = Object.keys(results[configs[0]].byType)
-lines.push(`| 类型 (n) | ${configs.join(' | ')} |`)
-lines.push(`|---|${configs.map(() => '---').join('|')}|`)
-for (const type of types) lines.push(`| ${type} (${results[configs[0]].byType[type].n}) | ${configs.map((c) => results[c].byType[type].leaked).join(' | ')} |`)
-lines.push('')
-const kinds = Object.keys(results[configs[0]].byKind)
-lines.push(`| 文档类型 (n) | ${configs.join(' | ')} |`)
-lines.push(`|---|${configs.map(() => '---').join('|')}|`)
-for (const kind of kinds) lines.push(`| ${kind} (${results[configs[0]].byKind[kind].n}) | ${configs.map((c) => results[c].byKind[kind].leaked).join(' | ')} |`)
-console.log(lines.join('\n'))

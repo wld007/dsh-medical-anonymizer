@@ -98,7 +98,7 @@ Agent 不能指定端点、模型或 API Key，始终使用已保存的设置。
 
 ```bash
 npm test                      # 使用确定性的模拟模型，不需要网络或真实数据
-node scripts/build.mjs 0.11.0  # 为本地 profile 构建带版本号的 dist/
+node scripts/build.mjs 0.11.1  # 为本地 profile 构建带版本号的 dist/
 ```
 
 ## 许可证
