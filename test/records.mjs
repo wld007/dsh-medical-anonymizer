@@ -4,7 +4,7 @@
  * Run: node test/records.mjs
  */
 import assert from 'node:assert/strict'
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openRecords, closeRecords, useFileRecords, sqliteAvailable, RECORDS_FILE, SCHEMA_VERSION } from '../lib/records.js'
@@ -112,6 +112,30 @@ if (hasSqlite) {
     const again = await openRecords(dir)
     assert.notEqual(again, store)
     assert.equal((await again.getRun('r1')).status, 'review')
+  })
+
+  await check('输出目录被移走（如移到废纸篓）后，再用时在原路径新建记录库，不写到移走的文件里', async () => {
+    const root = join(tmp, 'moved')
+    const first = await openRecords(join(root, '_records'))
+    await first.putRun(summary('before', '2026-01-01T00:00:00Z'))
+    const trash = join(tmp, 'trash-moved')
+    await rename(root, trash)
+    await mkdir(join(root, '_records'), { recursive: true })
+    const second = await openRecords(join(root, '_records'))
+    assert.notEqual(second, first)
+    await second.putRun(summary('after', '2026-02-01T00:00:00Z'))
+    assert.deepEqual((await second.listRuns()).map((item) => item.id), ['after'])
+    await stat(join(root, '_records', RECORDS_FILE))
+    // The moved database kept only what was written before the move.
+    await closeRecords()
+    const moved = await openRecords(join(trash, '_records'))
+    assert.deepEqual((await moved.listRuns()).map((item) => item.id), ['before'])
+    // Deleted outright: the same.
+    await rm(root, { recursive: true, force: true })
+    await mkdir(join(root, '_records'), { recursive: true })
+    const third = await openRecords(join(root, '_records'))
+    assert.deepEqual(await third.listRuns(), [])
+    await closeRecords()
   })
 
   await check('输出根目录只有 records.sqlite 时也被认出', async () => {
