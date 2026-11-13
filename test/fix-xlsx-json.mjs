@@ -11,6 +11,7 @@ import * as XLSX from '../vendor/xlsx.mjs'
 import { loadDocument } from '../lib/formats.js'
 import { runBatch } from '../lib/pipeline.js'
 import { outDirOf, outJoin } from './outputs.mjs'
+import { reviewFilesOf } from './records-read.mjs'
 
 const tmp = await mkdtemp(join(tmpdir(), 'dsh-fix-xlsx-json-'))
 
@@ -407,7 +408,7 @@ async function batch(tag, files) {
   for (const [name, data] of Object.entries(files)) await writeFile(join(input, name), data)
   const root = join(tmp, `out-${tag}`)
   const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId: tag, maxRounds: 2 } })
-  return { run, out: await outDirOf(root, tag), records: join(root, '_records', 'runs', tag) }
+  return { run, out: await outDirOf(root, tag), records: join(root, '_records', 'runs', tag), root }
 }
 
 function sheetBook(rows, { name = 'S', edit } = {}) {
@@ -461,13 +462,13 @@ await check('跟进 2：工作表名、表头被替换后，报告与复核清�
   assert.equal(renamed.get('王五!身份证号'), '化名-AAAAAA!身份证号')
   for (const [, to] of renamed) assert.ok(!to.includes('王五') && !to.includes('赵六'), to)
 
-  const { run, out, records } = await batch('lbl', { 'a.xlsx': data })
+  const { run, out, records, root: lblRoot } = await batch('lbl', { 'a.xlsx': data })
   const file = run.files.find((item) => item.relPath === 'a.xlsx')
   assert.equal(file.status, 'review', JSON.stringify(file.issues))
   assert.ok(file.issues.some((issue) => issue.code === 'unreadable'), JSON.stringify(file.issues))
   assertNoneIn(xlsxParts(await readFile(outJoin(out, 'a.xlsx'))), ['王五', '赵六'])
-  for (const name of ['report.json', 'report.md', 'review-items.json']) {
-    const text = await readFile(join(records, name), 'utf8')
+  for (const name of ['report.json', 'report.md', 'review-items']) {
+    const text = name === 'review-items' ? JSON.stringify(await reviewFilesOf(lblRoot, 'lbl')) : await readFile(join(records, name), 'utf8')
     for (const secret of ['王五', '赵六']) assert.ok(!text.includes(secret), `${name} contains ${secret}`)
   }
   // The label still says which column (with the new names).

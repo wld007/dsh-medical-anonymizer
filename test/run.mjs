@@ -678,7 +678,8 @@ async function main() {
     // index.json moved in from 0.7 stays where it is once imported into the records.
     assert.deepEqual((await readdir(join(layoutRoot, '_records'))).filter((name) => !/-(wal|shm)$/.test(name)).sort(), ['index.json', RECORDS_FILE, 'runs', 'vault.json'])
     assert.equal((await stat(join(layoutRoot, '_records', RECORDS_FILE))).mode & 0o777, 0o600)
-    assert.deepEqual((await readdir(join(layoutRoot, '_records', 'runs', 'lay-1'))).sort(), ['compare', 'report.json', 'report.md'])
+    // Comparison, review list and the rest are in the records; only the report exports are files.
+    assert.deepEqual((await readdir(join(layoutRoot, '_records', 'runs', 'lay-1'))).sort(), ['report.json', 'report.md'])
     await stat(join(layoutRoot, '_records', 'runs', 'old-1', 'report.md'))
     const moved = new Vault(join(layoutRoot, '_records', 'vault.json'))
     await moved.load()
@@ -807,7 +808,6 @@ async function main() {
   const stopper = new AbortController()
   const first = { n: 0 }
   const stopped = await runBatch({ inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot, options: { runId: 'res-1', llm: scripted(first, 1, stopper) }, signal: stopper.signal })
-  const cacheFile = join(resumeRoot, '_records', 'runs', 'res-1', 'model-cache.jsonl')
   await check('停止批次：状态为已取消，不交付，保留续跑信息', async () => {
     assert.equal(stopped.status, 'cancelled')
     assert.equal(stopped.output, null)
@@ -815,10 +815,10 @@ async function main() {
     await assert.rejects(stat(join(resumeRoot, 'note.txt')))
     const saved = await (await recordsAt(resumeRoot)).getDoc('res-1', 'resume')
     assert.equal(saved.inputDir, join(resumeIn, 'note.txt'))
-    assert.ok((await readFile(cacheFile, 'utf8')).trim().split('\n').length >= 1)
+    assert.ok((await (await recordsAt(resumeRoot)).getCache('res-1')).length >= 1, 'model replies kept for a resume')
   })
   const second = { n: 0 }
-  const resumed = await runBatch({ inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot, options: { runId: 'res-2', llm: scripted(second), replaySources: [cacheFile], resumeFrom: 'res-1' } })
+  const resumed = await runBatch({ inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot, options: { runId: 'res-2', llm: scripted(second), resumeFrom: 'res-1' } })
   const fresh = { n: 0 }
   const freshRun = await runBatch({ inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot, options: { runId: 'res-3', llm: scripted(fresh) } })
   await check('继续处理：复用已完成的模型调用，结果与完整运行一致，缓存随完成删除', async () => {
@@ -827,7 +827,7 @@ async function main() {
     assert.ok(resumed.totals.replayedCalls >= 1, JSON.stringify(resumed.totals))
     assert.equal(second.n + resumed.totals.replayedCalls, fresh.n)
     assert.equal(await readFile(resumed.output, 'utf8'), await readFile(freshRun.output, 'utf8'))
-    await assert.rejects(stat(join(resumeRoot, '_records', 'runs', 'res-2', 'model-cache.jsonl')))
+    assert.equal((await (await recordsAt(resumeRoot)).getCache('res-2')).length, 0, 'replies dropped once finished')
   })
 
   const stopper2 = new AbortController()
@@ -836,7 +836,7 @@ async function main() {
   const secondB = { n: 0 }
   const switched = await runBatch({
     inputDir: join(resumeIn, 'note.txt'), outputRoot: resumeRoot,
-    options: { runId: 'res-5', model: 'model-b', llm: { ...scripted(secondB), model: 'model-b' }, replaySources: [join(resumeRoot, '_records', 'runs', 'res-4', 'model-cache.jsonl')], resumeFrom: 'res-4', resumeModel: 'model-a' },
+    options: { runId: 'res-5', model: 'model-b', llm: { ...scripted(secondB), model: 'model-b' }, resumeFrom: 'res-4', resumeModel: 'model-a' },
   })
   await check('续跑时更换模型：已完成部分沿用原结果，其余交给新模型', async () => {
     assert.equal(switched.status, 'completed')

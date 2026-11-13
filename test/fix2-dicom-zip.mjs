@@ -15,6 +15,7 @@ import { charsetDecoder } from '../lib/dicom/codec.js'
 import { runBatch } from '../lib/pipeline.js'
 import * as zipLib from '../lib/zip.js'
 import { el, encode, part10, CT } from './dicom-fixtures.mjs'
+import { reviewFilesOf, pathMapOf, compareTextOf, recordsOf } from './records-read.mjs'
 
 // Namespace import so the file still loads (and fails per check) on a tree
 // without createZipBudget.
@@ -299,7 +300,7 @@ async function main() {
     const run = await runBatch({ inputDir: input, outputRoot: outRoot, options: { runId: 'b35' } })
     assert.equal(run.status, 'review')
     assert.ok(run.withheld, 'not delivered before review')
-    const items = JSON.parse(await readFile(join(outRoot, '_records', 'runs', 'b35', 'review-items.json'), 'utf8'))
+    const items = await reviewFilesOf(outRoot, 'b35')
     const item = items.flatMap((file) => file.items).find((entry) => entry.code === 'dicom-document')
     assert.ok(item, 'listed for manual review')
     assert.ok(!item.baseId, 'not offered as removable embedded content')

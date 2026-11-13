@@ -16,6 +16,7 @@ import { createPathAnonymizer } from '../lib/paths.js'
 import { randomBytes } from 'node:crypto'
 import { el, part10, pixelBytes, CT } from './dicom-fixtures.mjs'
 import { outDirOf, outJoin } from './outputs.mjs'
+import { reviewFilesOf, pathMapOf, compareTextOf, recordsOf } from './records-read.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmp = join(here, '.tmp', 'fix-misc')
@@ -61,7 +62,7 @@ function verifierReporting(names) {
 }
 
 async function reviewTexts(root, runId) {
-  const files = JSON.parse(await readFile(join(root, '_records', 'runs', runId, 'review-items.json'), 'utf8'))
+  const files = await reviewFilesOf(root, runId)
   return files.flatMap((file) => file.items.map((item) => ({ relPath: file.relPath, ...item })))
 }
 

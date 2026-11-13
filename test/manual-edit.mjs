@@ -37,9 +37,10 @@ try {
       const text = await delivered(name)
       assert.ok(!text.includes('老李头') && text.includes(result.pseudonym), name)
     }
-    const listed = JSON.parse(await readFile(join(root, '_records', 'runs', 'm1', 'compare', 'index.json'), 'utf8'))
+    const store = await openRecords(join(root, '_records'))
+    const listed = await store.getCompareList('m1')
     const entry = listed.find((item) => item.relPath === 'b.txt')
-    const data = JSON.parse(await readFile(join(root, '_records', 'runs', 'm1', 'compare', `${entry.n}.json`), 'utf8'))
+    const data = await store.getCompareFile('m1', entry.n)
     assert.ok(data.changes.some((change) => (change.after ?? '').includes(result.pseudonym)))
     const md = await readFile(join(root, '_records', 'runs', 'm1', 'report.md'), 'utf8')
     assert.match(md, /漏报补替换：1 个值替换为假名，共 2 处/)

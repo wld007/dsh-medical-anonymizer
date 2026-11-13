@@ -19,6 +19,7 @@ import { createLlm } from '../lib/llm.js'
 import { runBatch } from '../lib/pipeline.js'
 import { Vault } from '../lib/pseudonym.js'
 import { apply } from '../index.js'
+import { reviewFilesOf, pathMapOf, compareTextOf, recordsOf } from './records-read.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmp = join(here, '.tmp', 'fix2-host')
@@ -429,7 +430,7 @@ async function testVaultBusy() {
   // A review item for A (an unlabeled name the rules kept), as the verifier would report it.
   const runDir = join(root, '_records', 'runs', a.runId)
   const relPath = aRun.files[0].relPath
-  await writeFile(join(runDir, 'review-items.json'), JSON.stringify([{ relPath, items: [{ id: 'x1', code: 'model-residual', type: '姓名', text: '李四', detail: '独立盲审报出：姓名 李*' }] }]))
+  await (await recordsOf(root)).putReviewFiles(a.runId, [{ relPath, items: [{ id: 'x1', code: 'model-residual', type: '姓名', text: '李四', detail: '独立盲审报出：姓名 李*' }] }])
 
   gate.open = false
   const hitsBefore = gate.hits
@@ -560,7 +561,7 @@ async function testUndoHold() {
     await waitIdle(service)
     const r2Run = (await service.status(r2.runId)).run
     const runDir = join(out, '_records', 'runs', r2.runId)
-    await writeFile(join(runDir, 'review-items.json'), JSON.stringify([{ relPath: r2Run.files[0].relPath, items: [{ id: 'x1', code: 'model-residual', type: '姓名', text: '李四', detail: '独立盲审报出：姓名 李*' }] }]))
+    await (await recordsOf(out)).putReviewFiles(r2.runId, [{ relPath: r2Run.files[0].relPath, items: [{ id: 'x1', code: 'model-residual', type: '姓名', text: '李四', detail: '独立盲审报出：姓名 李*' }] }])
     const [undo, replace] = await Promise.allSettled([service.undoMappings(r1.runId), service.reviewDecide(r2.runId, 'x1', 'replace')])
     assert.ok(undo.status === 'fulfilled' || replace.status === 'fulfilled', 'both refused')
     const vault = await vaultFile(out)

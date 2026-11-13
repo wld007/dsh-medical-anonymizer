@@ -14,6 +14,7 @@ import { createWriteGuard } from '../lib/guard.js'
 import { createService } from '../lib/service.js'
 import { outDirOf, outJoin } from './outputs.mjs'
 import { snapshotTree } from './snapshot.mjs'
+import { reviewFilesOf, pathMapOf, compareTextOf, recordsOf } from './records-read.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmp = join(here, '.tmp', 'archive')
@@ -116,7 +117,7 @@ await check('报告不含原值，路径对照单独保存', async () => {
     assert.ok(!report.includes(secret), `report.md contains ${secret}`)
     assert.ok(!reportJson.includes(secret), `report.json contains ${secret}`)
   }
-  const map = JSON.parse(await readFile(join(outRoot, '_records', 'runs', 'arch', 'path-map.json'), 'utf8'))
+  const map = await pathMapOf(outRoot, 'arch')
   assert.ok(map.prefixes.some((entry) => entry.original.includes(ID)))
   assert.ok(run.paths.renamed >= 3)
 })

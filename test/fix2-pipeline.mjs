@@ -17,6 +17,7 @@ import { createService } from '../lib/service.js'
 import { packDirectory } from '../lib/zip.js'
 import { LlmError } from '../lib/llm.js'
 import { openRecords } from '../lib/records.js'
+import { reviewFilesOf, pathMapOf, compareTextOf, recordsOf } from './records-read.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const { runBatch } = pipeline
@@ -47,7 +48,7 @@ async function walk(dir, base = dir) {
 }
 
 /** Every file under `dir` (relative path → text), skipping the vault-grade records. */
-async function texts(dir, skip = /(^|\/)(vault\.json|review-items\.json|path-map\.json|advice\.json|compare\/\d+\.json|resume\.json|model-cache.*|calls\.json)$/) {
+async function texts(dir, skip = /(^|\/)(vault\.json|review-items\.json|path-map\.json|advice\.json|compare\/\d+\.json|resume\.json|model-cache.*|calls\.json|records\.sqlite(-wal|-shm)?)$/) {
   const out = new Map()
   for (const rel of await walk(dir)) {
     if (rel.endsWith('/') || skip.test(rel)) continue
@@ -91,7 +92,8 @@ async function report(root, runId) {
     md: await readFile(join(dir, 'report.md'), 'utf8'),
     // Batch list row (records.sqlite runs).
     index: JSON.stringify(await (await openRecords(join(root, '_records'))).listRuns()),
-    compare: await readFile(join(dir, 'compare', 'index.json'), 'utf8').catch(() => ''),
+    // The comparison's file list (its rows hold originals, like the vault).
+    compare: JSON.stringify((await (await recordsOf(root)).getCompareList(runId)) ?? []),
   }
 }
 
@@ -151,7 +153,7 @@ async function testOutputNames() {
     const calls = JSON.stringify(await (await openRecords(join(root, '_records'))).getCalls('dir'))
     assert.ok(calls.length > 2, 'call log recorded')
     assertAbsent(calls, ['阿依古丽', 'Aliya'], 'calls.json')
-    const map = JSON.parse(await readFile(join(root, '_records', 'runs', 'dir', 'path-map.json'), 'utf8'))
+    const map = await pathMapOf(root, 'dir')
     assert.ok(map.files.some((entry) => entry.original === '阿依古丽_复诊.txt'))
   })
 
@@ -281,7 +283,7 @@ async function testVerifierFindings() {
     assert.equal(run.status, 'review')
     const file = run.files.find((item) => item.relPath === 'a.csv')
     assert.ok(file.issues.some((issue) => issue.severity === 'error' && issue.code === 'model-unlocated'), JSON.stringify(file.issues))
-    const items = JSON.parse(await readFile(join(root, '_records', 'runs', 'nomember', 'review-items.json'), 'utf8'))
+    const items = await reviewFilesOf(root, 'nomember')
     assert.ok(items.some((entry) => entry.items.some((item) => item.text === '5678/8765')))
     assertAbsent((await report(root, 'nomember')).md, ['5678/8765'], 'report.md')
   })
@@ -677,7 +679,8 @@ async function testJsonKeys() {
     }
     let files = 0
     for await (const path of walk(root)) {
-      if (/vault|review-items|[\\/]compare[\\/]/.test(path)) continue
+      // Vault-grade records (originals by design): the vault, the records database.
+      if (/vault|review-items|records\.sqlite|[\\/]compare[\\/]/.test(path)) continue
       files += 1
       assertAbsent(await readFile(path, 'utf8'), needles, path.slice(root.length))
     }
