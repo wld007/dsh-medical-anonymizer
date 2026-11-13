@@ -362,7 +362,7 @@ export function apply(ctx, config = {}) {
         case 'compareFile':
           return { ok: true, value: await service.compareFile(request.runId, request.n) }
         case 'reviewField':
-          return { ok: true, value: await service.reviewField(request.runId, request.field, request.action, { type: typeof request.type === 'string' ? request.type : null }) }
+          return { ok: true, value: await service.reviewField(request.runId, request.field, request.action, { type: typeof request.type === 'string' ? request.type : null, code: typeof request.code === 'string' ? request.code : null }) }
         case 'imageCheck':
           return { ok: true, value: await service.imageCheck(request.runId, { only: Array.isArray(request.itemIds) ? request.itemIds : null }) }
         case 'opaquePreview':

@@ -302,11 +302,15 @@ await check('#43 a failed load is retried with back-off and never cached as a fi
 // ── #44: no vault-writing review decisions while a batch runs ──────────────
 
 await check('#44 the "replace" decision is disabled while any batch runs, with a visible reason', () => {
-  const start = source.indexOf("decideReview(file, item, 'replace')")
-  const button = source.slice(source.lastIndexOf("h('button', {", start), start)
+  // The button is a spec for ScopedActions: { action: 'replace', …, disabled: … anyRunning }.
+  const start = source.indexOf("action: 'replace', primary:")
+  assert.ok(start > 0)
+  const button = source.slice(start, source.indexOf('},', start))
   assert.match(button, /disabled:[^\n]*anyRunning/)
+  // The field-wide decision refuses too.
+  assert.match(functionBody('async function decideField('), /action === 'replace' && anyRunning/)
   assert.ok(zh['ws.rv.runningHint'] && en['ws.rv.runningHint'])
-  assert.match(source.slice(start - 400, start + 200), /ws\.rv\.runningHint/)
+  assert.match(source.slice(start, start + 400), /ws\.rv\.runningHint/)
   // decideReview refuses as well (the button may be stale) and shows the server's refusal as a note.
   const body = functionBody('async function decideReview(')
   assert.match(body, /action === 'replace' && anyRunning/)

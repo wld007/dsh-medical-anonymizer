@@ -162,6 +162,71 @@ async function testReviewDedupe() {
   })
 }
 
+/* ------------------------------------------------------- field batches */
+
+/** Blind review that names a whole per-field value list as one text. */
+function verifierListing() {
+  return {
+    model: 'scripted',
+    async chatJson(messages) {
+      const prompt = messages.map((message) => message.content).join('\n')
+      if (prompt.includes('独立的数据安全审查员')) {
+        const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
+        const issues = segments.filter((segment) => segment.text.includes('；') && /结算号/.test(JSON.stringify(segment)))
+          .map((segment) => ({ segment: segment.id, type: '电话', text: segment.text, reason: '号码' }))
+        return { json: { issues } }
+      }
+      return { json: { entities: [] } }
+    },
+  }
+}
+
+async function testFieldBatches() {
+  const { listParts, fieldGroup } = await import('../lib/service.js')
+  const { splitListIssues } = await import('../lib/pipeline.js')
+  await check('列表报出：按值拆开；不是列表的不拆', async () => {
+    assert.deepEqual(listParts('1568791701；1569043201; 1624281601'), ['1568791701', '1569043201', '1624281601'])
+    assert.deepEqual(listParts('张三'), ['张三'])
+    const batch = [{ id: 'num:a#0', field: 'a', text: '11；22', values: ['11', '22'] }, { id: 's1', text: '他说：好；再见' }]
+    assert.deepEqual(splitListIssues([{ segment: 'num:a#0', type: '电话', text: '11；22' }], batch).map((issue) => issue.text), ['11', '22'])
+    assert.deepEqual(splitListIssues([{ segment: 's1', type: '姓名', text: '好；再见' }], batch).map((issue) => issue.text), ['好；再见'])
+    assert.deepEqual(fieldGroup('unreadable').actions, ['accept'])
+    assert.deepEqual(fieldGroup('model-unlocated').actions, ['replace', 'allow', 'accept'])
+    assert.equal(fieldGroup('opaque'), null)
+  })
+
+  const input = join(tmp, 'field-in')
+  const root = join(tmp, 'field-out')
+  await mkdir(input, { recursive: true })
+  const values = ['1568791701', '1569043201', '1624281601', '1624322701']
+  await writeFile(join(input, 'a.json'), JSON.stringify([{ 结算号: values[0], 金额: 12 }, { 结算号: values[1], 金额: 13 }]))
+  await writeFile(join(input, 'b.json'), JSON.stringify([{ 结算号: values[2], 金额: 14 }, { 结算号: values[3], 金额: 15 }]))
+  const run = await runBatch({ inputDir: input, outputRoot: root, options: { llm: verifierListing(), runId: 'field', maxRounds: 1 } })
+  await check('盲审把整串值当一项报出时，复核项按值一项一项列出', async () => {
+    assert.equal(run.status, 'review')
+    const items = (await reviewTexts(root, 'field')).filter((item) => item.text)
+    assert.ok(items.length >= 4, JSON.stringify(items.map((item) => item.text)))
+    for (const item of items) assert.ok(!item.text.includes('；'), item.text)
+    assert.deepEqual([...new Set(items.map((item) => item.text))].sort(), [...values].sort())
+  })
+  const svc = createService({ config: { outputRoot: root }, defaultDirectory: tmp })
+  await check('本批次这个字段的同类项一次处理（跨文件），之后批次完成', async () => {
+    const listed = await svc.reviewItems('field')
+    const item = listed.files.flatMap((file) => file.items).find((entry) => entry.text)
+    const result = await svc.reviewField('field', '结算号', 'accept', { code: item.code })
+    assert.equal(result.failed.length, 0)
+    assert.ok(result.decided >= 4, JSON.stringify(result))
+    assert.equal(result.texts.length, result.decided)
+    const after = await svc.reviewItems('field')
+    const open = after.files.flatMap((file) => file.items).filter((entry) => !entry.decision)
+    assert.deepEqual(open.map((entry) => entry.code), [])
+    assert.equal(result.completed, true)
+  })
+  await check('图片等嵌入内容不能按字段整批处理', async () => {
+    await assert.rejects(() => svc.reviewField('field', '结算号', 'accept', { code: 'opaque' }), /未知的复核操作/)
+  })
+}
+
 /* ------------------------------------------------------------------ #9 */
 
 const STUDY_A = '1.2.840.113619.2.55.3.604688119.868'
@@ -469,6 +534,7 @@ async function main() {
   await rm(tmp, { recursive: true, force: true })
   await mkdir(tmp, { recursive: true })
   await testReviewDedupe()
+  await testFieldBatches()
   await testDicomNames()
   await testDicomNamesBreak()
   await testDicomNamesPerf()

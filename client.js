@@ -824,6 +824,10 @@ window.__ModuleLoader__.load({
       'ws.rv.allField': '本批次这个字段的 {n} 项都这样处理',
       'ws.rv.allFieldHint': '对本批次所有文件里这个字段的「假名嵌入编码 / 数值被部分替换」项做同样的处理',
       'ws.rv.fieldDone': '字段 {field}：已处理 {n} 项',
+      'ws.rv.allFieldHintRead': '对本批次所有文件里这个字段的「无法解读的长字符串 / 编码串」项做同样的处理',
+      'ws.rv.allFieldHintText': '对本批次所有文件里这个字段、同一类检查报出的待判断项做同样的处理（替换时每项按各自的类型）',
+      'ws.rv.fieldPartly': '字段 {field}：已处理 {n} 项，{failed} 项没处理成（{first}），仍在待复核里',
+      'ws.rv.allowFull': '「不匹配的值」最多 {max} 项，还有 {n} 个值没加进去，只在本批次保留；可在 设置 → 匿名化规则 里整理后再加',
       'ws.rv.unglue': '还原原值',
       'ws.rv.unglueHint': '这个值本身不是标识符（如记录号、编码），只是其中一段恰好和某个标识符相同而被替换了。把嵌在里面的假名换回原文，恢复完整的值；只改这些位置。',
       'ws.rv.unglued': '已还原 {count} 处',
@@ -1777,6 +1781,10 @@ window.__ModuleLoader__.load({
       'ws.rv.allField': 'Do the same for all {n} items of this field in the batch',
       'ws.rv.allFieldHint': 'Apply to every "pseudonym inside a code / partly replaced value" item naming this field, in every file of the batch',
       'ws.rv.fieldDone': 'Field {field}: {n} items handled',
+      'ws.rv.allFieldHintRead': 'Apply to every "unreadable long string / encoded string" item naming this field, in every file of the batch',
+      'ws.rv.allFieldHintText': 'Apply to every item of this field flagged by the same check, in every file of the batch (a replacement uses each item\'s own type)',
+      'ws.rv.fieldPartly': 'Field {field}: {n} items handled, {failed} not ({first}); they stay under review',
+      'ws.rv.allowFull': '"Values to leave alone" holds at most {max}; {n} more values were not added and are kept for this batch only. Tidy the list under Settings → Anonymization rules to add more',
       'ws.rv.unglue': 'Restore the value',
       'ws.rv.unglueHint': 'The value itself is not an identifier (a record number, a code); only part of it matched one and was replaced. Puts the original back for the pseudonym embedded there, restoring the whole value; only these places change.',
       'ws.rv.unglued': 'Restored {count}',
@@ -4436,6 +4444,54 @@ window.__ModuleLoader__.load({
             t('ws.rv.allField', { n: item.batchOpen })) : null))
     }
 
+    // Which items one decision may cover for a whole field (the host's
+    // fieldGroup): long strings that cannot be read, and texts flagged by the
+    // same check. Mangled values have MangledActions; images are one by one.
+    const reviewFieldList = (item) => [...new Set([
+      ...(Array.isArray(item.fields) ? item.fields : []), ...(item.field ? [item.field] : []),
+      ...((/字段：([^）]+)）/.exec(String(item.detail ?? ''))?.[1] ?? '').replace(/\s*等 \d+ 个字段$/, '').split('、').map((part) => part.replace(/×\d+$/, '').trim()).filter(Boolean)),
+    ].map(String))]
+    const fieldGroupKey = (item) => (READ_REVIEW.has(item.code) ? 'read'
+      : item.text && !OPAQUE_REVIEW.has(item.code) ? `text:${item.code}` : null)
+    // Open items per "group|field", counted once per review load.
+    const fieldCounts = new WeakMap()
+    function openInField(reviewData, item) {
+      const key = fieldGroupKey(item)
+      const fields = reviewFieldList(item)
+      if (!reviewData || !key || fields.length !== 1) return null
+      let counts = fieldCounts.get(reviewData)
+      if (!counts) {
+        counts = new Map()
+        for (const file of reviewData.files ?? []) {
+          for (const entry of file.items ?? []) {
+            const group = entry.decision ? null : fieldGroupKey(entry)
+            if (!group) continue
+            for (const name of reviewFieldList(entry)) counts.set(`${group}|${name}`, (counts.get(`${group}|${name}`) ?? 0) + 1)
+          }
+        }
+        fieldCounts.set(reviewData, counts)
+      }
+      const n = counts.get(`${key}|${fields[0]}`) ?? 0
+      return n > 1 ? { field: fields[0], n } : null
+    }
+
+    // Decision buttons with the optional "every open item of this field in
+    // the batch" check box. `buttons`: { key, action, label, primary, disabled, title, extra }.
+    function ScopedActions({ file, item, busy, scope, buttons, decide, decideField }) {
+      const t = services.t
+      const [all, setAll] = React.useState(false)
+      const wide = all && scope
+      const run = (button) => (wide && !button.single ? decideField(scope.field, button.action, button.extra?.type ?? null, item.code, item) : decide(file, item, button.action, button.extra ?? {}))
+      return h('div', { className: 'ma-actions' },
+        buttons.filter(Boolean).map((button) => h('button', {
+          key: button.key ?? button.action, className: `ma-btn ma-small${button.primary ? ' ma-primary' : ''}`,
+          disabled: busy || button.disabled, title: button.title ?? '', onClick: () => run(button),
+        }, button.label)),
+        scope ? h('label', { className: 'ma-check ws-rv-all', title: t(item.text ? 'ws.rv.allFieldHintText' : 'ws.rv.allFieldHintRead') },
+          h('input', { type: 'checkbox', checked: all, disabled: busy, onChange: (event) => setAll(event.target.checked) }),
+          t('ws.rv.allField', { n: scope.n })) : null)
+    }
+
     // Field column: which record (for files that are lists of records) and the field.
     function fieldCell(change) {
       const record = /^(\d+)\//.exec(String(change.id ?? ''))
@@ -5136,10 +5192,7 @@ window.__ModuleLoader__.load({
         setReviewNote(null)
         try {
           const result = await call('reviewDecide', { runId: adviceRunId, itemId: item.id, action, ...extra })
-          if (action === 'allow' && item.text && config && !anyRunning) {
-            // Future batches no longer treat this value as an identifier.
-            await saveAndReload({ allowValues: [...new Set([...(config.allowValues ?? []), item.text])] })
-          }
+          if (action === 'allow' && item.text) await allowLater([item.text])
           await loadReview(adviceRunId)
           if (['replace', 'absorb', 'unglue', 'whole'].includes(action) && Array.isArray(compareByRun[adviceRunId])) {
             const hit = compareByRun[adviceRunId].find((entry) => entry.relPath === file.relPath)
@@ -5202,6 +5255,21 @@ window.__ModuleLoader__.load({
         // The settings dialog may have saved; pick up the new values.
         if (modal === 'settings') loadConfig().catch(() => {})
         setModal(null)
+      }
+
+      // "Not an identifier": future batches no longer treat these values as
+      // identifiers. A flagged list ("a；b；c") adds each value; the list in
+      // the settings holds at most ALLOW_MAX values, the rest are kept only
+      // in this batch (the note says so).
+      const ALLOW_MAX = 500
+      async function allowLater(texts) {
+        if (!config || anyRunning) return
+        const current = config.allowValues ?? []
+        const wanted = [...new Set(texts.flatMap((text) => String(text ?? '').split(/\s*[；;]\s*/)).map((part) => part.trim()).filter((part) => part && part.length <= 200 && !current.includes(part)))]
+        const room = Math.max(0, ALLOW_MAX - current.length)
+        const added = wanted.slice(0, room)
+        if (added.length) await saveAndReload({ allowValues: [...current, ...added] })
+        if (wanted.length > added.length) setReviewNote({ ok: false, text: t('ws.rv.allowFull', { n: wanted.length - added.length, max: ALLOW_MAX }) })
       }
 
       async function saveAndReload(request) {
@@ -5774,16 +5842,20 @@ window.__ModuleLoader__.load({
       }
 
       // One decision for every open mangled value of this field in the batch.
-      async function decideField(field, action, type = null) {
+      async function decideField(field, action, type = null, code = null) {
+        if (action === 'replace' && anyRunning) { setReviewNote({ ok: false, text: t('ws.rv.runningHint') }); return }
         setReviewBusy('field')
         setReviewNote(null)
         try {
-          const result = await call('reviewField', { runId: adviceRunId, field, action, type })
+          const result = await call('reviewField', { runId: adviceRunId, field, action, type, ...(code ? { code } : {}) })
+          setReviewNote({ ok: !result.failed?.length, text: result.failed?.length
+            ? t('ws.rv.fieldPartly', { field, n: result.decided, failed: result.failed.length, first: result.failed[0].error })
+            : t('ws.rv.fieldDone', { field, n: result.decided }) })
+          if (action === 'allow' && result.texts?.length) await allowLater(result.texts)
           await loadReview(adviceRunId)
           setCompareFiles({})
           if (typeof compareSel === 'number') await loadCompareFile(adviceRunId, compareSel, true)
           if (result.completed) { forgetReport(adviceRunId); setDetail(null); await refreshRuns() }
-          setReviewNote({ ok: true, text: t('ws.rv.fieldDone', { field, n: result.decided }) })
         } catch (cause) {
           setReviewNote({ ok: false, text: message(cause) })
         } finally {
@@ -5813,20 +5885,28 @@ window.__ModuleLoader__.load({
               ? h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable, title: file.editable ? t('ws.rv.removeHint') : file.reason, onClick: () => decideReview(file, item, 'remove') }, reviewBusy === item.id ? t('save.saving') : t('ws.rv.remove'))
               : null,
             h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => decideReview(file, item, 'accept') }, item.image && Number(item.count ?? 1) > 1 ? t('ws.pv.keepAll') : t('ws.rv.keepOpaque')))
+          : READ_REVIEW.has(item.code)
+            // Long strings that cannot be read: keep, for one file or the whole field.
+            ? h(ScopedActions, { file, item, busy: reviewBusy !== null, scope: openInField(reviewData, item), decide: decideReview, decideField, buttons: [
+              { action: 'accept', label: t('ws.rv.keepOpaque'), title: t('ws.rv.keepHint') },
+            ] })
           : (item.code === 'embedded' || item.code === 'partial') && !item.text
             ? h(MangledActions, { file, item, busy: reviewBusy !== null, decide: decideReview, decideField })
-          : h('div', { className: 'ma-actions' },
-            neighbour(item) ? h('button', {
-              className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null || !file.editable,
-              title: !file.editable ? file.reason : t('ws.rv.absorbHint', { token: neighbour(item), text: item.text }), onClick: () => decideReview(file, item, 'absorb'),
-            }, reviewBusy === item.id ? t('save.saving') : t('ws.rv.absorb', { token: neighbour(item) })) : null,
-            h('button', {
+          : h(ScopedActions, { file, item, busy: reviewBusy !== null, scope: openInField(reviewData, item), decide: decideReview, decideField, buttons: [
+            neighbour(item) ? {
+              key: 'absorb', action: 'absorb', single: true, primary: true, disabled: !file.editable,
+              title: !file.editable ? file.reason : t('ws.rv.absorbHint', { token: neighbour(item), text: item.text }),
+              label: reviewBusy === item.id ? t('save.saving') : t('ws.rv.absorb', { token: neighbour(item) }),
+            } : null,
+            {
               // A replacement writes the mapping vault, which a running batch holds.
-              className: `ma-btn ma-small${neighbour(item) ? '' : ' ma-primary'}`, disabled: reviewBusy !== null || !file.editable || !item.text || anyRunning,
-              title: !item.text ? t('ws.rv.noText') : !file.editable ? file.reason : anyRunning ? t('ws.rv.runningHint') : '', onClick: () => decideReview(file, item, 'replace'),
-            }, reviewBusy === item.id ? t('save.saving') : (item.replacement ? t('ws.rv.replaceWith', { to: item.replacement }) : t('ws.rv.replace'))),
-            item.text ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || anyRunning, title: t('ws.rv.allowHint'), onClick: () => decideReview(file, item, 'allow') }, t('ws.rv.allow')) : null,
-            h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.acceptHint'), onClick: () => decideReview(file, item, 'accept') }, t('ws.rv.accept'))))
+              action: 'replace', primary: !neighbour(item), disabled: !file.editable || !item.text || anyRunning,
+              title: !item.text ? t('ws.rv.noText') : !file.editable ? file.reason : anyRunning ? t('ws.rv.runningHint') : '',
+              label: reviewBusy === item.id ? t('save.saving') : (item.replacement ? t('ws.rv.replaceWith', { to: item.replacement }) : t('ws.rv.replace')),
+            },
+            item.text ? { action: 'allow', disabled: anyRunning, title: t('ws.rv.allowHint'), label: t('ws.rv.allow') } : null,
+            { action: 'accept', title: t('ws.rv.acceptHint'), label: t('ws.rv.accept') },
+          ] }))
       // Stand-alone card: items the comparison table cannot show (no text,
       // no comparison for the file) and content that cannot be checked.
       const reviewCard = (file, item) => h('div', { key: item.id, id: `ws-rv-${item.id}`, className: `ws-rv-item${item.decision ? ' ws-rv-done' : ''}${focusReview === item.id ? ' ws-rv-focus' : ''}` },
