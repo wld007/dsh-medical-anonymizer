@@ -523,6 +523,58 @@ await check('R8 端到端：Markdown 表格中的姓名、病历号、住址在�
   assert.ok(text.startsWith('| 姓名 | '), text)
 })
 
+/* ------------------------------------------------- benchmark findings */
+
+await check('分组书写的身份证号（6-8-4 / 4 位一组）被识别，校验位不对的不算', () => {
+  assert.deepEqual(texts('身份证号：330106 19711001 4158  联系电话', '身份证号'), ['330106 19711001 4158'])
+  assert.deepEqual(texts('证号 3301-0619-7110-0141-58 x', '身份证号'), ['3301-0619-7110-0141-58'])
+  assert.deepEqual(texts('编号 330106 19711001 4159', '身份证号'), [])
+  // Mixed separators are not one number.
+  assert.deepEqual(texts('330106 19711001-4158', '身份证号'), [])
+  spansExact('委托人身份证号：330106 19711001 4158，电话 152-7000-0000')
+})
+
+await check('医院名前的医护职称、"与/已"不并入医院名', () => {
+  assert.deepEqual(texts('主治医师秦子芳已与绍兴市中心医院的叶萍华医生电话沟通', '医院'), ['绍兴市中心医院'])
+  assert.deepEqual(texts('今日由主任医师联系浙江省立同德医院', '医院'), ['浙江省立同德医院'])
+  assert.deepEqual(texts('既往在北京协和医院与浙江省人民医院就诊', '医院'), ['北京协和医院', '浙江省人民医院'])
+})
+
+await check('识别与核验都报出、只因格式不符未替换的值进入人工复核', async () => {
+  const value = 'ABCD-1234-XYZ'
+  const scripted = (both) => ({
+    model: 'scripted',
+    async chatJson(messages) {
+      const prompt = messages.map((message) => message.content).join('\n')
+      const segments = JSON.parse(prompt.slice(prompt.lastIndexOf('段落：') + 3))
+      const holder = segments.find((segment) => segment.text.includes(value))
+      if (prompt.includes('独立的数据安全审查员')) {
+        return { json: { issues: both && holder ? [{ segment: holder.id, type: '身份证号', text: value, reason: '证件号' }] : [] } }
+      }
+      return { json: { entities: holder ? [{ segment: holder.id, type: '身份证号', text: value }] : [] } }
+    },
+  })
+  for (const both of [true, false]) {
+    const input = join(tmp, `in-agreed-${both}`)
+    await mkdir(input, { recursive: true })
+    await writeFile(join(input, 'note.txt'), `委托人证件：${value}，已签字。\n`)
+    const run = await runBatch({ inputDir: input, outputRoot: join(tmp, `out-agreed-${both}`), options: { runId: `agreed-${both}`, maxRounds: 2, llm: scripted(both) } })
+    const issues = run.files[0].issues
+    const agreed = issues.filter((issue) => issue.code === 'implausible-agreed')
+    if (both) {
+      assert.equal(agreed.length, 1, JSON.stringify(issues))
+      assert.equal(agreed[0].severity, 'error')
+      assert.equal(agreed[0].review?.text, value)
+      assert.ok(!agreed[0].detail.includes(value), 'value masked in report')
+      assert.equal(run.files[0].status, 'review')
+    } else {
+      assert.equal(agreed.length, 0, JSON.stringify(issues))
+      assert.ok(issues.some((issue) => issue.code === 'implausible' && issue.severity === 'warn'))
+      assert.equal(run.files[0].status, 'clean')
+    }
+  }
+})
+
 /* --------------------------------------------------------------- helper */
 
 async function batch(tag, files) {
