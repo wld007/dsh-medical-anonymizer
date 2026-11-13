@@ -159,17 +159,18 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
   note.txt                   # 单个文件输入的交付数据
   _records/
     vault.json               # 原值 <-> 假名，权限 0600
-    index.json               # 最近的批次
+    records.sqlite           # 记录库（SQLite，权限 0600，含原值，与映射库同样敏感），各批次共用、按批次 id 区分：
+                             #   runs 批次列表；review_decisions / review_log 复核裁定与每次改动；
+                             #   model_calls 模型调用记录（时间、文件、环节、耗时、Token、结果，不含提示词和回复）；
+                             #   cross_check 交叉核验明细（盲审报出的每一项、去向与两模型理由）；
+                             #   image_checks 图片识别结果；manual_edits 人工修改；
+                             #   run_docs 改进建议（advice）与未完成批次的续跑参数（resume）
     runs/<runId>/
       report.md
       report.json
       path-map.json          # 原路径 <-> 新路径，仅在有路径被替换时生成，权限 0600，与映射库同样敏感
-      advice.json            # 改进建议（含「不匹配的值」候选原值，权限 0600）；看板「改进建议」面板读取它
-      calls.json             # 模型调用记录：时间、文件、环节、耗时、Token、结果（不含提示词和回复）
       model-cache.jsonl      # 未完成批次的模型回复缓存，供「继续处理」复用；含原值，权限 0600，批次完成后删除
-      resume.json            # 未完成批次的原输入路径，供继续处理（权限 0600）
       review-items.json      # 页面复核用的问题清单与原文上下文（含原值，权限 0600）
-      cross-check.json       # 交叉核验明细：盲审报出的每一项及其去向和两模型理由（含原值，权限 0600）
       compare/               # 结果比对记录：每个文件改动片段的原文与结果（含原值，权限 0600）
       review/                # 待复核文件的匿名化副本（zip 里的也已取出，x.zip 显示为 x (zip)/），不用解压交付数据即可检查
       output/                # 运行中的暂存区；批次完成后整体移到输出根目录。取消/失败时部分结果留在这里
@@ -178,6 +179,12 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
 批次完成（含「待复核」）后，交付数据才会出现在输出根目录，所以根目录里看到的都是完整结果。
 0.7 及更早版本放在输出根目录下的 `vault.json`、`index.json`、`runs/` 会在下次运行时自动移入
 `_records`，映射库照常沿用，假名保持一致。
+
+记录库用运行环境自带的 `node:sqlite`（DSH 内置的 Node 可用）。0.10 及更早版本的 `_records/index.json`
+和 `runs/<runId>/` 下的 `calls.json`、`review-decisions.json`、`cross-check.json`、`image-checks.json`、
+`manual-edits.json`、`advice.json`、`resume.json` 在第一次打开记录库时并入，原文件保留不动、此后不再写。
+删除批次时其记录行一并删除，库开启了 `secure_delete`，删掉的内容不会留在文件里。
+运行环境没有 `node:sqlite` 时仍按旧方式写这些 JSON 文件。
 
 `vault.json` 是还原身份的钥匙。请与输出分开存放并妥善保护。报告刻意不包含任何原值。
 在设置页（批次与界面 → 映射库加密）或插件配置中设置 `vaultPassphrase` 可用 AES-256-GCM 加密映射库；不设置时映射库为

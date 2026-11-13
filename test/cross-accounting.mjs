@@ -6,6 +6,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runBatch } from '../lib/pipeline.js'
+import { openRecords, closeRecords } from '../lib/records.js'
 
 const segmentsOf = (prompt, marker) => JSON.parse(prompt.slice(prompt.lastIndexOf(marker) + marker.length))
 const root = await mkdtemp(join(tmpdir(), 'ma-cross-'))
@@ -56,7 +57,8 @@ try {
   assert.equal(blind.confirmed + blind.dismissed + blind.disputed + blind.unjudged, blind.reported, 're-judged splits into four outcomes')
   console.log('  ok  every blind-review item is counted in exactly one branch')
 
-  const cross = JSON.parse(await readFile(join(out, '_records', 'runs', 'cross', 'cross-check.json'), 'utf8'))
+  const cross = await (await openRecords(join(out, '_records'))).getCrossCheck('cross')
+  await closeRecords()
   const outcomes = cross.map((entry) => entry.outcome).sort()
   assert.deepEqual(outcomes.filter((o) => o === 'filtered').length, 2, 'empty items have no text to list')
   assert.ok(outcomes.includes('unlocated'))

@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runBatch } from '../lib/pipeline.js'
 import { createService } from '../lib/service.js'
+import { openRecords } from '../lib/records.js'
 import { scan } from '../lib/rules.js'
 import { normalizePolicyPatch, resolvePolicy } from '../lib/policy.js'
 
@@ -43,7 +44,8 @@ try {
     const md = await readFile(join(root, '_records', 'runs', 'm1', 'report.md'), 'utf8')
     assert.match(md, /漏报补替换：1 个值替换为假名，共 2 处/)
     assert.ok(!md.includes('老李头'), 'report never holds the original')
-    const log = await readFile(join(root, '_records', 'runs', 'm1', 'manual-edits.json'), 'utf8')
+    const log = JSON.stringify(await (await openRecords(join(root, '_records'))).getManualEdits('m1'))
+    assert.ok(log.includes(result.pseudonym), 'edit logged')
     assert.ok(!log.includes('老李头'), 'log holds pseudonyms only')
   })
 

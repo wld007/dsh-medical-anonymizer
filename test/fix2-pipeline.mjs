@@ -16,6 +16,7 @@ import * as pipeline from '../lib/pipeline.js'
 import { createService } from '../lib/service.js'
 import { packDirectory } from '../lib/zip.js'
 import { LlmError } from '../lib/llm.js'
+import { openRecords } from '../lib/records.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const { runBatch } = pipeline
@@ -88,7 +89,8 @@ async function report(root, runId) {
   return {
     json: JSON.parse(await readFile(join(dir, 'report.json'), 'utf8')),
     md: await readFile(join(dir, 'report.md'), 'utf8'),
-    index: await readFile(join(root, '_records', 'index.json'), 'utf8').catch(() => ''),
+    // Batch list row (records.sqlite runs).
+    index: JSON.stringify(await (await openRecords(join(root, '_records'))).listRuns()),
     compare: await readFile(join(dir, 'compare', 'index.json'), 'utf8').catch(() => ''),
   }
 }
@@ -146,7 +148,8 @@ async function testOutputNames() {
     assert.equal(await readFile(join(run.output, `${token}_复诊.txt`), 'utf8'), '复诊，无不适。\n')
     const { json, md, index, compare } = await report(root, 'dir')
     for (const [where, text] of [['report.json', JSON.stringify(json)], ['report.md', md], ['index.json', index], ['compare', compare]]) assertAbsent(text, ['阿依古丽', 'Aliya'], where)
-    const calls = await readFile(join(root, '_records', 'runs', 'dir', 'calls.json'), 'utf8')
+    const calls = JSON.stringify(await (await openRecords(join(root, '_records'))).getCalls('dir'))
+    assert.ok(calls.length > 2, 'call log recorded')
     assertAbsent(calls, ['阿依古丽', 'Aliya'], 'calls.json')
     const map = JSON.parse(await readFile(join(root, '_records', 'runs', 'dir', 'path-map.json'), 'utf8'))
     assert.ok(map.files.some((entry) => entry.original === '阿依古丽_复诊.txt'))

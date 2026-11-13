@@ -214,17 +214,18 @@ byte for byte: never decoded, modified, or sent to a model.
   note.txt                   # result of a single-file input
   _records/
     vault.json               # original <-> pseudonym, mode 0600
-    index.json               # recent batches
+    records.sqlite           # records database (SQLite, mode 0600, holds originals, as sensitive as the vault), shared by batches, keyed by batch id:
+                             #   runs batch list; review_decisions / review_log review decisions and every change;
+                             #   model_calls model-call log (time, file, stage, duration, tokens, outcome; no prompts or replies);
+                             #   cross_check cross-check detail (each blind-review finding, its outcome and both models' reasons);
+                             #   image_checks image-check results; manual_edits reviewer edits;
+                             #   run_docs improvement advice and the resume data of an unfinished batch
     runs/<runId>/
       report.md
       report.json
       path-map.json          # original <-> new path, only when a path was renamed; mode 0600, as sensitive as the vault
-      advice.json            # improvement suggestions (allow-list candidates hold original values; mode 0600), shown in the Improvements panel
-      calls.json             # model-call log: time, file, stage, duration, tokens, outcome (no prompts or replies)
       model-cache.jsonl      # model replies of an unfinished batch, replayed by Resume; quotes originals, mode 0600, deleted once a batch finishes
-      resume.json            # original input path of an unfinished batch, for Resume (mode 0600)
       review-items.json      # review items with original context (holds originals, mode 0600)
-      cross-check.json       # cross-check detail: each blind-review finding, its outcome and both models' reasons (holds originals, mode 0600)
       compare/               # per-file comparison: changed segments, original and result (holds originals, mode 0600)
       review/                # anonymized copies of files that need review, taken out of zips too (x.zip becomes x (zip)/)
       output/                # staging while running; moved to the output root when the batch finishes. Partial results of a cancelled/failed batch stay here
@@ -234,6 +235,15 @@ A result appears in the output root only once its batch has finished
 (including Needs review), so everything there is complete. `vault.json`,
 `index.json`, and `runs/` left in the output root by 0.7 and earlier move into
 `_records` on the next run; the vault keeps working and pseudonyms stay the same.
+
+The records database uses the runtime's built-in `node:sqlite` (available in the
+Node bundled with DSH). `_records/index.json` and the `calls.json`,
+`review-decisions.json`, `cross-check.json`, `image-checks.json`,
+`manual-edits.json`, `advice.json` and `resume.json` files under `runs/<runId>/`
+written by 0.10 and earlier are imported the first time the database is opened;
+the old files are left in place and no longer written. Deleting a batch deletes
+its rows; the database runs with `secure_delete`, so deleted content does not
+linger in the file. Without `node:sqlite` the plugin keeps writing those JSON files.
 
 `vault.json` is the re-identification key. Keep it separate from the output and
 protect it accordingly. The report deliberately contains no original values.

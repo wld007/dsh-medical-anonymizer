@@ -12,10 +12,13 @@ import { runBatch, echoesPseudonym, parseServerMetrics, createConcurrencyTuner }
 import { createLlm } from '../lib/llm.js'
 import { createService } from '../lib/service.js'
 import { Vault } from '../lib/pseudonym.js'
+import { openRecords, RECORDS_FILE } from '../lib/records.js'
 import { outDirOf, outJoin } from './outputs.mjs'
 import { snapshotTree } from './snapshot.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
+/** Records store of an output root (records.sqlite). */
+const recordsAt = (root) => openRecords(join(root, '_records'))
 const fixtures = join(here, 'fixtures', 'records')
 const tmp = join(here, '.tmp')
 const outRoot = join(tmp, 'out')
@@ -672,13 +675,15 @@ async function main() {
     assert.equal(laySingle.output, join(layoutRoot, 'note1.txt'))
     assert.deepEqual((await readdir(layoutRoot)).sort(), ['_records', 'note1.txt', 'ward_A', 'ward_A (2)'])
     assert.deepEqual(await readdir(join(layoutRoot, 'ward_A')), ['note1.txt'])
-    assert.deepEqual((await readdir(join(layoutRoot, '_records'))).sort(), ['index.json', 'runs', 'vault.json'])
+    // index.json moved in from 0.7 stays where it is once imported into the records.
+    assert.deepEqual((await readdir(join(layoutRoot, '_records'))).filter((name) => !/-(wal|shm)$/.test(name)).sort(), ['index.json', RECORDS_FILE, 'runs', 'vault.json'])
+    assert.equal((await stat(join(layoutRoot, '_records', RECORDS_FILE))).mode & 0o777, 0o600)
     assert.deepEqual((await readdir(join(layoutRoot, '_records', 'runs', 'lay-1'))).sort(), ['compare', 'report.json', 'report.md'])
     await stat(join(layoutRoot, '_records', 'runs', 'old-1', 'report.md'))
     const moved = new Vault(join(layoutRoot, '_records', 'vault.json'))
     await moved.load()
     assert.equal(moved.token('姓名', '旧患者'), legacyToken, 'pseudonyms continue after migration')
-    const index = JSON.parse(await readFile(join(layoutRoot, '_records', 'index.json'), 'utf8'))
+    const index = await (await recordsAt(layoutRoot)).listRuns()
     assert.ok(index.some((item) => item.id === 'old-1') && index.some((item) => item.id === 'lay-2'))
     const report = await readFile(join(layoutRoot, '_records', 'runs', 'lay-1', 'report.md'), 'utf8')
     assert.ok(report.includes(join(layoutRoot, 'ward_A')), report.slice(0, 600))
@@ -692,7 +697,7 @@ async function main() {
     await stat(join(layoutRoot, 'ward_A (2)'))
     await assert.rejects(stat(join(layoutRoot, '_records', 'runs', 'lay-1')))
     await assert.rejects(stat(join(layoutRoot, '_records', 'runs', 'lay-2')))
-    const index = JSON.parse(await readFile(join(layoutRoot, '_records', 'index.json'), 'utf8'))
+    const index = await (await recordsAt(layoutRoot)).listRuns()
     assert.ok(!index.some((item) => item.id === 'lay-1' || item.id === 'lay-2'))
     assert.ok(index.some((item) => item.id === 'lay-3'))
     await stat(join(layoutRoot, '_records', 'vault.json'))
@@ -771,8 +776,8 @@ async function main() {
     const raw = await readFile(join(outRoot, '_records', 'runs', run.id, 'report.json'), 'utf8')
     assert.ok(!raw.includes('11010519491231002X'))
   })
-  await check('模型调用日志只记元数据，写入 calls.json', async () => {
-    const log = JSON.parse(await readFile(join(outRoot, '_records', 'runs', run.id, 'calls.json'), 'utf8'))
+  await check('模型调用日志只记元数据，写入记录库', async () => {
+    const log = await (await recordsAt(outRoot)).getCalls(run.id)
     assert.equal(log.length, run.totals.modelCalls)
     const stages = new Set(log.map((entry) => entry.stage))
     assert.ok(stages.has('识别·替换') && stages.has('盲审'), [...stages].join())
@@ -808,7 +813,7 @@ async function main() {
     assert.equal(stopped.output, null)
     assert.equal(stopped.resumable, true)
     await assert.rejects(stat(join(resumeRoot, 'note.txt')))
-    const saved = JSON.parse(await readFile(join(resumeRoot, '_records', 'runs', 'res-1', 'resume.json'), 'utf8'))
+    const saved = await (await recordsAt(resumeRoot)).getDoc('res-1', 'resume')
     assert.equal(saved.inputDir, join(resumeIn, 'note.txt'))
     assert.ok((await readFile(cacheFile, 'utf8')).trim().split('\n').length >= 1)
   })
@@ -965,10 +970,10 @@ async function main() {
     assert.ok(adj1.totals.blind.confirmed >= 1 && adj1.totals.blind.dismissed >= 1, JSON.stringify(adj1.totals.blind))
     assert.ok(adj2.totals.blind.disputed >= 1, JSON.stringify(adj2.totals.blind))
   })
-  await check('交叉核验明细：逐条记录去向与理由，条数与汇总一致，写入 cross-check.json（600）', async () => {
+  await check('交叉核验明细：逐条记录去向与理由，条数与汇总一致，写入记录库（600）', async () => {
     for (const [run, root] of [[adj1, 'adj-out-1'], [adj2, 'adj-out-2']]) {
-      const file = join(tmp, root, '_records', 'runs', run.id, 'cross-check.json')
-      const list = JSON.parse(await readFile(file, 'utf8'))
+      const file = join(tmp, root, '_records', RECORDS_FILE)
+      const list = await (await recordsAt(join(tmp, root))).getCrossCheck(run.id)
       assert.equal(list.length, run.totals.blind.reported)
       for (const key of ['confirmed', 'dismissed', 'disputed', 'unjudged']) {
         assert.equal(list.filter((entry) => entry.outcome === key).length, run.totals.blind[key] ?? 0, key)
@@ -977,7 +982,7 @@ async function main() {
       assert.equal((await stat(file)).mode & 0o777, 0o600)
       assert.ok(!(await readFile(join(tmp, root, '_records', 'runs', run.id, 'report.json'), 'utf8')).includes('黄芪颗粒'))
     }
-    const dismissed = JSON.parse(await readFile(join(tmp, 'adj-out-1', '_records', 'runs', adj1.id, 'cross-check.json'), 'utf8')).find((entry) => entry.outcome === 'dismissed')
+    const dismissed = (await (await recordsAt(join(tmp, 'adj-out-1'))).getCrossCheck(adj1.id)).find((entry) => entry.outcome === 'dismissed')
     assert.equal(dismissed.text, '黄芪')
     assert.match(dismissed.judge, /药材/)
   })
@@ -1002,7 +1007,7 @@ async function main() {
     }
     // Instructions are fixed text: nothing about this batch precedes the segments.
     assert.equal(new Set(prompts.verify.map((p) => p.slice(0, p.lastIndexOf('段落：')))).size, 1)
-    const log = JSON.parse(await readFile(join(tmp, 'sep-out', '_records', 'runs', 'sep-1', 'calls.json'), 'utf8'))
+    const log = await (await recordsAt(join(tmp, 'sep-out'))).getCalls('sep-1')
     assert.ok(log.filter((e) => e.stage === '盲审').every((e) => e.model === 'rev-b'))
     assert.ok(sepRun.totals.models.detect.calls > 0 && sepRun.totals.models.verify.calls > 0, JSON.stringify(sepRun.totals.models))
     assert.ok(log.filter((e) => e.stage === '识别·替换').every((e) => !e.model))
@@ -1307,7 +1312,7 @@ async function main() {
   await check('输出格式不符（如 {}）记为失败、记录重试，未识别的段落转人工复核', async () => {
     assert.equal(shapeRun.status, 'review')
     assert.ok(shapeRun.files[0].issues.some((issue) => issue.code === 'model-unchecked' && issue.severity === 'error'), JSON.stringify(shapeRun.files[0].issues))
-    const log = JSON.parse(await readFile(join(tmp, 'shape-out', '_records', 'runs', 'shape-1', 'calls.json'), 'utf8'))
+    const log = await (await recordsAt(join(tmp, 'shape-out'))).getCalls('shape-1')
     const bad = log.filter((entry) => entry.result === 'bad-shape')
     assert.ok(bad.length >= 1 && bad.every((entry) => entry.attempts === 2), JSON.stringify(log))
     assert.ok(shapeRun.totals.models.detect.fails['bad-shape'] >= 1)
