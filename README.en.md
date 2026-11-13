@@ -116,7 +116,7 @@ zip archives, file names, configuration, formats and limits, troubleshooting. Se
 
 ```bash
 npm test                      # deterministic mock model, no network or real data
-node scripts/build.mjs 0.10.1  # build a versioned dist/ for a local profile
+node scripts/build.mjs 0.11.0  # build a versioned dist/ for a local profile
 ```
 
 ## License

@@ -3,9 +3,9 @@
 在一份带标注的合成病历语料上，比较「规则」「单模型」与插件的三层架构（识别模型 + 规则替换 + 核验模型）。
 
 ```bash
-node eval/bench/gen.mjs eval/bench/.work                    # 生成语料与标注（固定种子）
-node eval/bench/run.mjs eval/bench/.work rules model rules+model full full-same
-node eval/bench/score.mjs eval/bench/.work rules model rules+model full full-same
+node eval/bench/gen.mjs eval/bench/.tmp                    # 生成语料与标注（固定种子）
+node eval/bench/run.mjs eval/bench/.tmp rules model rules+model full full-same
+node eval/bench/score.mjs eval/bench/.tmp rules model rules+model full full-same
 ```
 
 模型端点用环境变量 `DETECT_URL` / `DETECT_MODEL` / `VERIFY_URL` / `VERIFY_MODEL` 指定，默认是本机配置的 qwen3.6-35b-a3b 和 gemma-4-26b-a4b-it。配置名后加 `@2`（如 `full@2`）表示重复跑一次，结果另存。
