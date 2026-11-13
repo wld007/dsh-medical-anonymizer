@@ -88,9 +88,13 @@ Used in development and testing: `qwen3.6-35b-a3b` (detection) and `gemma-4-26b-
 <output root>/                # default: _medical-anonymizer next to the input
   <input name>/               # deliverable: same structure as the input, take it as a whole
   _records/
-    vault.json                # original ↔ pseudonym (optionally encrypted); keep it safe
-    runs/<batch>/report.md    # report, plus comparison, review, and model-call records
+    vault.sqlite              # vault: original ↔ pseudonym (with a passphrase each original is encrypted); keep it safe
+    records.sqlite            # records: batches, review list and decisions, comparison, model calls, resume data
+    runs/<batch>/report.md    # report (report.json is an export too)
 ```
+
+A running batch records each file as it finishes. A batch that was cancelled, failed, or cut off (app quit,
+plugin reload) can be resumed; finished files whose source is unchanged are taken over as they are.
 
 Sources are read-only and never modified. While review items are open the deliverable is withheld; it moves to the
 output root once they are decided.

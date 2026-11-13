@@ -199,6 +199,154 @@ if (hasSqlite) {
     assert.equal(await records.getRun('svc-1'), null)
   })
   await closeRecords()
+
+  // A batch writes its record and per-file results as it goes; a resume
+  // takes over finished files whose source is unchanged.
+  const ckIn = join(tmp, 'ck-in')
+  await mkdir(ckIn, { recursive: true })
+  const notes = {
+    'a.txt': '姓名：张三\n联系电话：13800138000\n',
+    'b.txt': '患者李四，身份证号 11010519491231002X，复诊。\n',
+    'c.txt': '联系人王五，电话 13900139000。\n',
+  }
+  for (const [name, body] of Object.entries(notes)) await writeFile(join(ckIn, name), body)
+  // Stops right after the first file is done (one file at a time).
+  const stopAfterFirst = async (root, runId) => {
+    const controller = new AbortController()
+    const run = await runBatch({
+      inputDir: ckIn, outputRoot: root, signal: controller.signal,
+      options: { runId, concurrency: 1 },
+      onEvent: ({ phase }) => { if (phase === 'file-done') controller.abort() },
+    })
+    return run
+  }
+  const ckRoot = join(tmp, 'ck-out')
+  const first = await stopAfterFirst(ckRoot, 'ck-1')
+  const ckStore = await openRecords(join(ckRoot, '_records'))
+  const done = await ckStore.getFileResults('ck-1')
+  await check('批次运行中逐个记下完成的文件；取消后续跑参数和这些结果都保留', async () => {
+    assert.equal(first.status, 'cancelled')
+    // Rule-only files are quick: those already started finish before the stop.
+    assert.ok(done.size >= 1, `done ${done.size}`)
+    assert.equal((await ckStore.getRun('ck-1')).status, 'cancelled')
+    assert.equal((await ckStore.getRunDetail('ck-1')).status, 'cancelled')
+    assert.equal(await ckStore.getDoc('ck-1', 'live'), null, 'live state dropped at the end')
+  })
+  const resumed = await runBatch({ inputDir: ckIn, outputRoot: ckRoot, options: { runId: 'ck-2', resumeFrom: 'ck-1' } })
+  // A full run on the same root (same vault, same pseudonyms) to compare with.
+  const fresh = await runBatch({ inputDir: ckIn, outputRoot: ckRoot, options: { runId: 'ck-0' } })
+  await check('续跑：已完成且源文件未变的文件直接沿用，结果与完整运行一致；完成后逐文件结果删除', async () => {
+    assert.equal(resumed.status, 'completed')
+    assert.equal(resumed.totals.reusedFiles, done.size)
+    assert.equal(resumed.totals.files, 3)
+    assert.equal(resumed.totals.entities, fresh.totals.entities)
+    for (const name of Object.keys(notes)) {
+      assert.equal(await readFile(join(resumed.output, name), 'utf8'), await readFile(join(fresh.output, name), 'utf8'), name)
+    }
+    assert.equal((await ckStore.getFileResults('ck-2')).size, 0)
+    assert.match(await readFile(join(ckRoot, '_records', 'runs', 'ck-2', 'report.md'), 'utf8'), /续跑沿用：\d+ 个文件/)
+  })
+
+  const changedRoot = join(tmp, 'ck-changed')
+  await stopAfterFirst(changedRoot, 'ck-3')
+  const changedStore = await openRecords(join(changedRoot, '_records'))
+  const doneRel = [...(await changedStore.getFileResults('ck-3')).keys()]
+  const original = await readFile(join(ckIn, doneRel[0]), 'utf8')
+  await writeFile(join(ckIn, doneRel[0]), `${original}补记：联系人赵六。\n`)
+  const afterChange = await runBatch({ inputDir: ckIn, outputRoot: changedRoot, options: { runId: 'ck-4', resumeFrom: 'ck-3' } })
+  await writeFile(join(ckIn, doneRel[0]), original)
+  await check('续跑：源文件改过的不沿用，重新处理', async () => {
+    assert.equal(afterChange.status, 'completed')
+    assert.equal(afterChange.totals.reusedFiles ?? 0, doneRel.length - 1)
+    assert.match(await readFile(join(afterChange.output, doneRel[0]), 'utf8'), /补记/)
+  })
+
+  // A batch cut off without ending (crash, app quit): listed as running with
+  // an old heartbeat. The service shows it as interrupted and can resume it.
+  const cutRoot = join(tmp, 'ck-cut')
+  await stopAfterFirst(cutRoot, 'ck-5')
+  const cutStore = await openRecords(join(cutRoot, '_records'))
+  const cutDone = (await cutStore.getFileResults('ck-5')).size
+  const longAgo = new Date(Date.now() - 5 * 60_000).toISOString()
+  await cutStore.putRun({ ...(await cutStore.getRun('ck-5')), status: 'running', heartbeatAt: longAgo, finishedAt: null })
+  await cutStore.putDoc('ck-5', 'live', { id: 'ck-5', status: 'running', startedAt: longAgo, inputDir: ckIn, totals: { files: cutDone }, config: { model: '' }, warnings: [] })
+  await cutStore.putDoc('ck-5', 'resume', { inputDir: ckIn, outputRoot: cutRoot, model: '' })
+  const cutService = createService({ config: { model: '', outputRoot: cutRoot }, defaultDirectory: tmp })
+  await check('中断的批次：心跳过期后列为已中断、可继续处理，报告注明', async () => {
+    const listed = (await cutService.list()).runs.find((item) => item.id === 'ck-5')
+    assert.equal(listed.status, 'interrupted')
+    assert.equal(listed.resumable, true)
+    const { run } = await cutService.status('ck-5')
+    assert.equal(run.status, 'interrupted')
+    assert.match((await cutService.report('ck-5')).markdown, /已中断/)
+    assert.equal(await cutStore.getDoc('ck-5', 'live'), null)
+  })
+  await check('中断的批次继续处理：沿用已完成的文件，完成后旧批次的回复与逐文件结果删除', async () => {
+    const started = await cutService.start({ resumeFrom: 'ck-5' })
+    for (let i = 0; i < 200 && (await cutService.status(started.runId)).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 25))
+    const { run } = await cutService.status(started.runId)
+    assert.equal(run.status, 'completed')
+    assert.equal(run.totals.reusedFiles, cutDone)
+    for (let i = 0; i < 40 && (await cutStore.getFileResults('ck-5')).size; i += 1) await new Promise((r) => setTimeout(r, 25))
+    assert.equal((await cutStore.getFileResults('ck-5')).size, 0)
+    assert.equal((await cutStore.getRun('ck-5')).resumedBy, started.runId)
+  })
+  await check('仍在跳心跳的运行中批次不会被当成中断', async () => {
+    await cutStore.putRun({ id: 'live-1', status: 'running', startedAt: new Date().toISOString(), heartbeatAt: new Date().toISOString() })
+    const listed = (await cutService.list()).runs.find((item) => item.id === 'live-1')
+    assert.equal(listed.status, 'running')
+    await cutStore.deleteRun('live-1')
+  })
+
+  await check('结果比对按行读写：按文字找行、只改动到的行', async () => {
+    const store = await openRecords(join(tmp, 'cmp', '_records'))
+    await store.putCompareFile('c1', { n: 0, relPath: 'a.txt', changed: 1, total: 3 }, [
+      { id: 'L1', i: 1, field: '第 1 行', before: '张三来诊', after: '化名-A1B2C3来诊' },
+      { id: 'L2', i: 2, field: '第 2 行', before: '李四陪同', same: true },
+      { id: 'L3', i: 3, field: '第 3 行', before: '无', same: true, flagged: true },
+    ])
+    const rows = await store.getCompareRows('c1', 0, '李四')
+    assert.deepEqual(rows.map((row) => row.k), [1])
+    await store.updateCompare('c1', 0, [{ k: 1, change: { ...rows[0].change, after: '化名-D4E5F6陪同', same: undefined } }], { changed: 2 })
+    const data = await store.getCompareFile('c1', 0)
+    assert.deepEqual(data.changes[1], { id: 'L2', i: 2, field: '第 2 行', before: '李四陪同', after: '化名-D4E5F6陪同' })
+    assert.deepEqual(data.changes[2], { id: 'L3', i: 3, field: '第 3 行', before: '无', same: true, flagged: true })
+    assert.equal((await store.getCompareList('c1'))[0].changed, 2)
+  })
+
+  await check('0.10 及更早批次的复核清单、比对、报告、路径对照在第一次读取时并入', async () => {
+    const dir = join(tmp, 'lazy', '_records')
+    const runDir = join(dir, 'runs', 'z1')
+    await mkdir(join(runDir, 'compare'), { recursive: true })
+    await writeFile(join(runDir, 'report.json'), JSON.stringify({ id: 'z1', status: 'review', files: [] }))
+    await writeFile(join(runDir, 'review-items.json'), JSON.stringify([{ relPath: 'a.txt', reviewCopy: null, items: [{ id: 'a.txt#0', code: 'disputed', text: '张三' }] }]))
+    await writeFile(join(runDir, 'compare', 'index.json'), JSON.stringify([{ n: 0, relPath: 'a.txt', changed: 1, total: 1 }, { n: 1, relPath: 'big.txt', skipped: 'too-large' }]))
+    await writeFile(join(runDir, 'compare', '0.json'), JSON.stringify({ relPath: 'a.txt', all: true, changes: [{ id: 'L1', i: 1, field: '第 1 行', before: '张三', after: '化名-A1B2C3' }] }))
+    await writeFile(join(runDir, 'path-map.json'), JSON.stringify({ runId: 'z1', prefixes: [], files: [{ original: '张三.txt' }] }))
+    const store = await openRecords(dir)
+    assert.equal((await store.getRunDetail('z1')).status, 'review')
+    assert.equal((await store.getReviewItem('z1', 'a.txt#0')).item.text, '张三')
+    assert.equal((await store.getReviewFiles('z1'))[0].items.length, 1)
+    assert.equal((await store.getCompareList('z1')).length, 2)
+    assert.equal((await store.getCompareFile('z1', 0)).changes[0].after, '化名-A1B2C3')
+    assert.equal(await store.getCompareFile('z1', 1), null)
+    assert.equal((await store.getDoc('z1', 'path-map')).files[0].original, '张三.txt')
+    // Taken over: the database answers even without the files.
+    await rm(runDir, { recursive: true, force: true })
+    assert.equal((await store.getReviewFiles('z1'))[0].relPath, 'a.txt')
+    assert.equal((await store.getCompareFile('z1', 0)).changes.length, 1)
+  })
+
+  await check('图片识别进度存记录库：上次没跑完的显示为已中断', async () => {
+    const store = await openRecords(join(ckRoot, '_records'))
+    await store.putReviewFiles('ck-2', [{ relPath: 'a.txt', items: [{ id: 'a.txt#0', code: 'opaque', image: true, baseId: 'b1' }] }])
+    await store.putDoc('ck-2', 'image-job', { state: 'running', done: 1, total: 3 })
+    const svc = createService({ config: { model: '', outputRoot: ckRoot }, defaultDirectory: tmp })
+    const items = await svc.reviewItems('ck-2')
+    assert.equal(items.imageCheck.state, 'interrupted')
+    assert.equal(items.imageCheck.done, 1)
+  })
+  await closeRecords()
 }
 
 // Without node:sqlite: the old files, written as before.

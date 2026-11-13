@@ -20,6 +20,7 @@ import { runBatch } from '../lib/pipeline.js'
 import { Vault } from '../lib/pseudonym.js'
 import { apply } from '../index.js'
 import { reviewFilesOf, pathMapOf, compareTextOf, recordsOf } from './records-read.mjs'
+import { vaultOf } from './records-read.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmp = join(here, '.tmp', 'fix2-host')
@@ -197,7 +198,14 @@ function reapplyingEditor({ profileDir, defaultDirectory, config, gateEdit = nul
 }
 
 async function vaultFile(root) {
-  return JSON.parse(await readFile(join(root, '_records', 'vault.json'), 'utf8'))
+  return vaultOf(root)
+}
+
+/** Raw bytes of a vault database (and its WAL), to see what is stored in the clear. */
+async function vaultBytes(dbFile) {
+  const parts = []
+  for (const file of [dbFile, `${dbFile}-wal`]) parts.push(await readFile(file).catch(() => Buffer.alloc(0)))
+  return Buffer.concat(parts)
 }
 
 // ── #41 / #46 timeouts ────────────────────────────────────────────────────
@@ -580,19 +588,21 @@ async function testPassphrase() {
   await writeFile(join(dir, 'in', 'note.txt'), '患者姓名：张三，联系电话 13800138000。\n')
   const root = join(dir, '_medical-anonymizer')
   const vaultPath = join(root, '_records', 'vault.json')
+  const vaultDb = join(root, '_records', 'vault.sqlite')
 
   await check('#42 启用口令后，即使没有新增映射，映射库也被加密', async () => {
     const plain = createService({ config: {}, defaultDirectory: dir })
     await plain.start({ inputDir: join(dir, 'in') })
     await waitIdle(plain)
-    assert.ok(!(await readFile(vaultPath, 'utf8')).includes('aes-256-gcm'))
+    assert.ok(!(await vaultBytes(vaultDb)).includes('aes-256-gcm'))
+    assert.ok((await vaultBytes(vaultDb)).includes(Buffer.from('张三')), 'plaintext originals without a passphrase')
     const enc = createService({ config: { vaultPassphrase: 'old-secret-1' }, defaultDirectory: dir })
     const again = await enc.start({ inputDir: join(dir, 'in') })
     await waitIdle(enc)
     assert.equal((await enc.status(again.runId)).run.status, 'completed')
-    const raw = await readFile(vaultPath, 'utf8')
+    const raw = await vaultBytes(vaultDb)
     assert.ok(raw.includes('aes-256-gcm'), 'vault still plaintext')
-    assert.ok(!raw.includes('张三'))
+    assert.ok(!raw.includes(Buffer.from('张三')), 'original still readable in the vault file')
   })
 
   await check('#42 Vault 直接加载明文库再保存（无新增）也会加密', async () => {
@@ -604,7 +614,8 @@ async function testPassphrase() {
     const vault = new Vault(file, 'another-pass')
     await vault.load()
     await vault.save()
-    assert.ok((await readFile(file, 'utf8')).includes('aes-256-gcm'))
+    assert.ok((await vaultBytes(join(dir, 'unit.sqlite'))).includes('aes-256-gcm'))
+    assert.ok(!(await vaultBytes(join(dir, 'unit.sqlite'))).includes(Buffer.from('李四')))
   })
 
   await check('#42 口令不匹配时给出明确的中文提示', async () => {
@@ -629,19 +640,20 @@ async function testPassphrase() {
     await until(async () => !(await holder.current.rpc('list')).active, 15000, 'batch')
     assert.equal((await holder.current.rpc('status', { runId: next.runId })).run.status, 'completed')
 
-    // Clearing the passphrase turns the known vault back into plain JSON.
+    // Clearing the passphrase turns the known vault back into plaintext rows.
     const cleared = await holder.current.rpc('saveDefaults', { vaultPassphrase: '' })
     assert.equal(cleared.vaults?.rekeyed, 1)
-    const raw = JSON.parse(await readFile(vaultPath, 'utf8'))
-    assert.ok(Array.isArray(raw.entries) && raw.entries.some((entry) => entry.original === '张三'))
+    const raw = await vaultBytes(vaultDb)
+    assert.ok(raw.includes(Buffer.from('张三')) && !raw.includes('aes-256-gcm'))
+    assert.ok((await vaultOf(root)).entries.some((entry) => entry.original === '张三'))
     holder.current.dispose()
   })
 
   await check('#42 保存配置失败时，已重新加密的映射库恢复为原口令', async () => {
     const holder = reapplyingEditor({ profileDir, defaultDirectory: dir, config: { vaultPassphrase: '' }, fail: true })
     await assert.rejects(holder.current.rpc('saveDefaults', { vaultPassphrase: 'never-saved-3' }), /read-only/)
-    const raw = JSON.parse(await readFile(vaultPath, 'utf8'))
-    assert.ok(Array.isArray(raw.entries), 'vault should be plaintext again')
+    assert.ok(!(await vaultBytes(vaultDb)).includes('aes-256-gcm'), 'vault should be plaintext again')
+    assert.ok((await vaultOf(root)).entries.length > 0)
     holder.current.dispose()
   })
 }

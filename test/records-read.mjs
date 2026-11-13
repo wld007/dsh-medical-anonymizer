@@ -1,6 +1,7 @@
 // Test helpers: what a batch wrote to the records of an output root.
 import { join } from 'node:path'
 import { openRecords } from '../lib/records.js'
+import { Vault } from '../lib/pseudonym.js'
 
 export const recordsOf = (root) => openRecords(join(root, '_records'))
 /** Review list of a batch (was review-items.json). */
@@ -14,4 +15,9 @@ export async function compareTextOf(root, runId) {
   const parts = [JSON.stringify(list)]
   for (const entry of list) parts.push(JSON.stringify(await store.getCompareFile(runId, entry.n)))
   return parts.join('\n')
+}
+/** The vault of an output root: { salt, nextSeq, entries, path }. */
+export async function vaultOf(root, passphrase = '') {
+  const vault = await new Vault(join(root, '_records', 'vault.json'), passphrase).load()
+  return { salt: vault.salt, nextSeq: vault.nextSeq, entries: [...vault.entries.values()], path: vault.path }
 }

@@ -15,6 +15,7 @@ import {
 } from './dicom-fixtures.mjs'
 import { outDirOf, outJoin } from './outputs.mjs'
 import { snapshotTree } from './snapshot.mjs'
+import { vaultOf } from './records-read.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmp = join(here, '.tmp', 'dicom')
@@ -64,7 +65,7 @@ async function main() {
   })
 
   const run = await runBatch({ inputDir: input, outputRoot: outRoot, options: { runId: 'd1' } })
-  const vault = JSON.parse(await readFile(join(outRoot, '_records', 'vault.json'), 'utf8'))
+  const vault = await vaultOf(outRoot)
   const shiftDays = dateShiftDays(vault.salt)
 
   await check('识别 DICOM（含无扩展名、数字扩展名），跳过 DICOMDIR，大端文件失败', async () => {
@@ -206,7 +207,7 @@ async function main() {
     assert.equal(value(next.parsed, '0020000D'), value(a1.parsed, '0020000D'))
     assert.equal(value(next.parsed, '00080020'), value(a1.parsed, '00080020'))
     assert.notEqual(value(next.parsed, '00100020'), value(a1.parsed, '00100020'))
-    const vaultText = await readFile(join(outRoot, '_records', 'vault.json'), 'utf8')
+    const vaultText = JSON.stringify((await vaultOf(outRoot)).entries)
     assert.equal(vaultText.includes('P0012345'), false)
   })
 

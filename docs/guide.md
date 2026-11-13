@@ -158,41 +158,49 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
   <输入目录名> (2)/          # 同一输入再跑一次：加序号，不覆盖旧结果
   note.txt                   # 单个文件输入的交付数据
   _records/
-    vault.json               # 原值 <-> 假名，权限 0600
+    vault.sqlite             # 映射库：原值 <-> 假名，权限 0600（vault.json 是 0.10 及更早的格式）
     records.sqlite           # 记录库（SQLite，权限 0600，含原值，与映射库同样敏感），各批次共用、按批次 id 区分：
-                             #   runs 批次列表；review_decisions / review_log 复核裁定与每次改动；
+                             #   runs 批次列表（运行中的批次每 10 秒更新一次心跳）；run_detail 批次完整记录；
+                             #   review_files / review_items 复核清单与原文上下文；
+                             #   review_decisions / review_log 复核裁定与每次改动；
+                             #   compare_files / compare_changes 结果比对（每个文件逐段的原文与结果）；
                              #   model_calls 模型调用记录（时间、文件、环节、耗时、Token、结果，不含提示词和回复）；
                              #   cross_check 交叉核验明细（盲审报出的每一项、去向与两模型理由）；
                              #   image_checks 图片识别结果；manual_edits 人工修改；
-                             #   run_docs 改进建议（advice）与未完成批次的续跑参数（resume）
+                             #   run_docs 改进建议、续跑参数、路径对照（原路径 <-> 新路径）、运行中状态、图片识别进度；
+                             #   file_results / model_cache 未完成批次逐个文件的结果与模型回复，供「继续处理」沿用，批次完成后删除
     runs/<runId>/
-      report.md
+      report.md              # 报告；report.json 同为导出（记录库里的 run_detail 为准）
       report.json
-      path-map.json          # 原路径 <-> 新路径，仅在有路径被替换时生成，权限 0600，与映射库同样敏感
-      model-cache.jsonl      # 未完成批次的模型回复缓存，供「继续处理」复用；含原值，权限 0600，批次完成后删除
-      review-items.json      # 页面复核用的问题清单与原文上下文（含原值，权限 0600）
-      compare/               # 结果比对记录：每个文件改动片段的原文与结果（含原值，权限 0600）
       review/                # 待复核文件的匿名化副本（zip 里的也已取出，x.zip 显示为 x (zip)/），不用解压交付数据即可检查
-      output/                # 运行中的暂存区；批次完成后整体移到输出根目录。取消/失败时部分结果留在这里
+      output/                # 运行中的暂存区；批次完成后整体移到输出根目录。取消/失败/中断时部分结果留在这里
 ```
 
 批次完成（含「待复核」）后，交付数据才会出现在输出根目录，所以根目录里看到的都是完整结果。
 0.7 及更早版本放在输出根目录下的 `vault.json`、`index.json`、`runs/` 会在下次运行时自动移入
 `_records`，映射库照常沿用，假名保持一致。
 
-记录库用运行环境自带的 `node:sqlite`（DSH 内置的 Node 可用）。0.10 及更早版本的 `_records/index.json`
-和 `runs/<runId>/` 下的 `calls.json`、`review-decisions.json`、`cross-check.json`、`image-checks.json`、
-`manual-edits.json`、`advice.json`、`resume.json` 在第一次打开记录库时并入，原文件保留不动、此后不再写。
-删除批次时其记录行一并删除，库开启了 `secure_delete`，删掉的内容不会留在文件里。
-运行环境没有 `node:sqlite` 时仍按旧方式写这些 JSON 文件。
+**继续处理。** 批次一开始就在记录库里登记为「运行中」并写下续跑参数，运行中每处理完一个文件就记下它的结果。
+取消、失败的批次，以及应用退出、插件重新加载、进程异常结束导致中断的批次（心跳超过 1 分钟没有更新，
+在批次列表里显示为「已中断」）都可以继续处理：已完成且源文件未变、设置相同的文件直接沿用上次的结果，
+其余文件照常处理，处理到一半的文件复用已有的模型回复。报告注明沿用了多少个文件。
 
-`vault.json` 是还原身份的钥匙。请与输出分开存放并妥善保护。报告刻意不包含任何原值。
-在设置页（批次与界面 → 映射库加密）或插件配置中设置 `vaultPassphrase` 可用 AES-256-GCM 加密映射库；不设置时映射库为
-权限 0600 的明文 JSON。
+**记录库。** 用运行环境自带的 `node:sqlite`（DSH 内置的 Node 可用）。0.10 及更早版本的 `_records/index.json`
+和各批次的 `calls.json`、`review-decisions.json`、`cross-check.json`、`image-checks.json`、`manual-edits.json`、
+`advice.json`、`resume.json` 在第一次打开记录库时并入；`report.json`、`review-items.json`、`compare/`、
+`path-map.json` 在第一次读到该批次时并入。原文件保留不动、此后不再写。删除批次时其记录行一并删除，
+库开启了 `secure_delete`，删掉的内容不会留在文件里。运行环境没有 `node:sqlite` 时仍按旧方式写 JSON 文件。
+
+**映射库。** `vault.sqlite` 是还原身份的钥匙，请与输出分开存放并妥善保护。报告刻意不包含任何原值。
+每条映射一行，按原值的密钥哈希查找；保存时只写新增和撤销的行，多个批次或复核操作先后写入互不覆盖。
+在设置页（批次与界面 → 映射库加密）或插件配置中设置 `vaultPassphrase` 后，每条原值用 AES-256-GCM 单独加密
+（密钥由口令经 scrypt 派生），库文件里读不到原值；更换或清除口令时全部行重新加密或恢复明文。
+不设置时原值以明文保存，文件权限 0600。0.10 及更早的 `vault.json` 在第一次使用时并入（加密的需要原口令），
+原文件保留不动，供旧版本读取；确认无误后可以自行删除。
 
 未显式指定也未配置 `outputRoot` 时，输出写到输入目录**旁边**的
 `_medical-anonymizer` 文件夹（访达里可见），因此相邻的批次（例如每位患者一个文件夹）共享同一个映射库，
-假名保持一致。以后对上级目录做匿名化时，名为 `_medical-anonymizer` 或含 `_records/vault.json` 的文件夹
+假名保持一致。以后对上级目录做匿名化时，名为 `_medical-anonymizer` 或含 `_records/vault.sqlite`、`vault.json`、`records.sqlite` 的文件夹
 会自动跳过，映射库不会被当作病历读入。0.7 及更早版本使用隐藏目录 `.medical-anonymizer`，
 下次运行时如果旁边还没有 `_medical-anonymizer`，会把它改名沿用。输出根不能与输入目录相同。如果放在输入目录内部，它会被排除在扫描之外，
 映射库和之前的输出不会被当作病历重新读入。
@@ -238,7 +246,7 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
 - `visits/mzh_3444733_check.json` → `visits/mzh_就诊-XXXXXX_check.json`
 
 分类目录（住院、门诊、检验……）、年月目录、表名（`p_doc_gehr_*_rcd`）、院区代码（`h5650`）
-和序号保持不变。原路径与新路径的对照写入 `_records/runs/<runId>/path-map.json`（权限 0600），
+和序号保持不变。原路径与新路径的对照写入记录库 `_records/records.sqlite`（权限 0600），
 报告和批次列表中只显示替换后的路径。
 
 ## 配置
@@ -289,4 +297,4 @@ Agent 工具不能选择模型端点、模型、API Key 或思考模式：这些
 - **结构化文件中没有发现标识符。** 检查其字段名是否在 `HEADER_HINTS` 中；为你的数据结构
   添加模式。
 - **设置页不见了。** 确认 profile 使用 DSH `>= 0.2.1`、插件包已启用，且安装后已刷新页面。
-- **`vault.json` 无法读取。** 它是用 `vaultPassphrase` 加密的；配置相同的口令即可读取。
+- **映射库无法读取。** 它是用 `vaultPassphrase` 加密的；配置相同的口令即可读取。

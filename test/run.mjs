@@ -13,6 +13,7 @@ import { createLlm } from '../lib/llm.js'
 import { createService } from '../lib/service.js'
 import { Vault } from '../lib/pseudonym.js'
 import { openRecords, RECORDS_FILE } from '../lib/records.js'
+import { vaultOf } from './records-read.mjs'
 import { outDirOf, outJoin } from './outputs.mjs'
 import { snapshotTree } from './snapshot.mjs'
 
@@ -104,7 +105,7 @@ async function main() {
   const note2 = await readFile(join(outDir, 'note2.md'), 'utf8').catch(() => '')
   const csvOut = await readFile(join(outDir, 'patients.csv'), 'utf8').catch(() => '')
   const jsonOut = await readFile(join(outDir, 'visits.json'), 'utf8').catch(() => '')
-  const vault = JSON.parse(await readFile(join(outRoot, '_records', 'vault.json'), 'utf8'))
+  const vault = await vaultOf(outRoot)
 
   await check('批次状态为完成', () => assert.equal(run.status, 'completed'))
   await check('输出文件齐全', () => {
@@ -154,8 +155,9 @@ async function main() {
     assert.ok(!JSON.stringify(rows).includes('11010519491231002X'))
   })
   await check('映射库存在且权限为 600', async () => {
-    const info = await stat(join(outRoot, '_records', 'vault.json'))
+    const info = await stat(join(outRoot, '_records', 'vault.sqlite'))
     assert.equal(info.mode & 0o777, 0o600)
+    await assert.rejects(stat(join(outRoot, '_records', 'vault.json')), 'no vault.json written any more')
     assert.ok(vault.entries.length >= 10)
   })
   await check('报告包含汇总与文件明细', async () => {
@@ -414,7 +416,7 @@ async function main() {
     assert.equal(allowOut[0].PTT_NM, '张三')
     assert.equal(allowOut[0].ID_CRD_NO, '11010519491231002X')
     assert.match(allowOut[0].ADMN_DCT_NM, /^医生-/)
-    const vaultAfter = JSON.parse(await readFile(join(tmp, 'export-out', '_records', 'vault.json'), 'utf8'))
+    const vaultAfter = await vaultOf(join(tmp, 'export-out'))
     assert.ok(!vaultAfter.entries.some((entry) => entry.original === '张三'), 'allowlisted value still in vault')
     assert.ok(allowRun.warnings.some((warning) => /移除 1 条/.test(warning)), JSON.stringify(allowRun.warnings))
   })
@@ -516,7 +518,7 @@ async function main() {
     assert.match(policyOut, /北京协和医院/)
     assert.ok(!policyOut.includes('张三') && !policyOut.includes('13800138000'))
     assert.equal(policyRun.status, 'completed')
-    const vaultRaw = JSON.parse(await readFile(join(tmp, 'policy-out', '_records', 'vault.json'), 'utf8'))
+    const vaultRaw = await vaultOf(join(tmp, 'policy-out'))
     assert.equal(vaultRaw.entries.length, 0, 'masks and labels must not enter the vault')
     const report = await readFile(join(tmp, 'policy-out', '_records', 'runs', 'policy', 'report.md'), 'utf8')
     assert.match(report, /按配置保留未处理的标识符：医院/)
@@ -662,7 +664,7 @@ async function main() {
   await mkdir(join(layoutRoot, 'runs', 'old-1'), { recursive: true })
   await writeFile(join(layoutRoot, 'runs', 'old-1', 'report.md'), '# old')
   await writeFile(join(layoutRoot, 'index.json'), JSON.stringify([{ id: 'old-1', startedAt: '2026-01-01T00:00:00Z' }]))
-  const legacyVault = new Vault(join(layoutRoot, 'vault.json'))
+  const legacyVault = new Vault(join(layoutRoot, 'vault.json'), '', { format: 'json' })
   await legacyVault.load()
   const legacyToken = legacyVault.token('姓名', '旧患者')
   await legacyVault.save()
@@ -676,7 +678,7 @@ async function main() {
     assert.deepEqual((await readdir(layoutRoot)).sort(), ['_records', 'note1.txt', 'ward_A', 'ward_A (2)'])
     assert.deepEqual(await readdir(join(layoutRoot, 'ward_A')), ['note1.txt'])
     // index.json moved in from 0.7 stays where it is once imported into the records.
-    assert.deepEqual((await readdir(join(layoutRoot, '_records'))).filter((name) => !/-(wal|shm)$/.test(name)).sort(), ['index.json', RECORDS_FILE, 'runs', 'vault.json'])
+    assert.deepEqual((await readdir(join(layoutRoot, '_records'))).filter((name) => !/-(wal|shm)$/.test(name)).sort(), ['index.json', RECORDS_FILE, 'runs', 'vault.json', 'vault.sqlite'])
     assert.equal((await stat(join(layoutRoot, '_records', RECORDS_FILE))).mode & 0o777, 0o600)
     // Comparison, review list and the rest are in the records; only the report exports are files.
     assert.deepEqual((await readdir(join(layoutRoot, '_records', 'runs', 'lay-1'))).sort(), ['report.json', 'report.md'])
@@ -701,7 +703,7 @@ async function main() {
     const index = await (await recordsAt(layoutRoot)).listRuns()
     assert.ok(!index.some((item) => item.id === 'lay-1' || item.id === 'lay-2'))
     assert.ok(index.some((item) => item.id === 'lay-3'))
-    await stat(join(layoutRoot, '_records', 'vault.json'))
+    await stat(join(layoutRoot, '_records', 'vault.sqlite'))
     await assert.rejects(delService.deleteRun('../../etc'), /批次 id 不正确/)
   })
 
@@ -710,7 +712,7 @@ async function main() {
     assert.ok(cleared.removed >= 1 && cleared.failed.length === 0, JSON.stringify(cleared))
     assert.equal((await delService.list()).runs.length, 0)
     await stat(join(layoutRoot, 'note1.txt'))
-    await stat(join(layoutRoot, '_records', 'vault.json'))
+    await stat(join(layoutRoot, '_records', 'vault.sqlite'))
   })
 
   const cancelRoot = join(tmp, 'layout', 'cancel-out')
@@ -729,7 +731,7 @@ async function main() {
   await mkdir(join(dflt, 'p1'), { recursive: true })
   await writeFile(join(dflt, 'p1', 'note1.txt'), await readFile(join(fixtures, 'note1.txt')))
   await mkdir(join(dflt, '.medical-anonymizer'), { recursive: true })
-  const oldVault = new Vault(join(dflt, '.medical-anonymizer', 'vault.json'))
+  const oldVault = new Vault(join(dflt, '.medical-anonymizer', 'vault.json'), '', { format: 'json' })
   await oldVault.load()
   const oldToken = oldVault.token('姓名', '旧患者')
   await oldVault.save()

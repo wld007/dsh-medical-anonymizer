@@ -17,6 +17,7 @@ import { randomBytes } from 'node:crypto'
 import { el, part10, pixelBytes, CT } from './dicom-fixtures.mjs'
 import { outDirOf, outJoin } from './outputs.mjs'
 import { reviewFilesOf, pathMapOf, compareTextOf, recordsOf } from './records-read.mjs'
+import { vaultOf } from './records-read.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const tmp = join(here, '.tmp', 'fix-misc')
@@ -213,7 +214,7 @@ async function testDicomNames() {
   const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'dicom-names' } })
   const out = await outDirOf(root, 'dicom-names')
   const paths = await walk(out)
-  const salt = JSON.parse(await readFile(join(root, '_records', 'vault.json'), 'utf8')).salt
+  const salt = (await vaultOf(root)).salt
   const header = async (rel) => parseDicomBuffer(await readFile(join(out, rel)), { dict: dictVr })
   const value = (parsed, tag) => decodeAscii(parsed.dataset.find((item) => item.tag === tag)?.value)
 
@@ -318,7 +319,7 @@ async function testDicomNamesBreak() {
   const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'dicom-names2' } })
   const out = await outDirOf(root, 'dicom-names2')
   const paths = await walk(out)
-  const salt = JSON.parse(await readFile(join(root, '_records', 'vault.json'), 'utf8')).salt
+  const salt = (await vaultOf(root)).salt
   const secrets = [
     STUDY_E, '604688119', 'ZHAO', 'LIU', 'QIAN', 'SUN', 'ZHOU', 'Y1234567', 'CHEN', 'MING', 'HUANG', 'FEI',
     'ZHENG', 'XIAOMING', 'ACC5566778', '欧阳', '娜娜', '李建国',
@@ -456,7 +457,7 @@ async function testStartRace() {
   })
 
   await check('#11 映射库保留所有批次的映射（无并发覆盖）', async () => {
-    const vault = JSON.parse(await readFile(join(base, '_medical-anonymizer', '_records', 'vault.json'), 'utf8'))
+    const vault = await vaultOf(join(base, '_medical-anonymizer'))
     const originals = new Set(vault.entries.map((entry) => entry.original))
     for (const value of ['张一', '张二', '张五', '13800138001', '13800138002', '13800138005']) {
       assert.ok(originals.has(value), `vault lost ${value}`)

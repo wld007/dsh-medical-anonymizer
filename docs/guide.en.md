@@ -213,22 +213,22 @@ byte for byte: never decoded, modified, or sent to a model.
   <input folder name> (2)/   # the same input run again: numbered, earlier results are never overwritten
   note.txt                   # result of a single-file input
   _records/
-    vault.json               # original <-> pseudonym, mode 0600
+    vault.sqlite             # vault: original <-> pseudonym, mode 0600 (vault.json is the format of 0.10 and earlier)
     records.sqlite           # records database (SQLite, mode 0600, holds originals, as sensitive as the vault), shared by batches, keyed by batch id:
-                             #   runs batch list; review_decisions / review_log review decisions and every change;
+                             #   runs batch list (a running batch updates its heartbeat every 10 s); run_detail full batch record;
+                             #   review_files / review_items review list with original context;
+                             #   review_decisions / review_log review decisions and every change;
+                             #   compare_files / compare_changes comparison (original and result, segment by segment);
                              #   model_calls model-call log (time, file, stage, duration, tokens, outcome; no prompts or replies);
                              #   cross_check cross-check detail (each blind-review finding, its outcome and both models' reasons);
                              #   image_checks image-check results; manual_edits reviewer edits;
-                             #   run_docs improvement advice and the resume data of an unfinished batch
+                             #   run_docs advice, resume data, path map (original <-> new path), live state, image-check progress;
+                             #   file_results / model_cache per-file results and model replies of an unfinished batch, for Resume; deleted once it finishes
     runs/<runId>/
-      report.md
+      report.md              # report; report.json is an export too (the records' run_detail is the source)
       report.json
-      path-map.json          # original <-> new path, only when a path was renamed; mode 0600, as sensitive as the vault
-      model-cache.jsonl      # model replies of an unfinished batch, replayed by Resume; quotes originals, mode 0600, deleted once a batch finishes
-      review-items.json      # review items with original context (holds originals, mode 0600)
-      compare/               # per-file comparison: changed segments, original and result (holds originals, mode 0600)
       review/                # anonymized copies of files that need review, taken out of zips too (x.zip becomes x (zip)/)
-      output/                # staging while running; moved to the output root when the batch finishes. Partial results of a cancelled/failed batch stay here
+      output/                # staging while running; moved to the output root when the batch finishes. Partial results of a cancelled/failed/interrupted batch stay here
 ```
 
 A result appears in the output root only once its batch has finished
@@ -236,25 +236,41 @@ A result appears in the output root only once its batch has finished
 `index.json`, and `runs/` left in the output root by 0.7 and earlier move into
 `_records` on the next run; the vault keeps working and pseudonyms stay the same.
 
-The records database uses the runtime's built-in `node:sqlite` (available in the
-Node bundled with DSH). `_records/index.json` and the `calls.json`,
-`review-decisions.json`, `cross-check.json`, `image-checks.json`,
-`manual-edits.json`, `advice.json` and `resume.json` files under `runs/<runId>/`
-written by 0.10 and earlier are imported the first time the database is opened;
-the old files are left in place and no longer written. Deleting a batch deletes
-its rows; the database runs with `secure_delete`, so deleted content does not
-linger in the file. Without `node:sqlite` the plugin keeps writing those JSON files.
+**Resume.** A batch is listed as running from its start, with its resume data,
+and records each file's result as it finishes. Cancelled and failed batches, and
+batches cut off by an app quit, a plugin reload or a crash (no heartbeat for over
+a minute; listed as Interrupted), can be resumed: finished files whose source and
+settings are unchanged are taken over as they are, the rest are processed, and a
+file that was halfway replays the model replies it already got. The report says
+how many files were taken over.
 
-`vault.json` is the re-identification key. Keep it separate from the output and
-protect it accordingly. The report deliberately contains no original values.
-Set `vaultPassphrase` on the settings page (Batches & UI → Vault encryption) or in the plugin config to encrypt the vault with
-AES-256-GCM; without it the vault is plaintext JSON with mode 0600.
+**Records database.** Uses the runtime's built-in `node:sqlite` (available in the
+Node bundled with DSH). `_records/index.json` and each batch's `calls.json`,
+`review-decisions.json`, `cross-check.json`, `image-checks.json`,
+`manual-edits.json`, `advice.json` and `resume.json` written by 0.10 and earlier
+are imported the first time the database is opened; `report.json`,
+`review-items.json`, `compare/` and `path-map.json` the first time that batch is
+read. The old files are left in place and no longer written. Deleting a batch
+deletes its rows; the database runs with `secure_delete`, so deleted content does
+not linger in the file. Without `node:sqlite` the plugin keeps writing JSON files.
+
+**Vault.** `vault.sqlite` is the re-identification key. Keep it separate from the
+output and protect it accordingly. The report deliberately contains no original
+values. One row per mapping, looked up by a keyed hash of the original; a save
+writes only added and withdrawn rows, so batches and review edits writing one
+after another never overwrite each other. Set `vaultPassphrase` on the settings
+page (Batches & UI → Vault encryption) or in the plugin config to encrypt each
+original on its own with AES-256-GCM (key derived from the passphrase with
+scrypt); a changed or cleared passphrase re-encrypts or decrypts every row.
+Without it originals are stored in the clear, mode 0600. A `vault.json` of 0.10
+and earlier is imported on first use (an encrypted one needs its passphrase) and
+left as it was for older versions; delete it yourself once you are satisfied.
 
 Without an explicit or configured `outputRoot`, output goes to a
 `_medical-anonymizer` folder (visible in Finder) **beside** the input directory, so sibling
 batches (for example one folder per patient) share one vault and keep
 consistent pseudonyms. When a parent directory is anonymized later, folders
-named `_medical-anonymizer` or holding `_records/vault.json` are skipped, so the
+named `_medical-anonymizer` or holding `_records/vault.sqlite`, `vault.json` or `records.sqlite` are skipped, so the
 vault is never read in as records. 0.7 and earlier used the hidden
 `.medical-anonymizer`; if no `_medical-anonymizer` exists yet, it is renamed and reused. The output root may not equal the input directory. If
 you place it inside the input directory, it is excluded from scanning, so the
@@ -322,7 +338,7 @@ in the text:
 Category folders (inpatient, outpatient, lab, …), year/month folders, table
 names (`p_doc_gehr_*_rcd`), campus codes (`h5650`), and sequence numbers are
 kept. The mapping from original to new paths is written to
-`_records/runs/<runId>/path-map.json` (mode 0600); reports and the batch list show only
+the records database `_records/records.sqlite` (mode 0600); reports and the batch list show only
 the replaced paths.
 
 ## Configuration
@@ -384,5 +400,5 @@ layer:
   names are in `HEADER_HINTS`; add a pattern for your schema.
 - **The settings page is missing.** Confirm the profile is on DSH `>= 0.2.1`,
   the bundle is enabled, and the page was reloaded after installation.
-- **`vault.json` cannot be read.** It was encrypted with a `vaultPassphrase`;
+- **The vault cannot be read.** It was encrypted with a `vaultPassphrase`;
   configure the same passphrase to read it.
