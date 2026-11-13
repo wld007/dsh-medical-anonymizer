@@ -842,6 +842,7 @@ window.__ModuleLoader__.load({
       'ws.rv.code.residual': '规则复扫残留',
       'ws.rv.code.disputed': '核验与识别意见不一致',
       'ws.rv.code.model-residual': '模型复核残留',
+      'ws.rv.code.implausible-agreed': '两模型均报出但格式不符',
       'ws.rv.code.model-unlocated': '盲审报出但无法定位',
       'ws.rv.code.batch-recheck': '批次复扫未完成',
       'ws.rv.code.not-removed': '原值未清除',
@@ -1794,6 +1795,7 @@ window.__ModuleLoader__.load({
       'ws.rv.code.residual': 'Rule rescan residual',
       'ws.rv.code.disputed': 'Verifier and detector disagree',
       'ws.rv.code.model-residual': 'Model review residual',
+      'ws.rv.code.implausible-agreed': 'Both models reported, format check failed',
       'ws.rv.code.model-unlocated': 'Reported by the review, not located',
       'ws.rv.code.batch-recheck': 'Batch re-check incomplete',
       'ws.rv.code.not-removed': 'Original not removed',
@@ -4014,7 +4016,7 @@ window.__ModuleLoader__.load({
     const CALL_STAGES = { discover: ['字段画像', '识别·替换'], blind: ['盲审'], repair: ['复判修正'] }
     // Issue codes in plain words (step details).
     const ISSUE_ZH = {
-      opaque: '内容无法解码（图片等）', 'opaque-token': '疑似编码片段', unreadable: '无法读取', implausible: '模型报出值不像该类型',
+      opaque: '内容无法解码（图片等）', 'opaque-token': '疑似编码片段', unreadable: '无法读取', implausible: '模型报出值不像该类型', 'implausible-agreed': '两模型均报出但格式不符',
       'over-match': '替换范围过大', 'verify-dismissed': '核验判为误报', unlocated: '报出值在原文中找不到', 'model-unlocated': '模型报出值找不到',
       disputed: '识别与核验分歧', 'not-removed': '原值未清除', 'model-residual': '盲审仍报出', residual: '仍有残留', embedded: '假名嵌在长串中',
       partial: '数字被部分替换', 'key-identifier': '字段名含标识符', 'model-unchecked': '未经模型核验', structure: '结构变化', pipeline: '处理出错',
