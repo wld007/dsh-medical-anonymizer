@@ -11,7 +11,7 @@ export async function outDirOf(root, runId) {
   const run = JSON.parse(await readFile(join(root, '_records', 'runs', runId, 'report.json'), 'utf8'))
   if (run.withheld) {
     // Held for review: the finished result is in the run's staging folder.
-    const staging = join(root, '_records', 'runs', runId, 'output')
+    const staging = join(root, '_records', 'runs', runId, 'staging')
     if (run.outputKind !== 'file') return staging
     const { readdirSync } = await import('node:fs')
     return { file: join(staging, readdirSync(staging)[0]), dir: staging }

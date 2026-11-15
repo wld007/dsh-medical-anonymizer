@@ -671,12 +671,13 @@ async function main() {
   const lay1 = await runBatch({ inputDir: layoutIn, outputRoot: layoutRoot, options: { runId: 'lay-1' } })
   const lay2 = await runBatch({ inputDir: layoutIn, outputRoot: layoutRoot, options: { runId: 'lay-2' } })
   const laySingle = await runBatch({ inputDir: join(layoutIn, 'note1.txt'), outputRoot: layoutRoot, options: { runId: 'lay-3' } })
-  await check('输出根目录只放成品和 _records；同名不覆盖；旧布局迁入 _records', async () => {
-    assert.equal(lay1.output, join(layoutRoot, 'ward_A'))
-    assert.equal(lay2.output, join(layoutRoot, 'ward_A (2)'))
-    assert.equal(laySingle.output, join(layoutRoot, 'note1.txt'))
-    assert.deepEqual((await readdir(layoutRoot)).sort(), ['_records', 'note1.txt', 'ward_A', 'ward_A (2)'])
-    assert.deepEqual(await readdir(join(layoutRoot, 'ward_A')), ['note1.txt'])
+  await check('输出根目录只有 output（成品）和 _records；同名不覆盖；旧布局迁入 _records', async () => {
+    assert.equal(lay1.output, join(layoutRoot, 'output', 'ward_A'))
+    assert.equal(lay2.output, join(layoutRoot, 'output', 'ward_A (2)'))
+    assert.equal(laySingle.output, join(layoutRoot, 'output', 'note1.txt'))
+    assert.deepEqual((await readdir(layoutRoot)).sort(), ['_records', 'output'])
+    assert.deepEqual((await readdir(join(layoutRoot, 'output'))).sort(), ['note1.txt', 'ward_A', 'ward_A (2)'])
+    assert.deepEqual(await readdir(join(layoutRoot, 'output', 'ward_A')), ['note1.txt'])
     // index.json moved in from 0.7 stays where it is once imported into the records.
     assert.deepEqual((await readdir(join(layoutRoot, '_records'))).filter((name) => !/-(wal|shm)$/.test(name)).sort(), ['index.json', RECORDS_FILE, 'runs', 'vault.json', 'vault.sqlite'])
     assert.equal((await stat(join(layoutRoot, '_records', RECORDS_FILE))).mode & 0o777, 0o600)
@@ -689,15 +690,15 @@ async function main() {
     const index = await (await recordsAt(layoutRoot)).listRuns()
     assert.ok(index.some((item) => item.id === 'old-1') && index.some((item) => item.id === 'lay-2'))
     const report = await readFile(join(layoutRoot, '_records', 'runs', 'lay-1', 'report.md'), 'utf8')
-    assert.ok(report.includes(join(layoutRoot, 'ward_A')), report.slice(0, 600))
+    assert.ok(report.includes(join(layoutRoot, 'output', 'ward_A')), report.slice(0, 600))
   })
 
   const delService = createService({ config: { model: '', outputRoot: layoutRoot }, defaultDirectory: tmp })
   await delService.deleteRun('lay-1', { deliverable: true })
   await delService.deleteRun('lay-2')
   await check('删除批次记录：记录与索引移除，可选删除交付数据，映射库保留', async () => {
-    await assert.rejects(stat(join(layoutRoot, 'ward_A')))
-    await stat(join(layoutRoot, 'ward_A (2)'))
+    await assert.rejects(stat(join(layoutRoot, 'output', 'ward_A')))
+    await stat(join(layoutRoot, 'output', 'ward_A (2)'))
     await assert.rejects(stat(join(layoutRoot, '_records', 'runs', 'lay-1')))
     await assert.rejects(stat(join(layoutRoot, '_records', 'runs', 'lay-2')))
     const index = await (await recordsAt(layoutRoot)).listRuns()
@@ -711,7 +712,7 @@ async function main() {
   await check('清空批次记录：其余批次的记录全部删除，交付数据与映射库保留', async () => {
     assert.ok(cleared.removed >= 1 && cleared.failed.length === 0, JSON.stringify(cleared))
     assert.equal((await delService.list()).runs.length, 0)
-    await stat(join(layoutRoot, 'note1.txt'))
+    await stat(join(layoutRoot, 'output', 'note1.txt'))
     await stat(join(layoutRoot, '_records', 'vault.sqlite'))
   })
 
@@ -744,7 +745,7 @@ async function main() {
   await check('默认输出根为 _medical-anonymizer，旧 .medical-anonymizer 改名沿用', async () => {
     assert.equal(dfltStart.outputRoot, join(dflt, '_medical-anonymizer'))
     await assert.rejects(stat(join(dflt, '.medical-anonymizer')))
-    await stat(join(dflt, '_medical-anonymizer', 'p1', 'note1.txt'))
+    await stat(join(dflt, '_medical-anonymizer', 'output', 'p1', 'note1.txt'))
     const v = new Vault(join(dflt, '_medical-anonymizer', '_records', 'vault.json'))
     await v.load()
     assert.equal(v.token('姓名', '旧患者'), oldToken)
@@ -914,10 +915,11 @@ async function main() {
   await check('多选同目录的文件和文件夹：一个批次，每项分别交付，未选的不处理', async () => {
     assert.equal(multiRun.status, 'completed')
     const root = join(multiIn, '_medical-anonymizer')
-    assert.deepEqual((await readdir(root)).sort(), ['_records', 'loose.json', 'p_a', 'p_c'])
+    assert.deepEqual((await readdir(root)).sort(), ['_records', 'output'])
+    assert.deepEqual((await readdir(join(root, 'output'))).sort(), ['loose.json', 'p_a', 'p_c'])
     assert.equal(multiRun.outputs.length, 3)
     assert.deepEqual(multiRun.files.map((f) => f.relPath).sort(), ['loose.json', 'p_a/note.txt', 'p_c/note.txt'])
-    assert.ok(!(await readFile(join(root, 'p_a', 'note.txt'), 'utf8')).includes('11010519491231002X'))
+    assert.ok(!(await readFile(join(root, 'output', 'p_a', 'note.txt'), 'utf8')).includes('11010519491231002X'))
   })
   await check('多选必须在同一目录下', async () => {
     await assert.rejects(multiService.start({ inputs: [join(multiIn, 'p_b'), join(fixtures, 'note1.txt')] }), /同一个目录/)
@@ -1141,7 +1143,7 @@ async function main() {
   await writeFile(join(encIn, 'emr.json'), JSON.stringify([{ ID: 1, DCMT_CTT: Buffer.from(htmlDoc).toString('base64') }]))
   const encRoot = join(tmp, 'enc-out')
   const encRun = await runBatch({ inputDir: join(encIn, 'emr.json'), outputRoot: encRoot, options: { runId: 'enc-1' } })
-  const staged = JSON.parse(await readFile(join(encRoot, '_records', 'runs', 'enc-1', 'output', 'emr.json'), 'utf8'))
+  const staged = JSON.parse(await readFile(join(encRoot, '_records', 'runs', 'enc-1', 'staging', 'emr.json'), 'utf8'))
   const stagedHtml = Buffer.from(staged[0].DCMT_CTT, 'base64').toString('utf8')
   await check('编码内容：base64 里的 HTML 解码后识别替换，写回仍是 base64', () => {
     assert.ok(!stagedHtml.includes('欧阳明华') && !stagedHtml.includes('11010519491231002X'), stagedHtml.slice(0, 300))
@@ -1162,8 +1164,9 @@ async function main() {
   await check('批量移除无法检查的内容后，交付数据才放到输出根目录；图片已替换为占位', async () => {
     assert.equal(bulk.completed, true)
     assert.equal(bulk.status, 'completed')
-    assert.deepEqual((await readdir(encRoot)).sort(), ['_records', 'emr.json'])
-    const delivered = JSON.parse(await readFile(join(encRoot, 'emr.json'), 'utf8'))
+    assert.deepEqual((await readdir(encRoot)).sort(), ['_records', 'output'])
+    assert.deepEqual(await readdir(join(encRoot, 'output')), ['emr.json'])
+    const delivered = JSON.parse(await readFile(join(encRoot, 'output', 'emr.json'), 'utf8'))
     const html = Buffer.from(delivered[0].DCMT_CTT, 'base64').toString('utf8')
     assert.ok(!html.includes(png) && /<img src="data:image\/png;base64,iVBOR/.test(html), html.slice(-200))
     assert.ok(!html.includes('欧阳明华'))

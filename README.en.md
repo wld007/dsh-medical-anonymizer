@@ -86,18 +86,20 @@ Used in development and testing: `qwen3.6-35b-a3b` (detection) and `gemma-4-26b-
 
 ```text
 <output root>/                # default: _medical-anonymizer next to the input
-  <input name>/               # deliverable: same structure as the input, take it as a whole
-  _records/
+  output/                     # deliverables; downstream tools read only this
+    <input name>/             # same structure as the input, take it as a whole
+  _records/                   # records: never hand these on
     vault.sqlite              # vault: original ↔ pseudonym (with a passphrase each original is encrypted); keep it safe
     records.sqlite            # records: batches, review list and decisions, comparison, model calls, resume data
     runs/<batch>/report.md    # report (report.json is an export too)
+    runs/<batch>/staging/     # held while running or under review; partial result of an unfinished batch
 ```
 
 A running batch records each file as it finishes. A batch that was cancelled, failed, or cut off (app quit,
 plugin reload) can be resumed; finished files whose source is unchanged are taken over as they are.
 
-Sources are read-only and never modified. While review items are open the deliverable is withheld; it moves to the
-output root once they are decided.
+Sources are read-only and never modified. Deliverables go to `output/` in the output root; while review items are
+open they are withheld, and move there once all are decided.
 
 ## Privacy and security
 

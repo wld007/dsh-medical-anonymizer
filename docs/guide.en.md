@@ -209,10 +209,11 @@ byte for byte: never decoded, modified, or sent to a model.
 
 ```text
 <outputRoot>/
-  <input folder name>/       # result: anonymized data only, same layout (identifiers in names replaced); take it as is
-  <input folder name> (2)/   # the same input run again: numbered, earlier results are never overwritten
-  note.txt                   # result of a single-file input
-  _records/
+  output/                    # deliverables (downstream tools read only this)
+    <input folder name>/     # anonymized data only, same layout (identifiers in names replaced); take it as is
+    <input folder name> (2)/ # the same input run again: numbered, earlier results are never overwritten
+    note.txt                 # result of a single-file input
+  _records/                  # records (hold originals; never hand these on)
     vault.sqlite             # vault: original <-> pseudonym, mode 0600 (vault.json is the format of 0.10 and earlier)
     records.sqlite           # records database (SQLite, mode 0600, holds originals, as sensitive as the vault), shared by batches, keyed by batch id:
                              #   runs batch list (a running batch updates its heartbeat every 10 s); run_detail full batch record;
@@ -228,11 +229,14 @@ byte for byte: never decoded, modified, or sent to a model.
       report.md              # report; report.json is an export too (the records' run_detail is the source)
       report.json
       review/                # anonymized copies of files that need review, taken out of zips too (x.zip becomes x (zip)/)
-      output/                # staging while running; moved to the output root when the batch finishes. Partial results of a cancelled/failed/interrupted batch stay here
+      staging/               # held while running or under review; moved to output/ once everything is decided. Partial results of a cancelled/failed/interrupted batch stay here
 ```
 
-A result appears in the output root only once its batch has finished
-(including Needs review), so everything there is complete. `vault.json`,
+A result appears in `output/` only once its batch has finished and every
+review item is decided, so everything there is complete. Up to 0.11.1
+results went directly into the output root and staging was
+`runs/<runId>/output/`; those records are no longer read: delete them and
+run again. `vault.json`,
 `index.json`, and `runs/` left in the output root by 0.7 and earlier move into
 `_records` on the next run; the vault keeps working and pseudonyms stay the same.
 

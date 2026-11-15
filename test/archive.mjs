@@ -154,7 +154,7 @@ await check('写入守卫拒绝输入目录与输出根之外', async () => {
   const guard = await createWriteGuard({ inputRoots: [input], outputRoot: outRoot })
   await assert.rejects(guard.check(join(input, 'patient_573999', 'x.json')), /拒绝写入/)
   await assert.rejects(guard.check(join(tmp, 'elsewhere.json')), /拒绝写入/)
-  await guard.check(join(outRoot, '_records', 'runs', 'x', 'output', 'a.json'))
+  await guard.check(join(outRoot, '_records', 'runs', 'x', 'staging', 'a.json'))
   await assert.rejects(createWriteGuard({ inputRoots: [input], outputRoot: input }), /不能与输入相同/)
   // Output root nested in the input (conventional hidden folder) is allowed,
   // but writing next to the input files still is not.
@@ -210,7 +210,7 @@ await check('待复核文件单独取出到 _records/runs/<批次>/review；zip 
   assert.equal(rev.output, null)
   assert.equal(rev.withheld, true)
   assert.deepEqual(await readdir(revRoot), ['_records'])
-  assert.deepEqual((await readdir(join(revRoot, '_records', 'runs', 'rev', 'output', 'pack', 'a'))).sort(), ['bad.json', 'ok.json'])
+  assert.deepEqual((await readdir(join(revRoot, '_records', 'runs', 'rev', 'staging', 'pack', 'a'))).sort(), ['bad.json', 'ok.json'])
   const report = await readFile(join(revRoot, '_records', 'runs', 'rev', 'report.md'), 'utf8')
   assert.ok(report.includes(reviewDir), report)
 })
@@ -229,8 +229,9 @@ await check('页面复核：列出残留及上下文；替换写回交付数据�
   assert.equal(result.status, 'completed')
   assert.match(result.decision.replacement, /^化名-/)
   // All items decided: the held result is released into the output root.
-  assert.deepEqual((await readdir(revRoot)).sort(), ['_records', 'pack'])
-  const bad = await readFile(join(revRoot, 'pack', 'a', 'bad.json'), 'utf8')
+  assert.deepEqual((await readdir(revRoot)).sort(), ['_records', 'output'])
+  assert.deepEqual(await readdir(join(revRoot, 'output')), ['pack'])
+  const bad = await readFile(join(revRoot, 'output', 'pack', 'a', 'bad.json'), 'utf8')
   assert.ok(!bad.includes('甲乙丙') && bad.includes(result.decision.replacement), bad)
   JSON.parse(bad)
   const cmp = await service.compareList('rev')

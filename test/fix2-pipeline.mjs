@@ -113,10 +113,11 @@ async function testOutputNames() {
     const root = join(base, 'single-out')
     const run = await runBatch({ inputDir: join(input, '阿依古丽_出院记录.txt'), outputRoot: root, options: { runId: 'single' } })
     assert.equal(run.status, 'completed')
-    const delivered = (await walk(root)).filter((rel) => !rel.startsWith('_records'))
+    assert.deepEqual((await readdir(root)).sort(), ['_records', 'output'])
+    const delivered = await walk(join(root, 'output'))
     assert.equal(delivered.length, 1, delivered.join(','))
     assert.match(delivered[0], /^化名-[0-9A-F]{6,10}_出院记录\.txt$/)
-    const content = await readFile(join(root, delivered[0]), 'utf8')
+    const content = await readFile(join(root, 'output', delivered[0]), 'utf8')
     assert.ok(content.includes(delivered[0].split('_')[0]), `${content} / ${delivered[0]}`)
     const { json, md, index, compare } = await report(root, 'single')
     for (const [where, text] of [['report.json', JSON.stringify(json)], ['report.md', md], ['index.json', index], ['compare', compare]]) assertAbsent(text, ['阿依古丽'], where)
@@ -217,7 +218,7 @@ async function testLastChunk() {
     await writeFile(join(input, 'b.txt'), '陪同人员：家属王建国\n')
     const root = join(base, 'two', 'out')
     const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'two', maxFiles: 1, llm: slowFinder(500) } })
-    const out = join(root, '_records', 'runs', 'two', 'output')
+    const out = join(root, '_records', 'runs', 'two', 'staging')
     const where = run.output ?? out
     const b = await readFile(join(where, 'b.txt'), 'utf8')
     assert.ok(!b.includes('王建国'), b)
@@ -235,7 +236,7 @@ async function testLastChunk() {
     const root = join(base, 'four', 'out')
     const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'four', maxFiles: 1, llm: slowFinder(500) } })
     for (const name of ['a.txt', 'b.txt', 'c.txt', 'd.txt']) {
-      const text = await readFile(join(run.output ?? join(root, '_records', 'runs', 'four', 'output'), name), 'utf8')
+      const text = await readFile(join(run.output ?? join(root, '_records', 'runs', 'four', 'staging'), name), 'utf8')
       assert.ok(!text.includes('王建国'), `${name}: ${text}`)
     }
   })
@@ -267,7 +268,7 @@ async function testVerifierFindings() {
     assert.notEqual(run.status, 'completed')
     const file = run.files.find((item) => item.relPath === 'a.csv')
     assert.equal(file.status, 'review')
-    const staged = await readFile(join(root, '_records', 'runs', 'part', 'output', 'a.csv'), 'utf8')
+    const staged = await readFile(join(root, '_records', 'runs', 'part', 'staging', 'a.csv'), 'utf8')
     assert.ok(!staged.includes('12345678/'), staged)
     assertAbsent((await report(root, 'part')).md, ['12345678'], 'report.md')
   })
@@ -313,7 +314,7 @@ async function testVerifierFindings() {
     })
     const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'wrongid', llm } })
     for (const name of ['note.txt', 'note2.txt']) {
-      const where = run.output ?? join(root, '_records', 'runs', 'wrongid', 'output')
+      const where = run.output ?? join(root, '_records', 'runs', 'wrongid', 'staging')
       const text = await readFile(join(where, name), 'utf8')
       assertAbsent(text, ['张三', '李四'], name)
     }
@@ -329,7 +330,7 @@ async function testVerifierFindings() {
     const root = join(base, 'otherbatch', 'out')
     const llm = scripted({ verify: verifierOnce((segments) => (segments.some((segment) => segment.text.includes('王五')) ? null : segments[0]), '王五') })
     const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'otherbatch', llm } })
-    const where = run.output ?? join(root, '_records', 'runs', 'otherbatch', 'output')
+    const where = run.output ?? join(root, '_records', 'runs', 'otherbatch', 'staging')
     const text = await readFile(join(where, 'a.csv'), 'utf8')
     assert.ok(!text.includes('王五'), text.split('\n')[65])
   })
@@ -375,7 +376,7 @@ async function testRecheckWrite() {
       await writeFile(join(input, 'b.txt'), '陪同人员：家属王建国\n')
       const root = join(base, String(maxFiles), 'out')
       const runId = `w${maxFiles}`
-      const output = join(root, '_records', 'runs', runId, 'output')
+      const output = join(root, '_records', 'runs', runId, 'staging')
       const run = await runBatch({ inputDir: input, outputRoot: root, options: { runId, maxFiles, llm: locker(output) } })
       assert.notEqual(run.status, 'completed')
       assert.equal(run.output, null)
@@ -664,7 +665,7 @@ async function testReasonCut() {
 
 async function testJsonKeys() {
   const base = join(tmp, 'keys')
-  const deliveredJson = async (run, rel) => readFile(join(run.output ?? join(run.outputRoot ?? '', '_records', 'runs', run.id, 'output'), rel), 'utf8')
+  const deliveredJson = async (run, rel) => readFile(join(run.output ?? join(run.outputRoot ?? '', '_records', 'runs', run.id, 'staging'), rel), 'utf8')
 
   // Keys are renamed to pseudonyms by the JSON loader (#30), so these files
   // are delivered clean; what matters is that no original survives anywhere
