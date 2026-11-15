@@ -220,7 +220,7 @@ window.__ModuleLoader__.load({
       'ws.station': '环节',
       'ws.batch': '批次',
       'ws.tab.parts': '文件',
-      'wd.tab.line': '产线',
+      'wd.tab.line': '流水线',
       'wd.tab.review': '复核',
       'wd.tab.runs': '记录',
       'wd.live': '实时',
