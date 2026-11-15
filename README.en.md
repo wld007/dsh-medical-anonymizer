@@ -27,7 +27,7 @@ intact, and writes an audit report plus a re-identification vault.
 
 | Area | What it does |
 | --- | --- |
-| Formats | `.txt` `.md` `.csv` `.json` `.xlsx`, `.zip` (nested too), DICOM (metadata only); encoded content in fields (base64, HTML, nested JSON …) is unwrapped and checked |
+| Formats | `.txt` `.md` `.csv` `.json` `.xlsx`, `.zip` (nested too), DICOM (metadata only); encoded content in fields (base64, HTML, XML, nested JSON, gzip / LZMA compression …) is unwrapped, checked and written back in its original format |
 | Identifiers | names, doctors/staff, Chinese IDs, phone, email, address, record/admission/visit numbers, social-security and bank-card numbers, hospitals; the same in file and folder names |
 | Treatment | per type: stable pseudonym (e.g. `化名-9F3A2C`, default), partial mask, type label, or keep; optional dates, ages, and sex |
 
