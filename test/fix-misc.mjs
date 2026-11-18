@@ -5,7 +5,7 @@
  * Run: node test/fix-misc.mjs
  */
 import assert from 'node:assert/strict'
-import { readFile, rm, mkdir, writeFile, readdir } from 'node:fs/promises'
+import { readFile, rm, mkdir, writeFile, readdir, stat } from 'node:fs/promises'
 import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runBatch } from '../lib/pipeline.js'
@@ -118,6 +118,9 @@ async function testReviewDedupe() {
     assert.equal(first.status, 'review')
     const record = JSON.parse(await readFile(join(root, '_records', 'runs', 'dedupe', 'report.json'), 'utf8'))
     assert.equal(record.withheld, true)
+    // The Word report exists as a draft while items await review.
+    assert.equal(record.formalReport?.final, false)
+    assert.ok((await stat(record.formalReport.path)).isFile())
   })
   await check('#0 全部决定后才完成，交付数据中没有任何被报出的原值', async () => {
     const listed = await svc.reviewItems('dedupe')
@@ -135,6 +138,15 @@ async function testReviewDedupe() {
     const ward = await readFile(outJoin(out, 'ward.txt'), 'utf8')
     const pair = await readFile(outJoin(out, 'pair.csv'), 'utf8')
     for (const name of names) assert.ok(!note.includes(name) && !ward.includes(name) && !pair.includes(name), `${name} delivered: ${note} ${ward} ${pair}`)
+    // Review done: assessment redone on the final data, the report final.
+    const record = JSON.parse(await readFile(join(root, '_records', 'runs', 'dedupe', 'report.json'), 'utf8'))
+    assert.ok(record.assessment)
+    assert.equal(record.formalReport?.final, true)
+    const md = await readFile(join(root, '_records', 'runs', 'dedupe', 'report.md'), 'utf8')
+    assert.ok(!md.includes('**1 级**'), 'no longer level 1 after review')
+    const info = await svc.formalReport('dedupe')
+    assert.equal(info.path, record.formalReport.path)
+    assert.equal(info.final, true)
   })
 
   // More flagged values than the old 60-entry cap: none may be dropped.

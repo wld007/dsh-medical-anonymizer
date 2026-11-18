@@ -37,6 +37,14 @@ window.__ModuleLoader__.load({
       'rules.allowValues': '不匹配的值（这些值永远不当作标识符，如 01、居民身份证、科室名称）',
       'rules.forceValues': '总是替换的值（每行「类型:值」，如 姓名:张三、医院:某某医院；这些值不论出现在哪里都替换为假名，不做格式检查）',
       'rules.skipFields': '不处理的字段（列名或 JSON 键名，不区分大小写，如 ADMN_BED_NO；这些字段原样输出）',
+      'rules.assessTitle': '匿名化效果评估（K 匿名）',
+      'rules.assessHint': '批次完成后，报告按 K 匿名值结合使用场景和流通环境计算匿名化程度 A = K × S × E，A ≥ 1 为达标。K 是交付数据中准标识符组合相同的最少人数（只对 csv、xlsx、JSON 记录和 DICOM 计算），S 由使用场景决定，E 是环境系数。',
+      'rules.assessScene': '使用场景（场景系数 S）',
+      'rules.assessEnv': '环境系数 E（0.1–10，中间值 1；流通环境的技术与管理保障能力越强越大）',
+      'rules.assessNeed': '按当前设置，K ≥ {k} 才达标',
+      'rules.assessBasis': '报告中写的参考依据（一行；留空则写国家标准 GB/T 37964—2019、GB/T 42460—2023；可填本省的规范或本单位的制度名称）',
+      'rules.assessIgnore': '不计入准标识符的列（每行一个列名，如分析必需且已确认不构成识别风险的列）',
+      'rules.assessExtra': '额外计入准标识符的列（每行一个列名，自动识别不到的，如 病区、民族代码）',
       'strategy.pseudonym': '稳定假名',
       'strategy.mask': '部分遮盖',
       'strategy.redact': '替换为类型标签',
@@ -204,6 +212,34 @@ window.__ModuleLoader__.load({
       'ws.st.pack': '比对·打包',
       'ws.st.review': '人工复核',
       'ws.st.deliver': '交付',
+      'ws.st.assess': '效果评估',
+      'ws.sub.assess': 'K 匿名·Word 报告',
+      'ws.as.line': 'A={a} {mark}',
+      'ws.as.none': '无结构化数据',
+      'ws.as.draft': '复核后重算',
+      'ws.as.title': '匿名化效果评估',
+      'ws.as.basis': 'K 匿名值结合使用场景与流通环境：A = K × S × E，A ≥ 1 达标。',
+      'ws.as.pass': '达到匿名化要求',
+      'ws.as.fail': '未达到匿名化要求',
+      'ws.as.notComputed': '未计算：没有含准标识符列的结构化数据',
+      'ws.as.k': 'K 匿名值',
+      'ws.as.a': '匿名化程度 A',
+      'ws.as.need': '需 K ≥ {k}',
+      'ws.as.scene': '场景 S',
+      'ws.as.env': '环境 E',
+      'ws.as.level': '标识度',
+      'ws.as.levelN': '{n} 级',
+      'ws.as.levelNone': '未定级',
+      'ws.as.datasets': '数据集',
+      'ws.as.drop': '影响最大：「{column}」，去掉或泛化后 K = {k}',
+      'ws.as.unstructured': '{n} 个自由文本文件未计算 K 值',
+      'ws.as.draftNote': '有待复核项：当前是复核前的初稿，复核全部完成后按最终数据重新评估并更新报告。',
+      'ws.as.open': '打开 Word 报告',
+      'ws.as.reveal': '在访达中显示',
+      'ws.as.regen': '重新生成',
+      'ws.as.signNote': 'Word 报告的第四至七章（不能复原、对抗性测试、综合结论、签署）需由独立的评价/批准责任人填写签署。',
+      'ws.as.alert': '匿名化程度 A = {a}，未达到要求（K = {k}，需 ≥ {need}）',
+      'ws.as.alertSub': '标识度 {level}；点击查看效果评估',
       'ws.sub.prescan': '解压·路径匿名',
       'ws.sub.read': '解码·切分·画像',
       'ws.sub.discover': '规则 + 识别模型',
@@ -995,6 +1031,14 @@ window.__ModuleLoader__.load({
       'rules.allowValues': 'Values that are never identifiers (e.g. 01, 居民身份证, department names)',
       'rules.forceValues': 'Values always replaced (one "type:value" per line, e.g. 姓名:张三; replaced wherever they occur, no format check)',
       'rules.skipFields': 'Fields left untouched (column or JSON key names, case-insensitive, e.g. ADMN_BED_NO; values are copied as-is)',
+      'rules.assessTitle': 'Effect assessment (k-anonymity)',
+      'rules.assessHint': 'After each batch the report computes the degree of anonymization A = K × S × E ; A ≥ 1 passes. K is the smallest number of people sharing one combination of quasi-identifiers in the delivered data (csv, xlsx, JSON records and DICOM only), S comes from the usage scenario, E is the environment coefficient.',
+      'rules.assessScene': 'Usage scenario (scenario coefficient S)',
+      'rules.assessEnv': 'Environment coefficient E (0.1–10, typical 1; higher for stronger technical and management safeguards)',
+      'rules.assessNeed': 'With these settings K ≥ {k} is needed',
+      'rules.assessBasis': 'Basis named in the reports (one line; empty = national standards GB/T 37964—2019 and GB/T 42460—2023; enter your provincial specification or internal policy)',
+      'rules.assessIgnore': 'Columns not counted as quasi-identifiers (one column name per line)',
+      'rules.assessExtra': 'Extra quasi-identifier columns (one column name per line, for columns not recognized automatically)',
       'strategy.pseudonym': 'Stable pseudonym',
       'strategy.mask': 'Partial mask',
       'strategy.redact': 'Type label',
@@ -1162,6 +1206,34 @@ window.__ModuleLoader__.load({
       'ws.st.pack': 'Compare & pack',
       'ws.st.review': 'Manual review',
       'ws.st.deliver': 'Deliver',
+      'ws.st.assess': 'Assessment',
+      'ws.sub.assess': 'k-anonymity · Word',
+      'ws.as.line': 'A={a} {mark}',
+      'ws.as.none': 'No structured data',
+      'ws.as.draft': 'Recomputed after review',
+      'ws.as.title': 'Anonymization effect assessment',
+      'ws.as.basis': 'K-anonymity combined with the usage scenario and environment: A = K × S × E; A ≥ 1 passes.',
+      'ws.as.pass': 'Meets the anonymization requirement',
+      'ws.as.fail': 'Does not meet the anonymization requirement',
+      'ws.as.notComputed': 'Not computed: no structured data with quasi-identifier columns',
+      'ws.as.k': 'K',
+      'ws.as.a': 'Degree A',
+      'ws.as.need': 'needs K ≥ {k}',
+      'ws.as.scene': 'Scenario S',
+      'ws.as.env': 'Environment E',
+      'ws.as.level': 'Identifiability',
+      'ws.as.levelN': 'level {n}',
+      'ws.as.levelNone': 'not graded',
+      'ws.as.datasets': 'Datasets',
+      'ws.as.drop': 'Largest effect: "{column}"; without it (or generalized) K = {k}',
+      'ws.as.unstructured': '{n} free-text files not included in K',
+      'ws.as.draftNote': 'Items await review: this is a draft; the assessment and report are redone on the final data once review is complete.',
+      'ws.as.open': 'Open Word report',
+      'ws.as.reveal': 'Show in Finder',
+      'ws.as.regen': 'Regenerate',
+      'ws.as.signNote': 'Chapters 4–7 of the Word report (restoration, adversarial test, conclusion, sign-off) are completed and signed by an independent evaluator.',
+      'ws.as.alert': 'Degree of anonymization A = {a}, below requirement (K = {k}, needs ≥ {need})',
+      'ws.as.alertSub': 'Identifiability {level}; click for the assessment',
       'ws.sub.prescan': 'Archives · paths',
       'ws.sub.read': 'Decode · split · profile',
       'ws.sub.discover': 'Rules + detector',
@@ -3405,6 +3477,11 @@ window.__ModuleLoader__.load({
       const [forceText, setForceText] = React.useState('')
       const [opaquePolicy, setOpaquePolicy] = React.useState('review')
       const [imageCheckOn, setImageCheckOn] = React.useState(true)
+      const [assessScene, setAssessScene] = React.useState('controlledTwo')
+      const [assessEnv, setAssessEnv] = React.useState(1)
+      const [assessIgnoreText, setAssessIgnoreText] = React.useState('')
+      const [assessExtraText, setAssessExtraText] = React.useState('')
+      const [assessBasis, setAssessBasis] = React.useState('')
       const [testing, setTesting] = React.useState(false)
       const [ping, setPing] = React.useState(null)
       const [saving, setSaving] = React.useState(false)
@@ -3444,6 +3521,11 @@ window.__ModuleLoader__.load({
         setSkipText((info.skipFields ?? []).join('\n'))
         setOpaquePolicy(info.opaquePolicy === 'remove' ? 'remove' : 'review')
         setImageCheckOn(info.imageCheck !== false)
+        setAssessScene(info.assessScene ?? info.policySchema?.defaultScene ?? 'controlledTwo')
+        setAssessEnv(Number(info.assessEnvironment ?? 1))
+        setAssessIgnoreText((info.assessIgnoreFields ?? []).join('\n'))
+        setAssessExtraText((info.assessExtraFields ?? []).join('\n'))
+        setAssessBasis(info.assessBasis ?? '')
       }
       const lines = (text) => [...new Set(String(text ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean))]
       const sameList = (text, list) => JSON.stringify(lines(text)) === JSON.stringify(list ?? [])
@@ -3459,6 +3541,11 @@ window.__ModuleLoader__.load({
         setForceText('')
         setOpaquePolicy('review')
         setImageCheckOn(true)
+        setAssessScene(schema.defaultScene ?? 'controlledTwo')
+        setAssessEnv(1)
+        setAssessIgnoreText('')
+        setAssessExtraText('')
+        setAssessBasis('')
       }
 
       React.useEffect(() => {
@@ -3488,7 +3575,10 @@ window.__ModuleLoader__.load({
           || !sameMap(quasiPolicy, config.quasiPolicy)
           || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields) || !sameList(forceText, config.forceValues)
           || opaquePolicy !== (config.opaquePolicy === 'remove' ? 'remove' : 'review')
-          || imageCheckOn !== (config.imageCheck !== false)],
+          || imageCheckOn !== (config.imageCheck !== false)
+          || assessScene !== (config.assessScene ?? 'controlledTwo') || Number(assessEnv) !== Number(config.assessEnvironment ?? 1)
+          || !sameList(assessIgnoreText, config.assessIgnoreFields) || !sameList(assessExtraText, config.assessExtraFields)
+          || assessBasis.trim() !== String(config.assessBasis ?? '')],
       ].filter(([, changed]) => changed).map(([key]) => key) : []
 
       // Tests and model listings only use a saved key against the endpoint it
@@ -3547,6 +3637,11 @@ window.__ModuleLoader__.load({
             forceValues: lines(forceText),
             opaquePolicy,
             imageCheck: imageCheckOn,
+            assessScene,
+            assessEnvironment: Number(assessEnv),
+            assessIgnoreFields: lines(assessIgnoreText),
+            assessExtraFields: lines(assessExtraText),
+            assessBasis: assessBasis.trim(),
           }
           if (apiKey.length > 0) request.apiKey = apiKey
           else if (clearKey) request.apiKey = ''
@@ -3780,6 +3875,45 @@ window.__ModuleLoader__.load({
         h('div', { className: 'ma-card' },
           h('div', { className: 'ma-block-head' },
             h('div', {},
+              h('h3', {}, t('rules.assessTitle')),
+              h('p', { className: 'ma-hint' }, t('rules.assessHint')))),
+          h('div', { className: 'ma-grid' },
+            h('label', { className: 'ma-field' }, t('rules.assessScene'),
+              h('select', { className: 'ma-input', value: assessScene, onChange: (event) => setAssessScene(event.target.value) },
+                ...(schema.scenes ?? []).map((scene) => h('option', { key: scene.id, value: scene.id }, `${scene.share} · ${scene.label}（S = ${scene.factor}）`)))),
+            h('label', { className: 'ma-field' }, t('rules.assessEnv'),
+              h('input', {
+                className: 'ma-input', type: 'number', min: 0.1, max: 10, step: 0.1, value: assessEnv,
+                onChange: (event) => setAssessEnv(event.target.value),
+              })),
+          ),
+          (() => {
+            const scene = (schema.scenes ?? []).find((item) => item.id === assessScene)
+            const [num, den] = String(scene?.factor ?? '').split('/').map(Number)
+            const env = Number(assessEnv)
+            if (!scene || !(env > 0) || !(num > 0) || !(den > 0)) return null
+            return h('p', { className: 'ma-hint' }, t('rules.assessNeed', { k: Math.max(1, Math.ceil(den / (num * env) - 1e-9)) }))
+          })(),
+          h('label', { className: 'ma-field' }, t('rules.assessBasis'),
+            h('input', {
+              className: 'ma-input', value: assessBasis, maxLength: 300, spellCheck: false,
+              placeholder: schema.defaultBasis ?? '',
+              onChange: (event) => setAssessBasis(event.target.value),
+            })),
+          h('label', { className: 'ma-field' }, t('rules.assessIgnore'),
+            h('textarea', {
+              className: 'ma-input ma-textarea', value: assessIgnoreText, spellCheck: false,
+              onChange: (event) => setAssessIgnoreText(event.target.value),
+            })),
+          h('label', { className: 'ma-field' }, t('rules.assessExtra'),
+            h('textarea', {
+              className: 'ma-input ma-textarea', value: assessExtraText, spellCheck: false,
+              onChange: (event) => setAssessExtraText(event.target.value),
+            })),
+        ),
+        h('div', { className: 'ma-card' },
+          h('div', { className: 'ma-block-head' },
+            h('div', {},
               h('h3', {}, t('rules.opaqueTitle')),
               h('p', { className: 'ma-hint' }, t('rules.opaqueHint')))),
           h('label', { className: 'ma-field' }, t('rules.opaqueLabel'),
@@ -3899,8 +4033,23 @@ window.__ModuleLoader__.load({
     // and batch history. Right: live monitor readouts and editable defaults.
 
     // S01–S10 on the line; DICOM is a bypass (metadata only, no model).
-    const STATIONS = ['prescan', 'read', 'discover', 'rules', 'blind', 'repair', 'rescan', 'pack', 'review', 'deliver']
+    const STATIONS = ['prescan', 'read', 'discover', 'rules', 'blind', 'repair', 'rescan', 'pack', 'review', 'assess', 'deliver']
     const LOOP_STATIONS = new Set(['discover', 'rules', 'blind', 'repair'])
+    // Identifiability level, four levels (GB/T 42460—2023; same rule as
+    // lib/assess.js identificationLevel): null when not graded.
+    function assessLevel(run) {
+      const as = run?.assessment
+      if (!as) return null
+      const kept = Object.values(run.config?.policy?.identifiers ?? {}).includes('keep')
+      if (kept || run.withheld === true || (run.status === 'review' && !run.humanReview)) return 1
+      if (!as.datasets?.length) return as.unstructured?.text > 0 ? null : 4
+      return as.pass ? 3 : 2
+    }
+    const assessLevelText = (run) => {
+      const level = assessLevel(run)
+      return level ? services.t('ws.as.levelN', { n: level }) : services.t('ws.as.levelNone')
+    }
+    const fmtA = (value) => (value === null || value === undefined || !Number.isFinite(Number(value)) ? '—' : String(Math.round(Number(value) * 100) / 100))
 
     function stationOf(state) {
       const step = String(state?.step ?? '')
@@ -3913,6 +4062,7 @@ window.__ModuleLoader__.load({
       if (step.startsWith('批次复扫') || step.startsWith('跨组复扫')) return 'rescan'
       if (step === 'DICOM') return 'dicom'
       if (step === '打包' || step === '比对记录') return 'pack'
+      if (step === '匿名化效果评估') return 'assess'
       return null
     }
 
@@ -3931,6 +4081,8 @@ window.__ModuleLoader__.load({
       rescan: [h('circle', { key: 1, r: 13 }), h('circle', { key: 2, r: 6.5 }), h('path', { key: 3, className: 'ws-sweep', d: 'M0 0l9.2 -9.2' })],
       dicom: [h('circle', { key: 1, cy: -3, r: 13 }), h('circle', { key: 2, cy: -3, r: 6.5, className: 'ws-pulse' }), h('path', { key: 3, d: 'M-18 13h36' })],
       pack: [h('path', { key: 1, d: 'M-14 -7l14 -8l14 8v15l-14 8l-14 -8z' }), h('path', { key: 2, d: 'M-14 -7l14 8l14 -8M0 1v15' })],
+      // Report sheet with a gauge: the assessment and its Word report.
+      assess: [h('path', { key: 1, d: 'M-11 -15h15l7 7v23h-22z M4 -15v7h7' }), h('path', { key: 2, d: 'M-6 8a6 6 0 0 1 12 0' }), h('path', { key: 3, d: 'M0 8l4 -5' })],
     }
 
     function LineSchematic({ load, states, notes, running, inflight, maxRounds, rounds, dicom, onStation, t }) {
@@ -3961,7 +4113,7 @@ window.__ModuleLoader__.load({
         dim(0, 1, t('ws.stage1'), 'a'),
         dim(2, 5, t('ws.stage2'), 'b'),
         dim(6, 7, t('ws.stage3'), 'c'),
-        dim(8, 9, t('ws.stage4'), 'd'),
+        dim(8, STATIONS.length - 1, t('ws.stage4'), 'd'),
         h('path', { className: 'ws-loop', d: `M${loopFrom} 66 C ${loopFrom} 42, ${loopTo} 42, ${loopTo} 66` }),
         h('path', { className: 'ws-loop-head', d: `M${loopTo - 5} 58l5 8l5 -8` }),
         h('rect', { className: 'ws-dim-bg', x: (loopFrom + loopTo) / 2 - 130, y: 39, width: 260, height: 16, rx: 3 }),
@@ -4031,8 +4183,8 @@ window.__ModuleLoader__.load({
       disputed: '识别与核验分歧', 'not-removed': '原值未清除', 'model-residual': '盲审仍报出', residual: '仍有残留', embedded: '假名嵌在长串中',
       partial: '数字被部分替换', 'key-identifier': '字段名含标识符', 'model-unchecked': '未经模型核验', structure: '结构变化', pipeline: '处理出错',
     }
-    const ISO_DARK = { grid: '#132229', slab: '#14262d', belt: '#21363e', roller: '#2f4952', bDone: '#2c4049', bActive: '#2f4750', bWarn: '#3a3f3c', bIdle: '#1f3036', ok: '#46d17f', acc: '#22c7c0', warn: '#f5a524', vent: '#0b171c', activeTop: '#1f5a5c', warnTop: '#5a4a2a', acc2: '#7fe9e2', cross: '#3d5a64', feeder: '#1b2d33', pileWarn: '#b8781a', pile: '#178d89', pileTop: '#4fd3cb', code: '#58717a', idleText: '#6f8a92', name: '#e2eef0', line: '#8ba5ad', file: '#1aa39d', vio: '#a58bff', stroke: 'rgba(160,230,235,.10)' }
-    const ISO_LIGHT = { grid: '#c9d8dc', slab: '#cddcdf', belt: '#b2c6cb', roller: '#93acb2', bDone: '#b4c9ce', bActive: '#9fd6d0', bWarn: '#ebcf96', bIdle: '#c6d5d9', ok: '#1f9d55', acc: '#0e9f98', warn: '#d98a00', vent: '#55717a', activeTop: '#7fd8d0', warnTop: '#f3bd57', acc2: '#08857f', cross: '#86a1a8', feeder: '#a1b9bf', pileWarn: '#e0a23a', pile: '#1bb0a7', pileTop: '#7fe3dc', code: '#7d9298', idleText: '#8aa0a6', name: '#17323a', line: '#4c6870', file: '#18b3aa', vio: '#7b5cf0', stroke: 'rgba(20,60,70,.14)' }
+    const ISO_DARK = { grid: '#132229', slab: '#14262d', belt: '#21363e', roller: '#2f4952', bDone: '#2c4049', bActive: '#2f4750', bWarn: '#3a3f3c', bIdle: '#1f3036', ok: '#46d17f', acc: '#22c7c0', warn: '#f5a524', vent: '#0b171c', activeTop: '#1f5a5c', warnTop: '#5a4a2a', acc2: '#7fe9e2', cross: '#3d5a64', feeder: '#1b2d33', pileWarn: '#b8781a', pile: '#178d89', pileTop: '#4fd3cb', code: '#58717a', idleText: '#6f8a92', name: '#e2eef0', line: '#8ba5ad', file: '#1aa39d', vio: '#a58bff', bad: '#ff5f5f', stroke: 'rgba(160,230,235,.10)' }
+    const ISO_LIGHT = { grid: '#c9d8dc', slab: '#cddcdf', belt: '#b2c6cb', roller: '#93acb2', bDone: '#b4c9ce', bActive: '#9fd6d0', bWarn: '#ebcf96', bIdle: '#c6d5d9', ok: '#1f9d55', acc: '#0e9f98', warn: '#d98a00', vent: '#55717a', activeTop: '#7fd8d0', warnTop: '#f3bd57', acc2: '#08857f', cross: '#86a1a8', feeder: '#a1b9bf', pileWarn: '#e0a23a', pile: '#1bb0a7', pileTop: '#7fe3dc', code: '#7d9298', idleText: '#8aa0a6', name: '#17323a', line: '#4c6870', file: '#18b3aa', vio: '#7b5cf0', bad: '#d23030', stroke: 'rgba(20,60,70,.14)' }
 
     /** Is the host (DSH) page dark? Reads its background colour. */
     function hostIsDark(el) {
@@ -4058,7 +4210,8 @@ window.__ModuleLoader__.load({
 
     function IsoLine({ states, labels, load, belt, dicom, loopLabel, onStation, selected, dark = true, t }) {
       const C = dark ? ISO_DARK : ISO_LIGHT
-      const STEP = 108
+      // Spread over the same slab whatever the number of stations (11 now).
+      const STEP = Math.round(1080 / STATIONS.length)
       const P = (x, y, z = 0) => [120 + x * 0.94 - y * 0.66, 236 + x * 0.26 + y * 0.58 - z]
       const pts = (list) => list.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
       const shade = (hex, f) => {
@@ -4122,14 +4275,14 @@ window.__ModuleLoader__.load({
         return { id, i, st, x, y, parts, mh }
       })
       const labelsSvg = stations.map(({ id, i, st, x, y, mh }) => {
-        const [line1, line2, tone] = labels[id] ?? ['', '', '']
+        const [line1, line2, tone, tone1] = labels[id] ?? ['', '', '', '']
         const tip = P(x + 35, y + 31, 26 + mh)
         const top = tip[1] - (line2 ? 66 : 54)
         return h('g', { key: `lb${id}`, pointerEvents: 'none' },
           h('line', { x1: tip[0], y1: tip[1] - 4, x2: tip[0], y2: top + (line2 ? 46 : 34), stroke: LED[st], strokeWidth: 1, strokeDasharray: '2 3', opacity: 0.7 }),
           h('text', { x: tip[0], y: top + 4, fill: C.code, fontSize: 9.5, textAnchor: 'middle', className: 'wd-mono', letterSpacing: 1 }, `S${String(i + 1).padStart(2, '0')}`),
           h('text', { x: tip[0], y: top + 19, fill: st === 'idle' ? C.idleText : C.name, fontSize: 12.5, fontWeight: 600, textAnchor: 'middle' }, t(`ws.st.${id}`)),
-          h('text', { x: tip[0], y: top + 32, fill: st === 'warn' ? C.warn : st === 'active' ? C.acc2 : C.line, fontSize: 10.5, textAnchor: 'middle', className: 'wd-mono' }, line1),
+          h('text', { x: tip[0], y: top + 32, fill: tone1 === 'bad' ? C.bad : st === 'warn' ? C.warn : st === 'active' ? C.acc2 : C.line, fontWeight: tone1 === 'bad' ? 700 : undefined, fontSize: 10.5, textAnchor: 'middle', className: 'wd-mono' }, line1),
           line2 ? h('text', { x: tip[0], y: top + 44, fill: tone === 'warn' ? C.warn : C.line, fontSize: 9.5, textAnchor: 'middle', className: 'wd-mono' }, line2) : null)
       })
       // Belt and the files riding it.
@@ -5482,6 +5635,7 @@ window.__ModuleLoader__.load({
             else if (loopBusy && LOOP_STATIONS.has(id) && index < lastActive) { stationStates[id] = 'idle'; stationNotes[id] = { load: t('ws.loopWait') } }
           })
           stationStates.review = 'idle'
+          if (!active.has('assess')) stationStates.assess = 'idle'
           stationStates.deliver = 'idle'
         } else {
           for (const id of STATIONS) stationStates[id] = 'done'
@@ -5495,7 +5649,7 @@ window.__ModuleLoader__.load({
           }
           const ended = current.status === 'completed' || current.status === 'review'
           if (!ended) {
-            for (const id of ['rescan', 'pack', 'review', 'deliver']) stationStates[id] = 'idle'
+            for (const id of ['rescan', 'pack', 'review', 'assess', 'deliver']) stationStates[id] = 'idle'
             stationNotes.deliver = { load: t('ws.notDelivered') }
           } else if (reviewOpen > 0 || withheld) {
             stationStates.review = 'warn'
@@ -5506,6 +5660,24 @@ window.__ModuleLoader__.load({
             stationNotes.review = { load: current.humanReview ? t('ws.reviewed') : t('ws.reviewNone') }
             stationNotes.deliver = { load: current.output ? t('ws.delivered') : t('ws.notDelivered') }
             if (!current.output) stationStates.deliver = 'idle'
+          }
+          // Effect assessment: red when A < 1 (delivery is not held for it).
+          const assessment = current.assessment
+          if (ended && assessment) {
+            if (!assessment.datasets?.length) {
+              stationStates.assess = 'done'
+              stationNotes.assess = { load: t('ws.as.none') }
+            } else {
+              stationStates.assess = assessment.pass ? 'done' : 'warn'
+              stationNotes.assess = {
+                load: t('ws.as.line', { a: fmtA(assessment.a), mark: assessment.pass ? '✓' : '✗' }),
+                loadTone: assessment.pass ? '' : 'bad',
+                ...(withheld ? { sub: t('ws.as.draft'), subTone: 'warn' } : {}),
+              }
+            }
+          } else if (ended) {
+            stationStates.assess = 'idle'
+            stationNotes.assess = { load: '—' }
           }
         }
       }
@@ -6961,6 +7133,14 @@ window.__ModuleLoader__.load({
         if (id === 'rescan' && current?.chunks) line1 = t('wd.chunks', { n: current.chunks })
         if (id === 'review' && current) line1 = reviewOpen > 0 ? t('wd.reviewLine', { files: counts.review, items: reviewOpen }) : (note.load ?? '—')
         if (id === 'deliver' && current) line1 = note.load ?? (current.output ? t('ws.delivered') : '—')
+        let tone1 = ''
+        // Assessment runs once, after review: no file count to show.
+        if (id === 'assess' && running && !load[id]) line1 = '—'
+        if (id === 'assess' && current && !running && note.load) {
+          line1 = note.load
+          tone1 = note.loadTone ?? ''
+          if (note.sub) { line2 = note.sub; tone = 'warn' }
+        }
         if (running && load[id] > 0) {
           line2 = t('wd.atStation', { n: load[id] })
           if (note.queue) {
@@ -6968,7 +7148,7 @@ window.__ModuleLoader__.load({
             tone = note.queue >= 20 ? 'warn' : ''
           }
         }
-        stationLabels[id] = [line1, line2, tone]
+        stationLabels[id] = [line1, line2, tone, tone1]
       })
       const shortPath = (path) => { const parts = String(path ?? '').split('/'); return parts.length > 2 ? `${parts[0]}/…/${parts[parts.length - 1]}` : String(path ?? '') }
       const GB = 1024 ** 3
@@ -6993,6 +7173,11 @@ window.__ModuleLoader__.load({
       if (current?.status === 'failed') alerts.push({ tone: 'crit', tag: '失败', title: t('wd.aFailed'), sub: current.error ?? '' })
       if (disk?.free !== undefined && disk.free < 20 * GB) alerts.push({ tone: disk.free < 5 * GB ? 'crit' : 'warn', tag: '磁盘', title: t('wd.aDisk', { gb: (disk.free / GB).toFixed(1) }), sub: t('wd.aDiskSub') })
       if (memRatio !== null && memRatio >= 0.7) alerts.push({ tone: memRatio >= 0.85 ? 'crit' : 'warn', tag: '内存', title: t('wd.aMem', { pct: Math.round(memRatio * 100) }), sub: t('wd.aMemSub') })
+      if (current && !running && current.assessment?.datasets?.length && current.assessment.pass === false) {
+        const as = current.assessment
+        const lv = assessLevelText(current)
+        alerts.push({ tone: 'crit', tag: '评估', onClick: () => setStationSel('assess'), title: t('ws.as.alert', { a: fmtA(as.a), k: as.k, need: as.requiredK }), sub: t('ws.as.alertSub', { level: lv }) })
+      }
       if (judgeOpen > 0) {
         alerts.push({ tone: 'warn', tag: '复核', onClick: () => openCompare({ filter: 'review' }), title: t('wd.aJudge', { n: judgeOpen }), sub: t('wd.aReviewSub') })
       }
@@ -7165,6 +7350,61 @@ window.__ModuleLoader__.load({
         if (!stages || callLog.id !== current?.id) return null
         return callLog.entries.filter((entry) => stages.includes(entry.stage))
       }
+      // Effect assessment (K anonymity, A = K × S × E) and its Word report.
+      const openFormal = async (options) => {
+        setError('')
+        try {
+          await call('formalReport', { runId: current.id, ...options })
+        } catch (cause) {
+          setError(message(cause))
+        }
+      }
+      const assessDetail = () => {
+        const as = current?.assessment
+        const RED = 'var(--dsw-alias-state-error-primary)'
+        const GREEN = 'var(--dsw-alias-state-success-primary)'
+        if (!as) return [h('p', { key: 'none', className: 'wd-desc', style: { margin: 0 } }, running ? t('wd.loading') : '—')]
+        const level = assessLevel(current)
+        const out = []
+        out.push(h('p', { key: 'basis', className: 'wd-desc', style: { margin: 0 } }, t('ws.as.basis')))
+        if (as.datasets?.length) {
+          out.push(h('div', {
+            key: 'verdict',
+            style: { border: `1px solid ${as.pass ? GREEN : RED}`, borderRadius: 8, padding: '10px 12px', background: `color-mix(in srgb, ${as.pass ? GREEN : RED} 8%, transparent)` },
+          },
+          h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' } },
+            h('b', { style: { fontSize: 26, color: as.pass ? GREEN : RED } }, `A = ${fmtA(as.a)}`),
+            h('span', { style: { color: as.pass ? GREEN : RED, fontWeight: 700 } }, as.pass ? t('ws.as.pass') : t('ws.as.fail'))),
+          h('div', { className: 'wd-desc', style: { marginTop: 4 } }, `A = K × S × E = ${as.k} × ${as.scene?.factor} × ${fmtA(as.environment)}`)))
+        } else {
+          out.push(h('p', { key: 'nc', className: 'wd-desc', style: { margin: 0 } }, t('ws.as.notComputed')))
+        }
+        out.push(h('div', { key: 'kv', className: 'wd-kv' },
+          h('div', {}, h('span', {}, t('ws.as.k')), h('b', { style: as.datasets?.length && !as.pass ? { color: RED } : undefined }, as.k ?? '—'), h('small', { className: 'wd-desc' }, ` ${t('ws.as.need', { k: as.requiredK })}`)),
+          h('div', {}, h('span', {}, t('ws.as.scene')), h('b', {}, as.scene?.factor ?? '—'), h('small', { className: 'wd-desc' }, ` ${as.scene?.share ?? ''}`)),
+          h('div', {}, h('span', {}, t('ws.as.env')), h('b', {}, fmtA(as.environment))),
+          h('div', {}, h('span', {}, t('ws.as.level')), h('b', { style: { color: level && level >= 3 ? GREEN : RED } }, level ? t('ws.as.levelN', { n: level }) : t('ws.as.levelNone')))))
+        if (current?.withheld) out.push(h('p', { key: 'draft', className: 'wd-desc', style: { margin: 0, color: 'var(--dsw-alias-state-warn-primary)' } }, t('ws.as.draftNote')))
+        if (as.datasets?.length) {
+          out.push(section(t('ws.as.datasets'), h('div', { className: 'wd-ovr-list' }, as.datasets.slice(0, 30).map((item) => h('div', {
+            key: item.name, title: item.columns.map((column) => `${column.name}(${column.distinct})`).join('、'),
+            style: { padding: '4px 0', borderBottom: '1px solid var(--wd-line, rgba(127,127,127,.15))' },
+          },
+          h('div', { style: { display: 'flex', gap: 8, justifyContent: 'space-between' } },
+            h('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 } }, shortPath(item.name)),
+            h('b', { style: { color: item.pass ? GREEN : RED, whiteSpace: 'nowrap' } }, `K ${item.k} · A ${fmtA(item.a)}${item.pass ? '' : ' ✗'}`)),
+          h('div', { className: 'wd-desc', style: { fontSize: 11 } }, item.columns.map((column) => `${column.name}(${column.distinct})`).join('、')),
+          !item.pass && item.bestDrop ? h('div', { style: { fontSize: 11, color: RED } }, t('ws.as.drop', { column: item.bestDrop.column, k: item.bestDrop.k })) : null)))))
+        }
+        if (as.unstructured?.text) out.push(h('p', { key: 'un', className: 'wd-desc', style: { margin: 0 } }, t('ws.as.unstructured', { n: as.unstructured.text })))
+        out.push(h('div', { key: 'btns', className: 'ma-actions', style: { flexWrap: 'wrap' } },
+          h('button', { className: 'ma-btn ma-primary', onClick: () => openFormal({ open: true }) }, t('ws.as.open')),
+          h('button', { className: 'ma-btn ma-small', onClick: () => openFormal({ open: true, reveal: true }) }, t('ws.as.reveal')),
+          h('button', { className: 'ma-btn ma-small', onClick: () => openFormal({ regenerate: true }) }, t('ws.as.regen'))))
+        if (current?.formalReport?.path) out.push(h('div', { key: 'path', className: 'wd-path' }, h('span', { title: current.formalReport.path }, current.formalReport.path)))
+        out.push(h('p', { key: 'sign', className: 'wd-desc', style: { margin: 0, fontSize: 11 } }, t('ws.as.signNote')))
+        return out
+      }
       const stationDetail = (id) => {
         const index = STATIONS.indexOf(id)
         const st = stationStates[id]
@@ -7265,6 +7505,7 @@ window.__ModuleLoader__.load({
         }
         if (id === 'pack' || id === 'rescan') parts.push(section(t('wd.dFileTime'), histo(files.map((f) => (f.durationMs ?? 0) / 1000), { fmt: (v) => (v < 10 ? v.toFixed(1) : String(Math.round(v))), unit: 's' })))
         if (id === 'rescan') parts.push(h('p', { className: 'wd-desc', style: { margin: 0 } }, t('wd.dChunks', { n: current?.chunks ?? 1, files: files.length })))
+        if (id === 'assess') parts.push(...assessDetail())
         if (id === 'deliver') {
           parts.push(h('p', { className: 'wd-desc', style: { margin: 0 } }, current?.withheld ? t('ws.withheld') : current?.output ? t('ws.delivered') : '—'))
           if (current?.output || current?.runDir) parts.push(h('div', { className: 'wd-path' }, h('span', { title: current.output ?? current.runDir }, current.output ?? current.runDir), h('button', { className: 'ma-btn ma-small', onClick: copyPath }, copied ? t('detail.copied') : t('detail.copy'))))
@@ -7559,6 +7800,7 @@ window.__ModuleLoader__.load({
           rescan: ['一组文件处理完后，以全部已知标识符回扫各文件及分组之间', '跨文件一致性'],
           pack: ['生成比对记录；整理待交付数据', '待交付数据 · 报告 · 比对记录'],
           review: ['处理分歧项、无法检查的内容；未处理完时交付数据暂扣', '人工复核记录'],
+          assess: ['计算 K 匿名值与匿名化程度 A = K × S × E，评定标识度；未达标标红（不暂扣）；有复核项时复核完成后按最终数据重算', '《匿名化效果评估报告》Word（_records）'],
           deliver: ['复核全部处理完后放到输出根目录的 output', '交付数据'],
           dicom: ['旁路，不经模型：删除姓名与 ID、重生成 UID、平移日期', '去标识化影像'],
         },
@@ -7617,6 +7859,7 @@ window.__ModuleLoader__.load({
           rescan: ['After a chunk: rescan every file with all known identifiers, within and across chunks', 'Cross-file consistency'],
           pack: ['Write the comparison; prepare the data to deliver', 'Data to deliver · report · comparison'],
           review: ['Disagreements and content that cannot be checked; the result is held until all are decided', 'Review record'],
+          assess: ['K-anonymity and A = K × S × E; identifiability level; shown red when below requirement (not held); recomputed after review', 'Assessment report, Word (_records)'],
           deliver: ['Move into output/ once review is complete', 'Deliverable'],
           dicom: ['Bypass, no model: remove names and IDs, regenerate UIDs, shift dates', 'De-identified images'],
         },
@@ -7658,7 +7901,7 @@ window.__ModuleLoader__.load({
         h('tbody', {}, rows))
       const schema = config?.policySchema?.identifiers ?? []
       const policy = config?.identifierPolicy ?? {}
-      const flowMain = ['prescan', 'read', 'discover', 'rules', 'blind', 'rescan', 'pack', 'review', 'deliver']
+      const flowMain = ['prescan', 'read', 'discover', 'rules', 'blind', 'rescan', 'pack', 'review', 'assess', 'deliver']
       return h('div', { className: 'ws-help' },
         h('h4', {}, c.scope),
         table(c.scopeHead, c.scopeRows.map((row, index) => h('tr', { key: index }, row.map((cell, i) => h('td', { key: i }, cell))))),

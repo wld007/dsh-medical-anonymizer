@@ -42,6 +42,23 @@ return out`
   })
 }
 
+/**
+ * Open a file with its default app (Word for .docx), or show it in Finder,
+ * on the machine running the Harness. The path comes from the service, which
+ * only ever returns a batch's own report path.
+ */
+function openFile(path, reveal = false) {
+  const command = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer' : 'xdg-open'
+  const args = process.platform === 'darwin' && reveal ? ['-R', path] : process.platform === 'win32' && reveal ? [`/select,${path}`] : [path]
+  return new Promise((resolve, reject) => {
+    execFile(command, args, { timeout: 30000 }, (error) => {
+      // explorer.exe exits with 1 even on success.
+      if (error && !(process.platform === 'win32' && error.code === 1)) reject(new Error(`无法打开文件：${String(error.message ?? error)}（路径：${path}）`))
+      else resolve()
+    })
+  })
+}
+
 export const name = 'medical-anonymizer'
 export const inject = ['tools']
 
@@ -69,6 +86,8 @@ export function apply(ctx, config = {}) {
       maxRounds: { type: 'number', description: '核验轮次上限（1–6）：每轮以核验结束，有可疑项时下一轮先复判修正再核验；省略时用设置里的默认值。' },
       inputs: { type: 'array', description: '同一目录下的多个文件或文件夹的绝对路径，作为一个批次处理，每一项分别交付到输出根目录。与 inputDir 二选一。' },
       resumeFrom: { type: 'string', description: '继续处理一个已取消或失败的批次（填它的批次 id）：沿用原输入和输出根目录，已完成的模型调用直接复用，只处理剩下的部分。填写时可省略 inputDir。' },
+      assessScene: { type: 'string', description: '匿名化效果评估的使用场景（决定场景系数 S，报告按 A = K × S × E 判定，A ≥ 1 达标）：enclaveSame 组织内同一事业群 1/3、enclaveCross 组织内跨事业群 1/4、controlledTwo 组织外两方 1/5、controlledMulti 组织外多方 1/6、public 对外公开 1/20。省略时用设置里的默认值。' },
+      assessEnvironment: { type: 'number', description: '环境系数 E（0.1–10，中间值 1）：数据流通环境的技术与管理保障能力，越强越大。省略时用设置里的默认值。' },
     },
     // Model endpoint, model, key and thinking mode always come from the user's
     // saved settings: the agent cannot redirect patient text elsewhere.
@@ -78,6 +97,8 @@ export function apply(ctx, config = {}) {
       resumeFrom: args.resumeFrom,
       outputRoot: args.outputRoot,
       maxRounds: args.maxRounds,
+      assessScene: args.assessScene,
+      assessEnvironment: args.assessEnvironment,
       source: { kind: 'agent', sessionId: sessionIdOf(exec?.agent) },
     }),
     render: (args, value) => [{
@@ -183,7 +204,7 @@ export function apply(ctx, config = {}) {
 
   ctx.tools.register(tool({
     name: 'anonymize_report',
-    description: '读取匿名化批次的 Markdown 报告（汇总、文件明细、残留问题、人工复核清单）。',
+    description: '读取匿名化批次的 Markdown 报告（汇总、文件明细、残留问题、人工复核清单、匿名化效果评估 K/A 值与标识度分级）。正式的 Word 版《匿名化效果评估报告》在批次记录目录 _records/runs/<批次>/ 里，路径写在报告中。',
     parameters: {
       runId: { type: 'string', description: '批次 id；省略则取最近一批。' },
     },
@@ -384,6 +405,11 @@ export function apply(ctx, config = {}) {
           return { ok: true, value: await service.start({ ...request, source: { kind: 'panel' } }) }
         case 'advice':
           return { ok: true, value: await service.advice(request.runId) }
+        case 'formalReport': {
+          const info = await service.formalReport(request.runId, { regenerate: request.regenerate === true })
+          if (request.open === true) await openFile(info.path, request.reveal === true)
+          return { ok: true, value: info }
+        }
         case 'pickFile': {
           const paths = await pickPaths('file')
           return { ok: true, value: { path: paths[0] ?? null, paths } }

@@ -682,7 +682,7 @@ async function main() {
     assert.deepEqual((await readdir(join(layoutRoot, '_records'))).filter((name) => !/-(wal|shm)$/.test(name)).sort(), ['index.json', RECORDS_FILE, 'runs', 'vault.json', 'vault.sqlite'])
     assert.equal((await stat(join(layoutRoot, '_records', RECORDS_FILE))).mode & 0o777, 0o600)
     // Comparison, review list and the rest are in the records; only the report exports are files.
-    assert.deepEqual((await readdir(join(layoutRoot, '_records', 'runs', 'lay-1'))).sort(), ['report.json', 'report.md'])
+    assert.deepEqual((await readdir(join(layoutRoot, '_records', 'runs', 'lay-1'))).sort(), ['report.json', 'report.md', '匿名化效果评估报告.docx'])
     await stat(join(layoutRoot, '_records', 'runs', 'old-1', 'report.md'))
     const moved = new Vault(join(layoutRoot, '_records', 'vault.json'))
     await moved.load()
