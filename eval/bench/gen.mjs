@@ -1,9 +1,15 @@
 /**
  * Synthetic, labelled medical corpus for the anonymization benchmark.
  *
- *   node eval/bench/gen.mjs <workDir> [seed]
+ *   node eval/bench/gen.mjs <workDir> [seed] [--patients N] [--docs N]
  *
  * Writes <workDir>/corpus/** and <workDir>/gold.json. Deterministic (seeded).
+ * Default: 18 patients, 5 documents each (the published benchmark; unchanged
+ * by the options). --patients scales everything: documents, the record-level
+ * JSON files, the platform exports and the two tables (lab results ≈ 3.3 rows
+ * and prescriptions ≈ 2.2 rows per patient), so the tables have enough people
+ * for the effect assessment (K anonymity). --docs sets documents per patient
+ * (0–12).
  * Everything is invented: people, numbers, places and institutions (fictional
  * cities such as 东江市, 云溪县); identity numbers only have the right shape
  * and checksum.
@@ -22,8 +28,23 @@
 import { mkdir, writeFile, rm } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 
-const outDir = process.argv[2] ?? 'eval/bench/.tmp'
-const seed = Number(process.argv[3] ?? 20261113)
+const argv = process.argv.slice(2)
+const flag = (name, fallback) => {
+  const at = argv.indexOf(`--${name}`)
+  if (at < 0) return fallback
+  const value = Number(argv[at + 1])
+  argv.splice(at, 2)
+  if (!Number.isInteger(value) || value < 0) throw new Error(`--${name} needs a whole number`)
+  return value
+}
+const PATIENTS = flag('patients', 18)
+const DOCS = Math.min(12, flag('docs', 5))
+if (PATIENTS < 1 || PATIENTS > 20000) throw new Error('--patients must be 1–20000')
+const outDir = argv[0] ?? 'eval/bench/.tmp'
+const seed = Number(argv[1] ?? 20261113)
+// Scale of the tables and exports relative to the 18-patient benchmark.
+const scaled = (n) => Math.max(1, Math.round((n * PATIENTS) / 18))
+const PAD = Math.max(2, String(PATIENTS).length)
 
 let state = seed >>> 0
 const rand = () => {
@@ -76,14 +97,16 @@ function personName(kind = 'plain', sex = chance(0.5) ? '男' : '女') {
     const pool = sex === '女' ? GIVEN_F : GIVEN_M
     let name
     if (kind === 'compound') name = pick(COMPOUND) + pick(pool) + (chance(0.5) ? pick(pool) : '')
-    else if (kind === 'minority') name = pick(MINORITY)
-    else if (kind === 'tibetan') name = pick(TIBETAN)
+    // Few such names exist: once they are taken (large corpora), plain ones.
+    else if (kind === 'minority' && tries < 50) name = pick(MINORITY)
+    else if (kind === 'tibetan' && tries < 50) name = pick(TIBETAN)
+    else if (kind === 'minority' || kind === 'tibetan') name = pick(SURNAMES) + pick(pool) + pick(pool)
     else name = pick(SURNAMES) + pick(pool) + (chance(0.7) ? pick(pool) : '')
     if (clashes(name)) continue
     used.add(name)
     return name
   }
-  throw new Error('name pool exhausted')
+  throw new Error('name pool exhausted (too many patients for the name lists)')
 }
 
 // ---------------------------------------------------------------- numbers
@@ -217,7 +240,7 @@ function patient(index) {
     admit: `2024-0${int(1, 9)}-${pad(int(1, 28))}`,
   }
 }
-const patients = Array.from({ length: 18 }, (_, i) => patient(i))
+const patients = Array.from({ length: PATIENTS }, (_, i) => patient(i))
 const labStaff = [personName(), personName(), personName()]
 const pharmacists = [personName(), personName()]
 const consultant = personName()
@@ -446,18 +469,18 @@ const KIND_ZH = {
 const files = []
 const kinds = Object.keys(T)
 patients.forEach((p, i) => {
-  const chosen = shuffle(kinds).slice(0, 5)
-  if (!chosen.includes('admission') && i % 2 === 0) chosen[0] = 'admission'
+  const chosen = shuffle(kinds).slice(0, DOCS)
+  if (DOCS > 0 && !chosen.includes('admission') && i % 2 === 0) chosen[0] = 'admission'
   for (const kind of chosen) {
     const ext = kind === 'consult' ? 'md' : 'txt'
-    files.push({ name: `患者${pad(i + 1)}/${KIND_ZH[kind].replace(/（.*）/, '')}.${ext}`, kind, doc: T[kind](p) })
+    files.push({ name: `患者${pad(i + 1, PAD)}/${KIND_ZH[kind].replace(/（.*）/, '')}.${ext}`, kind, doc: T[kind](p) })
   }
-  if (i % 3 === 0) files.push({ name: `患者${pad(i + 1)}/病历条目.json`, kind: 'emr-json', doc: emrItems(p) })
+  if (i % 3 === 0) files.push({ name: `患者${pad(i + 1, PAD)}/病历条目.json`, kind: 'emr-json', doc: emrItems(p) })
 })
-files.push({ name: '平台导出/门诊就诊记录.json', kind: 'export-json', doc: platformExport(18, 'outpatient') })
-files.push({ name: '平台导出/住院就诊记录.json', kind: 'export-json', doc: platformExport(14, 'inpatient') })
-files.push({ name: '报表/检验结果.csv', kind: 'lab-csv', doc: labCsv(60) })
-files.push({ name: '报表/处方明细.csv', kind: 'rx-csv', doc: prescriptionCsv(40) })
+files.push({ name: '平台导出/门诊就诊记录.json', kind: 'export-json', doc: platformExport(scaled(18), 'outpatient') })
+files.push({ name: '平台导出/住院就诊记录.json', kind: 'export-json', doc: platformExport(scaled(14), 'inpatient') })
+files.push({ name: '报表/检验结果.csv', kind: 'lab-csv', doc: labCsv(scaled(60)) })
+files.push({ name: '报表/处方明细.csv', kind: 'rx-csv', doc: prescriptionCsv(scaled(40)) })
 
 // Unusual name forms are a difficulty wherever the name appears.
 const NAME_CASE = { compound: '复姓', minority: '少数民族姓名（含间隔号）', tibetan: '藏族姓名' }
@@ -480,7 +503,7 @@ for (const file of files) {
 }
 
 await rm(join(outDir, 'corpus'), { recursive: true, force: true })
-const gold = { seed, kinds: KIND_ZH, files: [] }
+const gold = { seed, patients: PATIENTS, docsPerPatient: DOCS, kinds: KIND_ZH, files: [] }
 for (const file of files) {
   const path = join(outDir, 'corpus', file.name)
   await mkdir(dirname(path), { recursive: true })

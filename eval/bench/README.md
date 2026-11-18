@@ -16,6 +16,7 @@ node eval/bench/score.mjs $W rules model model@2 model@3 rules+model rules+model
 node eval/bench/report.mjs $W docs/benchmark/index.html
 ```
 
+- **更大的语料**：`node eval/bench/gen.mjs <目录> [种子] --patients 500 [--docs 5]` 按病人数等比放大文书、病历条目、平台导出和两张表（检验结果约每人 3.3 行、处方约每人 2.2 行），用于检验匿名化效果评估（K 匿名值）。不加参数时生成的仍是 18 位病人的评测语料，与之前逐字节相同。
 - **模型端点**：先读环境变量 `DETECT_URL` / `DETECT_MODEL` / `VERIFY_URL` / `VERIFY_MODEL`；没有设置时，读 DSH profile 里本插件的设置（见 `models.mjs`）。
 - **请求并发**：用 `BENCH_SLOTS` 设置，默认 8，所有配置相同。
 - **重复运行**：配置名后加 `@标签` 表示重复运行，结果另存。报告会把同一配置的多次运行合并，取中位并标出范围。

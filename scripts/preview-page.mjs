@@ -8,9 +8,18 @@
  *
  * Needs React 18 UMD files; set REACT_UMD_DIR to a node_modules folder that
  * holds react/umd and react-dom/umd.
+ *
+ * PREVIEW_MODELS=1 uses the model endpoints saved in the DSH profile
+ * (DSH_PROFILE, default "desktop"), so a batch started here runs with the
+ * models (used to record the README animations; synthetic data only).
+ * PREVIEW_QUASI=1 turns quasi-identifier handling on. PREVIEW_VERSION shows
+ * another version; PREVIEW_DEMO=1 leaves out this machine's disk readings
+ * (no low-disk alert in recordings).
  */
 import http from 'node:http'
 import { readFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createService } from '../lib/service.js'
@@ -23,7 +32,26 @@ if (!outputRoot || !umd) {
   console.error('usage: REACT_UMD_DIR=<node_modules> node scripts/preview-page.mjs <outputRoot> [port]')
   process.exit(1)
 }
-const service = createService({ config: { outputRoot }, defaultDirectory: outputRoot })
+/** The plugin's saved model settings in a DSH profile (no secrets printed). */
+function profileModels() {
+  try {
+    const text = readFileSync(join(homedir(), '.dsh', 'profiles', process.env.DSH_PROFILE ?? 'desktop', 'cordis.patch.yml'), 'utf8')
+    const start = text.search(/^- id: medical-anonymizer\s*$/m)
+    if (start < 0) return {}
+    const rest = text.slice(start + 1)
+    const end = rest.search(/^- id: /m)
+    const block = end < 0 ? rest : rest.slice(0, end)
+    const read = (key) => block.match(new RegExp(`^\\s+${key}:\\s*['"]?([^'"\\n]*)['"]?\\s*$`, 'm'))?.[1]?.trim() || ''
+    return Object.fromEntries(['baseURL', 'model', 'apiKey', 'verifyBaseURL', 'verifyModel', 'verifyApiKey'].map((key) => [key, read(key)]).filter(([, value]) => value))
+  } catch {
+    return {}
+  }
+}
+const models = process.env.PREVIEW_MODELS === '1' ? profileModels() : {}
+const service = createService({
+  config: { outputRoot, disableThinking: true, ...models, ...(process.env.PREVIEW_QUASI === '1' ? { quasiIdentifiers: true } : {}) },
+  defaultDirectory: outputRoot,
+})
 
 const page = `<!doctype html><meta charset="utf-8"><title>preview</title>
 <style>html,body,#root{margin:0;height:100%}
@@ -61,18 +89,22 @@ body{background:var(--dsw-alias-bg-base);font-family:-apple-system,"PingFang SC"
   }
   const pick = new URLSearchParams(location.search).get('station')
   if (pick) {
-    const order = ['prescan', 'read', 'discover', 'rules', 'blind', 'repair', 'rescan', 'pack', 'review', 'deliver']
+    const order = ['prescan', 'read', 'discover', 'rules', 'blind', 'repair', 'rescan', 'pack', 'review', 'assess', 'deliver']
     const timer = setInterval(() => {
       const nodes = document.querySelectorAll('.wd-st')
-      if (nodes.length === 10) { nodes[order.indexOf(pick)].dispatchEvent(new MouseEvent('click', { bubbles: true })); clearInterval(timer) }
+      if (nodes.length === order.length && document.querySelector('.wd-st-hit')) { nodes[order.indexOf(pick)].dispatchEvent(new MouseEvent('click', { bubbles: true })); clearInterval(timer) }
     }, 200)
   }
 </script>`
 
 const handlers = {
-  config: () => service.configInfo(),
+  config: () => ({ ...service.configInfo(), ...(process.env.PREVIEW_VERSION ? { version: process.env.PREVIEW_VERSION } : {}) }),
   list: () => service.list(),
-  status: (p) => service.status(p.runId),
+  status: async (p) => {
+    const value = await service.status(p.runId)
+    if (process.env.PREVIEW_DEMO === '1' && value?.run) value.run = { ...value.run, disk: undefined }
+    return value
+  },
   report: (p) => service.report(p.runId),
   advice: (p) => service.advice(p.runId),
   calls: (p) => service.calls(p.runId, p.since),
@@ -84,6 +116,11 @@ const handlers = {
   reviewField: (p) => service.reviewField(p.runId, p.field, p.action, { type: p.type ?? null }),
   reviewDecide: (p) => service.reviewDecide(p.runId, p.itemId, p.action, { removeIndexes: p.removeIndexes ?? null, type: p.type ?? null }),
   imageCheck: (p) => service.imageCheck(p.runId, { only: p.itemIds ?? null }),
+  ping: (p) => service.ping(p),
+  formalReport: (p) => service.formalReport(p.runId, { regenerate: p.regenerate === true }),
+  start: (p) => service.start({ ...p, source: { kind: 'panel' } }),
+  cancel: (p) => service.cancel(p.runId),
+  manualEdits: (p) => service.manualEdits(p.runId),
 }
 
 http.createServer(async (req, res) => {
