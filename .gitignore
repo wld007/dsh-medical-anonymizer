@@ -11,3 +11,5 @@ _medical-anonymizer/
 .claude/
 .agents/
 eval/bench/.tmp/
+# Reference specifications kept locally (third-party documents, not redistributed)
+docs/*.pdf
