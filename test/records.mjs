@@ -344,7 +344,9 @@ if (hasSqlite) {
   await rm(mvRootA, { recursive: true, force: true })
   await rm(mvInA, { recursive: true, force: true })
   const mvState = join(tmp, 'mv-state')
-  const mvService = createService({ config: { model: '' }, defaultDirectory: tmp, stateDir: mvState })
+  // This computer's settings differ (quasi-identifiers on, a phone number
+  // allowed): the resume keeps the rules the batch was started with.
+  const mvService = createService({ config: { model: '', quasiIdentifiers: true, allowValues: ['13800138000'], maxRounds: 5 }, defaultDirectory: tmp, stateDir: mvState })
   await check('换电脑：打开拷来的输出位置（选根目录、_records 或 output 都行），批次加入列表', async () => {
     assert.equal((await mvService.list()).runs.some((item) => item.id === 'mv-1'), false)
     await assert.rejects(mvService.openRoot(mvInB), /不是匿名化输出位置/)
@@ -360,7 +362,7 @@ if (hasSqlite) {
     assert.equal(run.outputRoot, mvRootB)
     assert.equal(run.runDir, join(mvRootB, '_records', 'runs', 'mv-1'))
   })
-  await check('换电脑续跑：原输入不在时提示选择；给出新位置后沿用已完成的文件（按内容比对），写回拷来的输出位置', async () => {
+  await check('换电脑续跑：原输入不在时提示选择；给出新位置后沿用已完成的文件（按内容比对），沿用原批次的规则，写回拷来的输出位置', async () => {
     await assert.rejects(mvService.start({ resumeFrom: 'mv-1' }), (error) => error.code === 'resume-input-missing' && error.details.inputKind === 'dir')
     const started = await mvService.start({ resumeFrom: 'mv-1', inputDir: mvInB })
     for (let i = 0; i < 200 && (await mvService.status(started.runId)).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 25))
@@ -368,6 +370,9 @@ if (hasSqlite) {
     assert.equal(run.status, 'completed')
     assert.equal(run.totals.reusedFiles, mvDone)
     assert.ok(mvDone >= 1)
+    assert.equal(run.config.policy.quasiEnabled, false)
+    assert.deepEqual(run.config.policy.allowValues, [])
+    assert.equal(run.config.maxRounds, 3)
     assert.ok(run.output.startsWith(join(mvRootB, 'output') + '/'), run.output)
     for (const name of Object.keys(notes)) assert.doesNotMatch(await readFile(join(run.output, name), 'utf8'), /13800138000|11010519491231002X|13900139000/)
   })

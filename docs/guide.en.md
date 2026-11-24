@@ -260,9 +260,9 @@ works). Its batches join the list and are remembered.
   is now: the content must be the same, the path need not be. Finished files are
   matched by content and taken over. Results recorded by 0.11.3 match by size and
   a modification time within 2 s (Finder copies, `ditto` and zip keep that);
-  other files are processed again, still replaying their model replies. The
-  anonymization rules and maximum rounds must match the original computer's, or
-  finished files are processed again as well.
+  other files are processed again, still replaying their model replies. A resume
+  keeps the batch's own anonymization rules and maximum rounds, whatever this
+  computer's settings are; the model is this computer's.
 - Keep working on one side only: the vault and review records of two copies
   cannot be merged. To go back, copy the whole folder back.
 - `_records` holds original values: encrypt it in transit.
