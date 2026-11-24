@@ -483,6 +483,11 @@ window.__ModuleLoader__.load({
       'ws.m.srvLine': '在跑 {running} · 排队 {waiting} · KV {kv}% · 生成 {gen} tok/s（整台）',
       'ws.m.srvPeakLine': '峰值 在跑 {running} · 排队 {waiting} · KV {kv}%（整台）',
       'ws.m.lgSrvQ': '服务器排队',
+      'ws.m.cRecent': '近 30 分钟',
+      'ws.m.cAll': '全程 {span}',
+      'ws.m.cNowTick': '现在',
+      'ws.m.cEndTick': '结束',
+      'ws.m.cLimOffHint': '纵轴按在途请求的高峰定；并发上限 {n} 远高于它，画在顶边，不按比例',
       'ws.m.lgSrvQHint': '推理服务器自己的排队（vLLM /metrics，整台服务器），画在轴下方与插件排队对照；为 0 时贴着轴线。读不到服务器指标或旧批次没有记录时不画。',
       'ws.m.srvHint': '推理服务器自己的指标（vLLM /metrics，含其他客户端的请求）：运行 = 服务器正在计算的请求数，排队 = 服务器内部等待的请求数，KV = KV 缓存占用。结束后显示峰值。',
       'ws.m.srvNaHint': '读取不到服务器的 /metrics（不是 vLLM、未开放或需要认证），只能参考插件这边的数字。',
@@ -1514,6 +1519,11 @@ window.__ModuleLoader__.load({
       'ws.m.srvLine': 'running {running} · waiting {waiting} · KV {kv}% · generating {gen} tok/s (whole server)',
       'ws.m.srvPeakLine': 'peak running {running} · waiting {waiting} · KV {kv}% (whole server)',
       'ws.m.lgSrvQ': 'server queue',
+      'ws.m.cRecent': 'Last 30 min',
+      'ws.m.cAll': 'Whole run {span}',
+      'ws.m.cNowTick': 'now',
+      'ws.m.cEndTick': 'end',
+      'ws.m.cLimOffHint': 'The scale follows the peak of requests in flight; the limit {n} is far above it and is drawn on the top edge, not to scale',
       'ws.m.lgSrvQHint': 'The inference server’s own queue (vLLM /metrics, whole server), drawn below the axis next to the plugin queue; at 0 it lies on the axis. Not drawn when the server metrics cannot be read or for batches recorded before this.',
       'ws.m.srvHint': 'The inference server’s own metrics (vLLM /metrics, other clients included): running = requests being computed, waiting = queued on the server, KV = KV-cache use. Peaks after the batch.',
       'ws.m.srvNaHint': 'The server’s /metrics cannot be read (not vLLM, not exposed, or needs auth); only the plugin’s numbers are available.',
@@ -2635,6 +2645,8 @@ window.__ModuleLoader__.load({
       .ws-busy-qd{fill:color-mix(in srgb,var(--ws-accent) 18%,transparent)}
       .ws-busy-qv{fill:color-mix(in srgb,#3b82c4 18%,transparent)}
       .wd-concs{display:flex;flex-direction:column;gap:8px}
+      .wd-conc-view{display:flex;gap:4px}.wd-conc-view .ws-cmp-filter{flex:none;padding:0 8px;font-size:10.5px;line-height:18px}
+      .wd-conc-span{display:flex;justify-content:space-between;margin:-2px 26px 0 26px;font-size:9.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dsw-alias-label-secondary);opacity:.75}
       .wd-conc{display:flex;flex-direction:column;gap:2px}
       .wd-conc-h{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dsw-alias-label-secondary)}
       .wd-conc-h>i{display:inline-block;width:10px;height:3px;border-radius:2px}
@@ -4543,6 +4555,15 @@ window.__ModuleLoader__.load({
     const BATCH_CODES = new Set([...ACK_CODES, ...INFO_CODES])
     // Progress as a whole percent: rounded down, so it shows 100 % only when
     // all of it is done (2742 of 2750 is 99 %, not 100 %).
+    // A share as a whole percent (number only, the template adds "%"): a
+    // share that is there never shows 0, one short of all never shows 100.
+    const sharePct = (value, whole) => {
+      if (!(whole > 0) || !(value > 0)) return '0'
+      const pct = (value / whole) * 100
+      if (pct < 1) return '<1'
+      if (value < whole && pct >= 99.5) return '>99'
+      return String(Math.round(pct))
+    }
     const progressPct = (done, total) => (total > 0 ? (done >= total ? 100 : Math.min(99, Math.floor((done / total) * 100))) : 0)
     const OPAQUE_REVIEW = new Set(['opaque', 'opaque-token', 'unreadable', 'opaque-check', 'dicom-document', ...BATCH_CODES])
     // Everything the batch did not check: content it could not read (images
@@ -5455,6 +5476,9 @@ window.__ModuleLoader__.load({
       const [manualMenu, setManualMenu] = React.useState(null)
       // Keeping content nobody read waits for this confirmation.
       const [keepConfirm, setKeepConfirm] = React.useState(null)
+      // Concurrency charts: the last 30 minutes or the whole run (null: chosen
+      // by the run, recent while a long batch runs).
+      const [concView, setConcView] = React.useState(null)
       const [manualBusy, setManualBusy] = React.useState(false)
       React.useEffect(() => {
         if (!manualMenu) return undefined
@@ -6975,7 +6999,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'ws-fold', onClick: toggleCross, 'aria-expanded': collapsed ? 'false' : 'true', title: collapsed ? t('ws.expand') : t('ws.collapse') },
               h('h3', { 'data-code': 'C3' }, t('ws.x.title')),
               h('span', { className: 'ws-fold-arrow' }, collapsed ? '▸' : '▾')),
-            collapsed && judged >= 5 ? h('span', { className: 'ma-mono ws-res-mini' }, t('ws.x.agreeShort', { pct: Math.round((parts[0][1] / judged) * 100) })) : null),
+            collapsed && judged >= 5 ? h('span', { className: 'ma-mono ws-res-mini' }, t('ws.x.agreeShort', { pct: sharePct(parts[0][1], judged) })) : null),
           // Always the full layout: values are "—" / 0 until a batch has data.
           collapsed ? null : h(React.Fragment, {},
             // One header line, the two-tier bar, one line per non-empty branch
@@ -7006,7 +7030,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'ws-x-line ws-x-foot' },
               h('span', { title: judged > 0 && judged < 5 ? t('ws.x.fewHint') : `${t('ws.x.agreeHint')}\n${t('ws.x.splitHint')}` },
                 judged >= 5
-                  ? t('ws.x.rates', { agree: Math.round((parts[0][1] / judged) * 100), dispute: Math.round((parts[2][1] / reported) * 100) })
+                  ? t('ws.x.rates', { agree: sharePct(parts[0][1], judged), dispute: sharePct(parts[2][1], reported) })
                   : judged > 0 ? t('ws.x.fewRates', { n: judged }) : t('ws.x.noRates')),
               judgedItems.some((item) => item.decision) ? h('span', { title: t('ws.x.humanHint') }, t('ws.x.humanVal', { v: verifierRight, d: detectorRight })) : null,
               waiting ? h('button', { type: 'button', className: 'ma-link ws-x-sub', title: t('ws.x.humanHint'), onClick: () => openCompare({ filter: 'review' }) }, t('ws.x.pending', { n: waiting })) : null),
@@ -7089,7 +7113,7 @@ window.__ModuleLoader__.load({
                 const replayed = Number(totals.replayedSegments ?? 0)
                 const skipped = Number(totals.memoHits ?? 0)
                 const whole = sent + replayed + skipped
-                const pct = (value) => `${Math.round((value / whole) * 100)}%`
+                const pct = (value) => `${sharePct(value, whole)}%`
                 const splitBar = whole > 0 && sent + replayed > 0
                   ? h('div', { className: 'ws-splitbox', title: t('ws.m.splitHint', { sent, replayed, skipped }) },
                     h('div', { className: 'ws-split' },
@@ -7224,7 +7248,7 @@ window.__ModuleLoader__.load({
                   if (!m?.calls) return '—'
                   const fails = Object.values(m.fails ?? {}).reduce((a, b) => a + b, 0)
                   const pct = (fails / m.calls) * 100
-                  return h('span', { className: fails ? 'ws-fail-bad' : '' }, `${pct < 10 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%${m.retries ? ` ↻${m.retries}` : ''}`)
+                  return h('span', { className: fails ? 'ws-fail-bad' : '' }, `${fails > 0 && pct < 0.1 ? '<0.1' : pct < 10 && pct > 0 ? pct.toFixed(1) : Math.round(pct)}%${m.retries ? ` ↻${m.retries}` : ''}`)
                 }
                 const failHint = (m) => {
                   const parts = Object.entries(m?.fails ?? {}).map(([code, count]) => `${FAIL_LABEL(code)} ${count}`)
@@ -7257,7 +7281,42 @@ window.__ModuleLoader__.load({
                   ]))
                 // Busy chart: requests in flight per model over time; the
                 // queued part is shaded above each line, the dashed line is the limit.
-                const series = current?.loadSeries
+                const fullSeries = current?.loadSeries
+                // Every `n` readings as one point: load averaged, running totals
+                // and limits from the last reading of the group.
+                const averaged = (rows, n) => {
+                  const out = { step: Number(rows.step ?? 2000) * n, points: [], limits: [], done: [], io: [], srv: [] }
+                  // Groups end at the newest reading, so "now" is always a full point.
+                  for (let end = rows.points.length; end > 0; end -= n) {
+                    const from = Math.max(0, end - n)
+                    const group = rows.points.slice(from, end)
+                    out.points.unshift(group[0].map((_, slot) => group.reduce((sum, row) => sum + (Number(row[slot]) || 0), 0) / group.length))
+                    for (const key of ['limits', 'done', 'io']) if (rows[key]?.length === rows.points.length) out[key].unshift(rows[key][end - 1])
+                    if (rows.srv?.length === rows.points.length) {
+                      const cells = rows.srv.slice(from, end)
+                      out.srv.unshift(cells[cells.length - 1]?.map((entry, slot) => {
+                        const seen = cells.map((row) => row?.[slot]).filter(Boolean)
+                        return seen.length ? entry?.map((_, i) => seen.reduce((sum, value) => sum + value[i], 0) / seen.length) ?? null : null
+                      }) ?? null)
+                    }
+                  }
+                  return out
+                }
+                // A long run is read up close: the last 30 minutes at 2 s while it
+                // runs (the whole run is a click away). Older batches keep only the
+                // whole run; their last 30 minutes are cut from it.
+                const RECENT_MS = 30 * 60 * 1000
+                const fullSpan = (fullSeries?.points?.length ?? 0) * Number(fullSeries?.step ?? 2000)
+                const longRun = fullSpan > RECENT_MS * 1.2
+                const view = !longRun ? 'all' : concView ?? (running ? 'recent' : 'all')
+                const series = (() => {
+                  if (view === 'all' || !fullSeries) return fullSeries
+                  // 2 s readings, averaged to 10 s points: the plot is ~300 px wide.
+                  if (fullSeries.recent?.points?.length >= 2) return averaged(fullSeries.recent, 5)
+                  const keep = Math.max(2, Math.round(RECENT_MS / Number(fullSeries.step ?? 2000)))
+                  const cut = (rows) => (Array.isArray(rows) ? rows.slice(-keep) : rows)
+                  return { ...fullSeries, points: cut(fullSeries.points), limits: cut(fullSeries.limits), done: cut(fullSeries.done), io: cut(fullSeries.io), srv: cut(fullSeries.srv) }
+                })()
                 // Current slots per model sit in the chart legend.
                 // Concurrency per model, one chart each. The solid line and area
                 // are the requests actually in flight; the dashed step line is the
@@ -7280,8 +7339,15 @@ window.__ModuleLoader__.load({
                   const steps = state?.history ?? []
                   const last = steps[steps.length - 1]
                   const nowLimit = empty ? fixed : limOf(points.length - 1)
-                  const top = Math.max(1, ...points.map((p, i) => Math.max(p[ai] ?? 0, limOf(i))))
+                  // Scale fitted to the load shown: a slot limit far above it (64
+                  // slots, 5 in use) would flatten the line, so such a limit is
+                  // drawn on the top edge and named in the gutter instead.
+                  const loadTop = Math.max(1, ...points.map((p) => p[ai] ?? 0))
+                  const limTop = Math.max(1, ...points.map((_, i) => limOf(i)))
+                  const limitOff = limTop > Math.max(4, loadTop * 2)
+                  const top = limitOff ? Math.max(2, Math.ceil(loadTop * 1.25)) : Math.max(loadTop, limTop)
                   const qMax = Math.max(1, ...points.map((p) => p[qi] ?? 0), ...(series?.srv?.length === points.length ? series.srv.map((row) => row?.[slot]?.[1] ?? 0) : []))
+                  const spanMs = points.length * stepMs
                   // Throughput per sample over the tuner's window; batches before
                   // the io series fall back to output tokens.
                   const ioRows = series?.io
@@ -7291,6 +7357,8 @@ window.__ModuleLoader__.load({
                   const thrLabel = ioRows?.length === points.length ? t('ws.m.cThr') : t('ws.m.cThrOut')
                   const k = Math.max(1, Math.round(30000 / stepMs))
                   const thr = cum.length === points.length ? cum.map((value, i) => (i === 0 ? 0 : Math.max(0, value - cum[Math.max(0, i - k)]) / ((Math.min(i, k) * stepMs) / 1000))) : []
+                  // The first point has nothing before it: it takes the next one's value.
+                  if (thr.length > 1) thr[0] = thr[1]
                   const thrMax = Math.max(1, ...thr)
                   // The inference server over the same samples (whole server,
                   // other clients included): its own queue is drawn below the axis.
@@ -7329,7 +7397,7 @@ window.__ModuleLoader__.load({
                       chip ? h('span', { className: `wd-conc-chip wd-conc-${tone}` }, chip) : null),
                     h('div', { className: 'ws-busy-plot wd-conc-plot' },
                       h('div', { className: 'ws-busy-gutter', 'aria-hidden': 'true' },
-                        h('span', {}, String(top)), h('span', { className: 'ws-busy-zero' }, '0'), h('span', {}, t('ws.m.queueTag'))),
+                        h('span', { title: limitOff ? t('ws.m.cLimOffHint', { n: limTop }) : undefined }, limitOff ? `${Math.round(top)}↑` : String(Math.round(top))), h('span', { className: 'ws-busy-zero' }, '0'), h('span', {}, t('ws.m.queueTag'))),
                       h('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': `${role} ${t('ws.m.busy')}` },
                         empty ? null : h('path', { className: `ws-busy-f${cls}`, d: `${line((p) => up(p[ai] ?? 0))} L${W} ${AX} L0 ${AX} Z` }),
                         empty ? null : h('path', { className: `ws-busy-l${cls} ws-busy-q`, d: line((p) => down(p[qi] ?? 0)) }),
@@ -7340,6 +7408,8 @@ window.__ModuleLoader__.load({
                         empty ? null : h('path', { className: `wd-conc-act ws-busy-l${cls}`, d: line((p) => up(p[ai] ?? 0)) })),
                       h('div', { className: 'wd-conc-rg', 'aria-hidden': 'true' }, thr.length ? h('span', {}, fmtTok(thrMax)) : null),
                       empty ? h('span', { className: 'ws-busy-wait' }, running ? t('ws.m.busyCollect') : t('ws.m.busyIdle')) : null),
+                    // Time span shown, under the plot.
+                    empty ? null : h('div', { className: 'wd-conc-span' }, h('span', {}, `−${fmtSpan(spanMs)}`), h('span', {}, running ? t('ws.m.cNowTick') : t('ws.m.cEndTick'))),
                     srvNow?.available === true
                       ? h('div', { className: 'wd-conc-srv', title: srvHint(key) },
                         h('span', { className: 'wd-conc-srv-k' }, t('ws.m.srvTag')),
@@ -7353,13 +7423,17 @@ window.__ModuleLoader__.load({
                         ? h('span', {}, t('ws.m.cNow', { a: nowReq.active ?? 0, q: nowReq.queued ?? 0 }))
                         : (empty ? null : h('span', {}, t('ws.m.cPeak', { a: peakA, q: peakQ })))))
                 }
+                const fmtSpan = (ms) => (ms >= 3600000 ? `${(ms / 3600000).toFixed(ms >= 36000000 ? 0 : 1)} h` : `${Math.max(1, Math.round(ms / 60000))} min`)
+                const viewSwitch = longRun ? h('div', { className: 'wd-conc-view', role: 'group' },
+                  ['recent', 'all'].map((id) => h('button', { key: id, type: 'button', className: `ws-cmp-filter${view === id ? ' ws-on' : ''}`, onClick: () => setConcView(id) },
+                    id === 'recent' ? t('ws.m.cRecent') : t('ws.m.cAll', { span: fmtSpan(fullSpan) })))) : null
                 const concLegend = h('div', { className: 'wd-conc-lg' },
                   h('span', {}, h('i', { className: 'wd-lg-act' }), t('ws.m.lgAct')),
                   h('span', {}, h('i', { className: 'wd-lg-lim' }), t('ws.m.lgLim')),
                   h('span', {}, h('i', { className: 'wd-lg-thr' }), t('ws.m.lgThr')),
                   h('span', {}, h('i', { className: 'wd-lg-q' }), t('ws.m.lgQ')),
                   h('span', { title: t('ws.m.lgSrvQHint') }, h('i', { className: 'wd-lg-srvq' }), t('ws.m.lgSrvQ')))
-                const concPanels = h('div', { className: 'wd-concs' }, concLegend, cols.map((key) => concPanel(key)))
+                const concPanels = h('div', { className: 'wd-concs' }, viewSwitch, concLegend, cols.map((key) => concPanel(key)))
                 return h(React.Fragment, {},
                   block('wd.secLoad', 'WORKLOAD', splitBar, sumLine),
                   block('wd.secModels', 'MODELS', table),
