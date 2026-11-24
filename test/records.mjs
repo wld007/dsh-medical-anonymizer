@@ -4,12 +4,12 @@
  * Run: node test/records.mjs
  */
 import assert from 'node:assert/strict'
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openRecords, closeRecords, useFileRecords, sqliteAvailable, RECORDS_FILE, SCHEMA_VERSION } from '../lib/records.js'
 import { isOutputRoot } from '../lib/layout.js'
-import { createService } from '../lib/service.js'
+import { createService, relocateRun } from '../lib/service.js'
 import { runBatch } from '../lib/pipeline.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -320,6 +320,74 @@ if (hasSqlite) {
     const listed = (await cutService.list()).runs.find((item) => item.id === 'live-1')
     assert.equal(listed.status, 'running')
     await cutStore.deleteRun('live-1')
+  })
+
+  // Another computer: the output root and the input are copied elsewhere
+  // (new paths, new modification times); the batch is opened there and
+  // continued with the input where it is now.
+  const mvInA = join(tmp, 'mv-in-a')
+  const mvRootA = join(tmp, 'mv-out-a')
+  await mkdir(mvInA, { recursive: true })
+  for (const [name, body] of Object.entries(notes)) await writeFile(join(mvInA, name), body)
+  {
+    const controller = new AbortController()
+    await runBatch({ inputDir: mvInA, outputRoot: mvRootA, signal: controller.signal, options: { runId: 'mv-1', concurrency: 1 }, onEvent: ({ phase }) => { if (phase === 'file-done') controller.abort() } })
+  }
+  const mvDone = (await (await openRecords(join(mvRootA, '_records'))).getFileResults('mv-1')).size
+  await closeRecords()
+  const mvInB = join(tmp, 'elsewhere', 'mv-in-b')
+  const mvRootB = join(tmp, 'elsewhere', 'mv-out-b')
+  await mkdir(mvInB, { recursive: true })
+  await new Promise((r) => setTimeout(r, 30))
+  for (const [name, body] of Object.entries(notes)) await writeFile(join(mvInB, name), body)
+  await cp(mvRootA, mvRootB, { recursive: true })
+  await rm(mvRootA, { recursive: true, force: true })
+  await rm(mvInA, { recursive: true, force: true })
+  const mvState = join(tmp, 'mv-state')
+  const mvService = createService({ config: { model: '' }, defaultDirectory: tmp, stateDir: mvState })
+  await check('换电脑：打开拷来的输出位置（选根目录、_records 或 output 都行），批次加入列表', async () => {
+    assert.equal((await mvService.list()).runs.some((item) => item.id === 'mv-1'), false)
+    await assert.rejects(mvService.openRoot(mvInB), /不是匿名化输出位置/)
+    const opened = await mvService.openRoot(join(mvRootB, '_records'))
+    assert.equal(opened.root, mvRootB)
+    assert.equal(opened.runs, 1)
+    assert.equal(opened.resumable, 1)
+    assert.equal((await mvService.list()).runs.find((item) => item.id === 'mv-1')?.resumable, true)
+    // Remembered: a new instance (after a restart) still lists it.
+    const again = createService({ config: { model: '' }, defaultDirectory: tmp, stateDir: mvState })
+    assert.equal((await again.list()).runs.some((item) => item.id === 'mv-1'), true)
+    const { run } = await mvService.status('mv-1')
+    assert.equal(run.outputRoot, mvRootB)
+    assert.equal(run.runDir, join(mvRootB, '_records', 'runs', 'mv-1'))
+  })
+  await check('换电脑续跑：原输入不在时提示选择；给出新位置后沿用已完成的文件（按内容比对），写回拷来的输出位置', async () => {
+    await assert.rejects(mvService.start({ resumeFrom: 'mv-1' }), (error) => error.code === 'resume-input-missing' && error.details.inputKind === 'dir')
+    const started = await mvService.start({ resumeFrom: 'mv-1', inputDir: mvInB })
+    for (let i = 0; i < 200 && (await mvService.status(started.runId)).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 25))
+    const { run } = await mvService.status(started.runId)
+    assert.equal(run.status, 'completed')
+    assert.equal(run.totals.reusedFiles, mvDone)
+    assert.ok(mvDone >= 1)
+    assert.ok(run.output.startsWith(join(mvRootB, 'output') + '/'), run.output)
+    for (const name of Object.keys(notes)) assert.doesNotMatch(await readFile(join(run.output, name), 'utf8'), /13800138000|11010519491231002X|13900139000/)
+  })
+  await closeRecords()
+
+  await check('拷来的批次记录：旧根目录下的路径换到现在的位置', async () => {
+    const run = relocateRun({
+      id: 'x', outputRoot: 'C:\\data\\_medical-anonymizer', runDir: 'C:\\data\\_medical-anonymizer\\_records\\runs\\x',
+      output: 'C:\\data\\_medical-anonymizer\\output\\病历', outputs: ['/mnt/elsewhere/output/甲'], vaultPath: 'C:\\data\\_medical-anonymizer\\_records\\vault.json',
+      review: { dir: 'C:\\data\\_medical-anonymizer\\_records\\runs\\x\\review', files: 1 }, formalReport: { path: 'C:\\data\\_medical-anonymizer\\_records\\runs\\x\\r.docx' },
+    }, '/Volumes/u/copy')
+    assert.equal(run.outputRoot, '/Volumes/u/copy')
+    assert.equal(run.runDir, '/Volumes/u/copy/_records/runs/x')
+    assert.equal(run.output, '/Volumes/u/copy/output/病历')
+    assert.deepEqual(run.outputs, ['/Volumes/u/copy/output/甲'])
+    assert.equal(run.vaultPath, '/Volumes/u/copy/_records/vault.json')
+    assert.equal(run.review.dir, '/Volumes/u/copy/_records/runs/x/review')
+    assert.equal(run.formalReport.path, '/Volumes/u/copy/_records/runs/x/r.docx')
+    const same = { id: 'y', outputRoot: '/Volumes/u/copy', output: '/Volumes/u/copy/output/a' }
+    assert.equal(relocateRun(same, '/Volumes/u/copy'), same)
   })
 
   await check('结果比对按行读写：按文字找行、只改动到的行', async () => {

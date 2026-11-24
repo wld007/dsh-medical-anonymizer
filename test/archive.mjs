@@ -4,7 +4,7 @@
  * Run: node test/archive.mjs
  */
 import assert from 'node:assert/strict'
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,6 +12,7 @@ import { runBatch, cleanStaleStaging } from '../lib/pipeline.js'
 import { writeZip } from '../lib/zip.js'
 import { createWriteGuard } from '../lib/guard.js'
 import { createService } from '../lib/service.js'
+import { closeRecords } from '../lib/records.js'
 import { outDirOf, outJoin } from './outputs.mjs'
 import { snapshotTree } from './snapshot.mjs'
 import { reviewFilesOf, pathMapOf, compareTextOf, recordsOf } from './records-read.mjs'
@@ -213,6 +214,28 @@ await check('待复核文件单独取出到 _records/runs/<批次>/review；zip 
   assert.deepEqual((await readdir(join(revRoot, '_records', 'runs', 'rev', 'staging', 'pack', 'a'))).sort(), ['bad.json', 'ok.json'])
   const report = await readFile(join(revRoot, '_records', 'runs', 'rev', 'report.md'), 'utf8')
   assert.ok(report.includes(reviewDir), report)
+})
+
+await check('换电脑复核：拷来的输出位置打开后直接复核，全部决定后交付到拷来位置的 output', async () => {
+  await closeRecords()
+  const moved = join(tmp, 'other-computer', 'rev-out')
+  await rm(moved, { recursive: true, force: true })
+  await cp(join(tmp, 'rev-out'), moved, { recursive: true })
+  const service = createService({ config: {}, defaultDirectory: tmp, stateDir: join(tmp, 'other-state') })
+  const opened = await service.openRoot(moved)
+  assert.equal(opened.review, 1)
+  const listed = await service.reviewItems('rev')
+  const [item] = listed.files[0].items
+  assert.equal(item.text, '甲乙丙')
+  const result = await service.reviewDecide('rev', item.id, 'replace')
+  assert.equal(result.status, 'completed')
+  const bad = await readFile(join(moved, 'output', 'pack', 'a', 'bad.json'), 'utf8')
+  assert.ok(!bad.includes('甲乙丙') && bad.includes(result.decision.replacement), bad)
+  const { run } = await service.status('rev')
+  assert.equal(run.output, join(moved, 'output', 'pack'))
+  // The copy's records; the original root is untouched (still awaiting review).
+  assert.deepEqual(await readdir(join(tmp, 'rev-out')), ['_records'])
+  await closeRecords()
 })
 
 await check('页面复核：列出残留及上下文；替换写回交付数据，全部决定后批次转为完成', async () => {

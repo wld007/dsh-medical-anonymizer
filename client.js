@@ -149,6 +149,9 @@ window.__ModuleLoader__.load({
       'form.inputRequired': '请先选择输入目录或文件。',
       'runs.title': '批次记录',
       'runs.refresh': '刷新',
+      'runs.open': '打开输出位置',
+      'runs.openHint': '打开另一台电脑拷来的（或本机未用过的）输出根目录：其中的批次加入列表，可以复核或继续处理',
+      'runs.opened': '已打开 {root}：{runs} 个批次，其中待复核 {review} 个、可继续处理 {resumable} 个',
       'runs.empty': '还没有批次。',
       'runs.files': '文件',
       'runs.entities': '实体',
@@ -898,7 +901,7 @@ window.__ModuleLoader__.load({
       'ws.pickedRemove': '移除',
       'ws.pickedName': '{first} 等 {count} 项',
       'ws.resume': '继续处理',
-      'ws.resumeHint': '沿用原输入和输出根目录重新开始：已完成的模型调用直接复用，只处理剩下的部分。可以先在设置里换模型再继续',
+      'ws.resumeHint': '沿用原输入和输出根目录重新开始：已完成的文件和模型调用直接复用，只处理剩下的部分。可以先在设置里换模型再继续；原输入在这台电脑上找不到时会请你选择它现在的位置',
       'ws.calls.r.cached': '复用',
       'ws.queueCount': '{done} / {total} 个文件',
       'ws.gaugeHint': '按数据量计算的进度：已处理字节（含处理中文件的估计进度）÷ 总字节',
@@ -1143,6 +1146,9 @@ window.__ModuleLoader__.load({
       'form.inputRequired': 'Choose an input directory or file first.',
       'runs.title': 'Batches',
       'runs.refresh': 'Refresh',
+      'runs.open': 'Open output folder',
+      'runs.openHint': 'Open an output root copied from another computer (or not used here yet): its batches join the list for review or resuming',
+      'runs.opened': 'Opened {root}: {runs} batches, {review} awaiting review, {resumable} can be resumed',
       'runs.empty': 'No batches yet.',
       'runs.files': 'Files',
       'runs.entities': 'Entities',
@@ -1892,7 +1898,7 @@ window.__ModuleLoader__.load({
       'ws.pickedRemove': 'Remove',
       'ws.pickedName': '{first} +{count}',
       'ws.resume': 'Resume',
-      'ws.resumeHint': 'Run again on the same input and output root, replaying finished model calls so only the rest is processed. You may switch the model in Settings first',
+      'ws.resumeHint': 'Run again on the same input and output root, reusing finished files and model calls so only the rest is processed. You may switch the model in Settings first; if the input is not found on this computer you are asked where it is now',
       'ws.calls.r.cached': 'Replayed',
       'ws.queueCount': '{done} / {total} files',
       'ws.gaugeHint': 'Progress by data volume: processed bytes (including an estimate for files in progress) ÷ total bytes',
@@ -2146,6 +2152,7 @@ window.__ModuleLoader__.load({
       .ma-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-secondary);word-break:break-all}
       .ma-empty{font-size:13px;color:var(--dsw-alias-label-secondary);margin:0}
       .ma-banner{border:1px solid var(--dsw-alias-state-error-primary);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--dsw-alias-state-error-primary)}
+      .ma-banner.ma-banner-info{border-color:var(--ws-accent, var(--dsw-alias-border-primary, #888));color:inherit}
       .ma-path{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
       .ma-select{height:28px;padding:0 6px}
       .ma-table tr.ma-off td{opacity:.45}
@@ -3275,7 +3282,7 @@ window.__ModuleLoader__.load({
       if (!connection?.rpc) return Promise.reject(new Error('connection unavailable'))
       return connection.rpc.call(CHANNEL, endpoint, payload, signal).then((response) => {
         if (!response || response.ok !== true) {
-          throw new Error(response?.error?.message ?? 'RPC failed')
+          throw Object.assign(new Error(response?.error?.message ?? 'RPC failed'), { code: response?.error?.code ?? null, details: response?.error?.details ?? {} })
         }
         return response.value
       })
@@ -5127,12 +5134,56 @@ window.__ModuleLoader__.load({
       const anyRunning = Boolean(activeRunId)
       const reportText = (current && reportCache.current.get(current.id)) ?? ''
 
+      /** One folder (or file) chosen in the native picker, else the Harness picker; null when cancelled. */
+      async function pickOne(kind) {
+        if (kind === 'file') {
+          const picked = await call('pickFile')
+          return picked?.paths?.[0] ?? picked?.path ?? null
+        }
+        try {
+          return (await call('pickFolders')).paths?.[0] ?? null
+        } catch (cause) {
+          const uiWorkspace = services.ctx.get('uiWorkspace')
+          if (!uiWorkspace?.pickDirectory) throw cause
+          return (await uiWorkspace.pickDirectory()) ?? null
+        }
+      }
+
+      // An output root copied from another computer (or not used here yet):
+      // its batches join the list, ready for review or to be continued.
+      async function openRoot() {
+        setError('')
+        setNotice('')
+        try {
+          const path = await pickOne('dir')
+          if (!path) return
+          const result = await call('openRoot', { path })
+          await refreshRuns()
+          setNotice(t('runs.opened', { root: result.root, runs: result.runs, review: result.review, resumable: result.resumable }))
+          if (result.latest) { selectRun(result.latest); setRunsOpen(false); setView('line') }
+        } catch (cause) {
+          setError(message(cause))
+        }
+      }
+
       async function resumeRun() {
         if (!current?.id) return
         setError('')
         setBusy(true)
         try {
-          const result = await call('start', { resumeFrom: current.id })
+          let result
+          try {
+            result = await call('start', { resumeFrom: current.id })
+          } catch (cause) {
+            // The input is not where it was (output root copied from another
+            // computer): ask where it is on this one, then continue.
+            if (cause?.code !== 'resume-input-missing') throw cause
+            setError(message(cause))
+            const picked = await pickOne(cause.details?.inputKind === 'file' ? 'file' : 'dir')
+            if (!picked) return
+            setError('')
+            result = await call('start', { resumeFrom: current.id, inputDir: picked })
+          }
           // Show what the resumed batch reads and where it writes, as for a new start.
           if (Array.isArray(result.inputs) && result.inputs.length > 1) { setPickedInputs(result.inputs); setInputDir('') }
           else if (result.inputDir) { setPickedInputs([]); setInputDir(result.inputDir) }
@@ -7259,6 +7310,7 @@ window.__ModuleLoader__.load({
               runs.some((run) => run.status !== 'running')
                 ? h('button', { className: 'ma-btn ma-small ws-clear', onClick: () => setDeleting({ all: true, deliverable: false, busy: false, error: '' }) }, t('ws.del.clear'))
                 : null,
+              h('button', { className: 'ma-btn ma-small', onClick: openRoot, title: t('runs.openHint') }, t('runs.open')),
               h('button', { className: 'ma-btn ma-small', onClick: refreshRuns }, t('runs.refresh'))),
             runs.length === 0
               ? h('p', { className: 'ma-empty' }, t('runs.empty'))
@@ -7605,6 +7657,7 @@ window.__ModuleLoader__.load({
             runsOpen ? runsPopover() : null),
           h('button', { type: 'button', className: 'wd-icon wd-hicon', title: t('settings.title'), 'aria-label': t('settings.title'), onClick: () => setModal('settings') }, '⚙')),
         error ? h('div', { className: 'ma-banner' }, `${t('error.title')}: ${error}`, h('button', { className: 'ma-link', style: { marginLeft: 8 }, onClick: () => setError('') }, '×')) : null,
+        notice ? h('div', { className: 'ma-banner ma-banner-info' }, notice, h('button', { className: 'ma-link', style: { marginLeft: 8 }, onClick: () => setNotice('') }, '×')) : null,
         // ── Tabs ──
         h('nav', { className: 'wd-tabs', role: 'tablist' }, TABS.map(([id, label, count, hot, group]) => h(React.Fragment, { key: id },
           group === 'sep' ? h('span', { className: 'wd-tab-sep', 'aria-hidden': 'true' }) : null,

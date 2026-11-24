@@ -85,7 +85,7 @@ export function apply(ctx, config = {}) {
       outputRoot: { type: 'string', description: '输出根目录，不能与输入目录相同；交付数据直接放在它下面，记录放在其中的 _records。省略时用设置里的默认值，再缺省则为输入目录（或输入文件）旁的 _medical-anonymizer。' },
       maxRounds: { type: 'number', description: '核验轮次上限（1–6）：每轮以核验结束，有可疑项时下一轮先复判修正再核验；省略时用设置里的默认值。' },
       inputs: { type: 'array', description: '同一目录下的多个文件或文件夹的绝对路径，作为一个批次处理，每一项分别交付到输出根目录。与 inputDir 二选一。' },
-      resumeFrom: { type: 'string', description: '继续处理一个已取消或失败的批次（填它的批次 id）：沿用原输入和输出根目录，已完成的模型调用直接复用，只处理剩下的部分。填写时可省略 inputDir。' },
+      resumeFrom: { type: 'string', description: '继续处理一个已取消、失败或中断的批次（填它的批次 id）：沿用原输入，输出写回该批次记录所在的输出根目录，已完成的文件和模型调用直接复用，只处理剩下的部分。填写时可省略 inputDir；原输入在本机不存在（例如输出根目录是从另一台电脑拷来的）时，用 inputDir 给出本机上内容相同的输入位置。' },
       assessScene: { type: 'string', description: '匿名化效果评估的使用场景（决定场景系数 S，报告按 A = K × S × E 判定，A ≥ 1 达标）：enclaveSame 组织内同一事业群 1/3、enclaveCross 组织内跨事业群 1/4、controlledTwo 组织外两方 1/5、controlledMulti 组织外多方 1/6、public 对外公开 1/20。省略时用设置里的默认值。' },
       assessEnvironment: { type: 'number', description: '环境系数 E（0.1–10，中间值 1）：数据流通环境的技术与管理保障能力，越强越大。省略时用设置里的默认值。' },
     },
@@ -416,6 +416,8 @@ export function apply(ctx, config = {}) {
         }
         case 'pickFolders':
           return { ok: true, value: { paths: await pickPaths('folder') } }
+        case 'openRoot':
+          return { ok: true, value: await service.openRoot(request.path) }
         case 'saveDefaults':
           return { ok: true, value: await saveDefaults(request) }
         default:
@@ -425,9 +427,9 @@ export function apply(ctx, config = {}) {
       return {
         ok: false,
         error: {
-          code: 'medical-anonymizer',
+          code: typeof error?.code === 'string' && /^[a-z][\w-]{0,40}$/.test(error.code) ? error.code : 'medical-anonymizer',
           message: String(error?.message ?? error),
-          details: {},
+          details: error?.details && typeof error.details === 'object' ? error.details : {},
         },
       }
     }

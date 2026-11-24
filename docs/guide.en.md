@@ -248,6 +248,25 @@ settings are unchanged are taken over as they are, the rest are processed, and a
 file that was halfway replays the model replies it already got. The report says
 how many files were taken over.
 
+**Review or resume on another computer.** Copy the whole output root (with
+`_records`) to the other computer and install the plugin. If the original
+computer used a vault passphrase, set the same one there. Then click **Open output
+folder** in the batch list and choose the folder (its `_records` or `output` also
+works). Its batches join the list and are remembered.
+- Batches awaiting review can be reviewed right away. Once every item is decided,
+  the result goes to `output/` of the copied folder.
+- Cancelled, failed and interrupted batches can be resumed into the copied
+  folder. If the original input is not on this computer, you are asked where it
+  is now: the content must be the same, the path need not be. Finished files are
+  matched by content and taken over. Results recorded by 0.11.3 match by size and
+  a modification time within 2 s (Finder copies, `ditto` and zip keep that);
+  other files are processed again, still replaying their model replies. The
+  anonymization rules and maximum rounds must match the original computer's, or
+  finished files are processed again as well.
+- Keep working on one side only: the vault and review records of two copies
+  cannot be merged. To go back, copy the whole folder back.
+- `_records` holds original values: encrypt it in transit.
+
 **Records database.** Uses the runtime's built-in `node:sqlite` (available in the
 Node bundled with DSH). `_records/index.json` and each batch's `calls.json`,
 `review-decisions.json`, `cross-check.json`, `image-checks.json`,
