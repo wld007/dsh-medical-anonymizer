@@ -34,7 +34,7 @@ raw records → [De-identification] → output/ (pseudonymized) → event recons
 
 - **Structure preserved**: the model only annotates text; the plugin locates and replaces exact spans itself. Line
   counts, CSV columns, JSON keys and non-text Excel cells do not move; encoded content in fields (base64, HTML, XML,
-  nested JSON, gzip / LZMA) is unwrapped, checked and written back in its original format.
+  nested JSON, gzip / LZMA, the CaseDocdata EMR document container) is unwrapped, checked and written back in its original format.
 - **Stable pseudonyms**: one value gets one pseudonym in every file (e.g. `化名-9F3A2C`), so a patient can still be
   linked across files; the mapping lives only in the vault. Each identifier type can instead be masked, labelled or kept.
 - **Three layers**: rules, a detection model and an independent verification model; what cannot be resolved goes to a
