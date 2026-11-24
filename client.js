@@ -6519,8 +6519,31 @@ window.__ModuleLoader__.load({
             // Unreadable strings / undecodable tokens carry only their field:
             // the rows of that field holding a long code-like value.
             const LONG_CODE = /^[A-Za-z0-9+/=_\-:.]{24,}$/
+            // Content that cannot be read at all (an image stored as the
+            // whole field) has no row of its own: it goes under the first
+            // row of the record that holds it ("0/RECORDCONTENT" → record "0").
+            let firstUnder = null // record path -> first row inside it
+            const recordRow = (baseId) => {
+              if (!firstUnder) {
+                firstUnder = new Map()
+                rows.forEach((change, index) => {
+                  let path = String(change.id ?? '').split('#')[0]
+                  while (path.includes('/')) {
+                    path = path.slice(0, path.lastIndexOf('/'))
+                    if (firstUnder.has(path)) break
+                    firstUnder.set(path, index)
+                  }
+                })
+              }
+              let path = String(baseId)
+              while (path.includes('/')) {
+                path = path.slice(0, path.lastIndexOf('/'))
+                if (firstUnder.has(path)) return firstUnder.get(path)
+              }
+              return undefined
+            }
             for (const item of opaqueItems) {
-              let at = item.baseId ? firstRow.get(item.baseId) : undefined
+              let at = item.baseId ? (firstRow.get(item.baseId) ?? recordRow(item.baseId)) : undefined
               if (at === undefined && !item.baseId && item.field) {
                 const places = []
                 rows.forEach((change, index) => {
