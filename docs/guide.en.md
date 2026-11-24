@@ -246,7 +246,10 @@ batches cut off by an app quit, a plugin reload or a crash (no heartbeat for ove
 a minute; listed as Interrupted), can be resumed: finished files whose source and
 settings are unchanged are taken over as they are, the rest are processed, and a
 file that was halfway replays the model replies it already got. The report says
-how many files were taken over.
+how many files were taken over. The Resume button sits at the top of the
+dashboard next to New batch. A resumed batch is the same batch: it keeps its id
+and its single entry in the list, and its time, model calls and tokens go on
+adding up; the dashboard and report say how many times it was continued.
 
 **Review or resume on another computer.** Copy the whole output root (with
 `_records`) to the other computer and install the plugin. If the original

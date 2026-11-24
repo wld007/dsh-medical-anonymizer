@@ -218,7 +218,8 @@ Sources are read-only and never modified. With open review items the deliverable
 - **Concurrency**: detection and verification are limited separately and follow measured throughput and the inference
   server's queue; new files pause when memory is tight.
 - **Resume**: each finished file is recorded; a cancelled, failed or interrupted batch can be continued, taking over
-  finished files whose source is unchanged and reusing model replies.
+  finished files whose source is unchanged and reusing model replies; it keeps its batch id, and time, model calls
+  and tokens keep adding up.
 
 ## Privacy and security
 

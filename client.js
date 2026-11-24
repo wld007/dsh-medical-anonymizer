@@ -636,6 +636,8 @@ window.__ModuleLoader__.load({
       'ws.m.reqHint': '插件侧统计：进行中 / 上限（模型并发），+N 为在插件内排队等名额的请求。进行中低于上限且没有排队，说明插件这边有空闲名额；不代表端点上模型的真实负载。',
       'ws.queued': '排队 {count}',
       'ws.resumedFrom': '↻ 续跑自 …{id}',
+      'ws.resumes': '↻ 已继续处理 {n} 次',
+      'ws.resumesHint': '用时、模型调用和 token 为各次累计；本次开始于 {at}',
       'ws.resumedBy': '已由 …{id} 续跑',
       'ws.m.replayed': '复用调用',
       'ws.m.memo': '免送段落',
@@ -901,7 +903,7 @@ window.__ModuleLoader__.load({
       'ws.pickedRemove': '移除',
       'ws.pickedName': '{first} 等 {count} 项',
       'ws.resume': '继续处理',
-      'ws.resumeHint': '沿用原输入和输出根目录重新开始：已完成的文件和模型调用直接复用，只处理剩下的部分。可以先在设置里换模型再继续；原输入在这台电脑上找不到时会请你选择它现在的位置',
+      'ws.resumeHint': '接着处理这个批次（批次号不变）：已完成的文件和模型调用直接沿用，只处理剩下的部分；用时、模型调用和 token 接着累计。可以先在设置里换模型再继续；原输入在这台电脑上找不到时会请你选择它现在的位置',
       'ws.calls.r.cached': '复用',
       'ws.queueCount': '{done} / {total} 个文件',
       'ws.gaugeHint': '按数据量计算的进度：已处理字节（含处理中文件的估计进度）÷ 总字节',
@@ -1633,6 +1635,8 @@ window.__ModuleLoader__.load({
       'ws.m.reqHint': 'In flight / limit; "+N" is the number waiting (hidden when none). Below the limit with nothing waiting means the model has idle capacity.',
       'ws.queued': '{count} queued',
       'ws.resumedFrom': '↻ resumed from …{id}',
+      'ws.resumes': '↻ continued {n}×',
+      'ws.resumesHint': 'Time, model calls and tokens add up over every run; this run began at {at}',
       'ws.resumedBy': 'resumed by …{id}',
       'ws.m.replayed': 'Replayed calls',
       'ws.m.memo': 'Segments reused',
@@ -1898,7 +1902,7 @@ window.__ModuleLoader__.load({
       'ws.pickedRemove': 'Remove',
       'ws.pickedName': '{first} +{count}',
       'ws.resume': 'Resume',
-      'ws.resumeHint': 'Run again on the same input and output root, reusing finished files and model calls so only the rest is processed. You may switch the model in Settings first; if the input is not found on this computer you are asked where it is now',
+      'ws.resumeHint': 'Continue this batch (same batch id): finished files and model calls are reused so only the rest is processed; time, model calls and tokens keep adding up. You may switch the model in Settings first; if the input is not found on this computer you are asked where it is now',
       'ws.calls.r.cached': 'Replayed',
       'ws.queueCount': '{done} / {total} files',
       'ws.gaugeHint': 'Progress by data volume: processed bytes (including an estimate for files in progress) ÷ total bytes',
@@ -3058,6 +3062,9 @@ window.__ModuleLoader__.load({
       .ws-dark .wd-new:not(:disabled){color:#04211f!important}
       .wd-new:disabled{background:transparent!important;color:var(--dsw-alias-label-secondary)!important;border-color:var(--dsw-alias-border-l2)!important;font-weight:400}
       .wd-act .ma-btn,.wd-hicon{height:34px;border-radius:7px;border-width:1px}
+      .wd-resume{height:34px;padding:0 14px;border-radius:7px;white-space:nowrap;background:var(--dsw-alias-bg-base)}
+      .wd-resume:hover:not(:disabled){background:var(--ws-accent);color:#fff}
+      .ws-dark .wd-resume:hover:not(:disabled){color:#04211f}
       .wd-act .ma-btn{display:inline-flex;align-items:center;gap:6px;padding:0 14px}
       .wd-act .ma-btn.wd-hbtn{padding:0 10px 0 11px;gap:5px}
       .wd-hbtn{background:var(--dsw-alias-bg-layer-1)!important;border-color:var(--dsw-alias-border-l2)!important;color:var(--dsw-alias-label-primary)!important}
@@ -5660,8 +5667,18 @@ window.__ModuleLoader__.load({
         ? (running ? Math.min(99, Math.floor((processedBytes / plannedBytes) * 100)) : (current?.status === 'completed' || current?.status === 'review' ? 100 : Math.round((Number(current?.doneBytes ?? 0) / plannedBytes) * 100)))
         : percent
       const fmtBytes = (bytes) => bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(2)} GB` : bytes >= 1024 ** 2 ? `${(bytes / 1024 ** 2).toFixed(1)} MB` : `${Math.max(0, Math.round(bytes / 1024))} KB`
-      const startedMs = current?.startedAt ? Date.parse(current.startedAt) : 0
-      const elapsed = running ? now - startedMs : Number(current?.durationMs ?? 0)
+      // Running time over every run of the batch: a continued batch goes on
+      // from the time it had (priorMs), counted from when this run began.
+      const startedMs = Date.parse(current?.resumedAt ?? current?.startedAt ?? '') || 0
+      const priorMs = Number(current?.priorMs) || 0
+      const stoppedMs = () => {
+        const recorded = Number(current?.durationMs)
+        if (recorded > 0) return recorded
+        // Cut off without a recorded duration: up to its last sign of life.
+        const last = Date.parse(current?.heartbeatAt ?? current?.finishedAt ?? '')
+        return priorMs + (startedMs && last > startedMs ? last - startedMs : 0)
+      }
+      const elapsed = running ? priorMs + (now - startedMs) : stoppedMs()
       const rate = elapsed > 0 ? (done / (elapsed / 60000)) : 0
       const counts = { clean: 0, review: 0, failed: 0, cancelled: 0 }
       for (const file of files) counts[file.status] = (counts[file.status] ?? 0) + 1
@@ -7331,7 +7348,8 @@ window.__ModuleLoader__.load({
                     : null),
                 h('div', { className: 'ws-run-meta' },
                   h('span', {}, `${formatTime(run.startedAt)}${run.source ? ` · ${t(`ws.src.${run.source.kind}`)}` : ''}`),
-                  run.resumedFrom ? h('span', { className: 'ws-run-resume', title: run.resumedFrom }, t('ws.resumedFrom', { id: run.resumedFrom.slice(-6) })) : null,
+                  run.resumes ? h('span', { className: 'ws-run-resume' }, t('ws.resumes', { n: run.resumes }))
+                    : run.resumedFrom ? h('span', { className: 'ws-run-resume', title: run.resumedFrom }, t('ws.resumedFrom', { id: run.resumedFrom.slice(-6) })) : null,
                   h('span', {}, `${run.files ?? 0} ${t('ws.unitFiles')} · ${run.entities ?? 0} ${t('ws.unitEntities')}${run.unresolved ? ` · ⚠ ${run.unresolved}` : ''}`))))))
       // [id, label, count, hot, group start]: the line view, then its details
       // grouped as results / process / conclusions ('sep' = divider, 'gap' = spacing).
@@ -7612,9 +7630,11 @@ window.__ModuleLoader__.load({
             h('div', {},
               h('b', {}, lineStatus === 'idle' ? t('ws.idle') : t(`status.${lineStatus}`)),
               h('span', { className: 'ma-mono' }, current?.id ?? '—'),
-              current?.resumedFrom
-                ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
-                : (current?.source ? sourceLabel(current.source) : null))),
+              current?.resumes
+                ? h('span', { className: 'ws-run-resume', title: t('ws.resumesHint', { at: formatTime(current.resumedAt) }) }, t('ws.resumes', { n: current.resumes }))
+                : current?.resumedFrom
+                  ? h('span', { className: 'ws-run-resume', title: current.resumedFrom }, t('ws.resumedFrom', { id: current.resumedFrom.slice(-6) }))
+                  : (current?.source ? sourceLabel(current.source) : null))),
           h('span', { className: 'wd-sp' }),
           h('div', { className: 'ws-clock wd-clk' }, h('span', {}, t('ws.m.elapsed')), h('b', {}, clock(elapsed))),
           // Completion beside the clock: visible on every tab.
@@ -7623,6 +7643,10 @@ window.__ModuleLoader__.load({
             h('b', {}, String(percent), h('small', {}, '%'))) : null,
           // Plugin version after the readouts.
           config?.version ? h('div', { className: 'ws-clock wd-ver' }, h('span', {}, t('wd.version')), h('b', {}, `v${config.version}`)) : null,
+          // An unfinished batch is continued from here, beside "new batch".
+          !running && current?.resumable && !anyRunning
+            ? h('button', { type: 'button', className: 'ma-btn ws-resume wd-resume', onClick: () => resumeRun(), disabled: busy, title: t('ws.resumeHint') }, `↻ ${t('ws.resume')}`)
+            : null,
           h('div', { className: 'wd-act' },
             running
               ? h('button', { className: 'ma-btn ws-start ws-stop', onClick: cancelRun, disabled: cancelling }, cancelling ? t('run.cancelling') : t('ws.stop'))
@@ -7648,8 +7672,7 @@ window.__ModuleLoader__.load({
                 h('input', { className: 'ma-input', value: outputRoot, onChange: (event) => setOutputRoot(event.target.value), placeholder: t('run.outputDefault') })),
               h('div', { className: 'ma-actions' },
                 h('button', { className: 'ma-btn ma-primary ws-start', style: { flex: 1 }, disabled: busy || anyRunning, onClick: async () => { await start(); setNewOpen(false); setView('line') } },
-                  busy ? t('form.starting') : `▶ ${t('form.start')}`),
-                current?.resumable && !anyRunning ? h('button', { className: 'ma-btn ws-resume', onClick: async () => { await resumeRun(); setNewOpen(false) }, disabled: busy, title: t('ws.resumeHint') }, `↻ ${t('ws.resume')}`) : null))
+                  busy ? t('form.starting') : `▶ ${t('form.start')}`)))
               : null),
           h('div', { className: 'wd-act wd-runs-act' },
             h('button', { type: 'button', className: 'ma-btn wd-hbtn', onClick: () => setRunsOpen(!runsOpen), title: t('wd.switchHint'), 'aria-expanded': runsOpen ? 'true' : 'false', 'aria-label': t('runs.title') }, t('wd.runsShort'), runs.length ? h('i', { className: 'wd-hcount' }, String(runs.length)) : null),

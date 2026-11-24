@@ -4,7 +4,7 @@
  * Run: node test/records.mjs
  */
 import assert from 'node:assert/strict'
-import { cp, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openRecords, closeRecords, useFileRecords, sqliteAvailable, RECORDS_FILE, SCHEMA_VERSION } from '../lib/records.js'
@@ -205,20 +205,25 @@ if (hasSqlite) {
   stopper.abort()
   const stopped = await runBatch({ inputDir: input, outputRoot: root, options: { runId: 'svc-1' }, signal: stopper.signal })
   const service = createService({ config: { model: '', outputRoot: root }, defaultDirectory: tmp })
-  await check('服务：续跑参数从记录库读取；续跑完成后旧批次标为已接续、续跑参数删除', async () => {
+  await check('服务：续跑参数从记录库读取；续跑接着用原批次号，完成后续跑参数删除，列表里只有这一个批次', async () => {
     assert.equal(stopped.status, 'cancelled')
     const records = await openRecords(join(root, '_records'))
     assert.equal((await records.getDoc('svc-1', 'resume')).inputDir, input)
     assert.equal((await records.getRun('svc-1')).resumable, true)
     const started = await service.start({ resumeFrom: 'svc-1' })
-    for (let i = 0; i < 200 && (await service.status(started.runId)).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 25))
-    for (let i = 0; i < 40 && (await records.getDoc('svc-1', 'resume')); i += 1) await new Promise((r) => setTimeout(r, 25))
+    assert.equal(started.runId, 'svc-1')
+    for (let i = 0; i < 200 && (await service.status('svc-1')).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 25))
+    // The page sees the end before the last records are written: wait for them.
+    for (let i = 0; i < 200 && ((await records.getDoc('svc-1', 'resume')) || (await records.getRun('svc-1'))?.status !== 'completed'); i += 1) await new Promise((r) => setTimeout(r, 25))
     assert.equal(await records.getDoc('svc-1', 'resume'), null)
-    const previous = await records.getRun('svc-1')
-    assert.equal(previous.resumable, false)
-    assert.equal(previous.resumedBy, started.runId)
+    const after = await records.getRun('svc-1')
+    assert.equal(after.status, 'completed')
+    assert.equal(after.resumable, false)
+    assert.equal(after.resumes, 1)
+    assert.equal(after.startedAt, stopped.startedAt, 'the batch keeps its start')
     const listed = (await createService({ config: { model: '', outputRoot: root }, defaultDirectory: tmp }).list()).runs
-    assert.deepEqual(listed.map((item) => item.id).sort(), ['svc-1', started.runId].sort())
+    assert.deepEqual(listed.map((item) => item.id), ['svc-1'])
+    await assert.rejects(service.start({ resumeFrom: 'svc-1' }), /不能继续处理/)
     await service.deleteRun('svc-1')
     assert.equal(await records.getRun('svc-1'), null)
   })
@@ -292,8 +297,10 @@ if (hasSqlite) {
   const cutStore = await openRecords(join(cutRoot, '_records'))
   const cutDone = (await cutStore.getFileResults('ck-5')).size
   const longAgo = new Date(Date.now() - 5 * 60_000).toISOString()
+  // Ran 5 minutes (started 10 minutes ago, last heartbeat 5 minutes ago) and made 7 model calls.
+  const cutStarted = new Date(Date.now() - 10 * 60_000).toISOString()
   await cutStore.putRun({ ...(await cutStore.getRun('ck-5')), status: 'running', heartbeatAt: longAgo, finishedAt: null })
-  await cutStore.putDoc('ck-5', 'live', { id: 'ck-5', status: 'running', startedAt: longAgo, inputDir: ckIn, totals: { files: cutDone }, config: { model: '' }, warnings: [] })
+  await cutStore.putDoc('ck-5', 'live', { id: 'ck-5', status: 'running', startedAt: cutStarted, heartbeatAt: longAgo, inputDir: ckIn, totals: { files: cutDone, modelCalls: 7, tokens: 900 }, config: { model: '' }, warnings: [] })
   await cutStore.putDoc('ck-5', 'resume', { inputDir: ckIn, outputRoot: cutRoot, model: '' })
   const cutService = createService({ config: { model: '', outputRoot: cutRoot }, defaultDirectory: tmp })
   await check('中断的批次：心跳过期后列为已中断、可继续处理，报告注明', async () => {
@@ -305,15 +312,64 @@ if (hasSqlite) {
     assert.match((await cutService.report('ck-5')).markdown, /已中断/)
     assert.equal(await cutStore.getDoc('ck-5', 'live'), null)
   })
-  await check('中断的批次继续处理：沿用已完成的文件，完成后旧批次的回复与逐文件结果删除', async () => {
+  await check('中断的批次继续处理：同一批次号接着做，沿用已完成的文件；用时、模型调用、token 接着累计；完成后回复与逐文件结果删除', async () => {
     const started = await cutService.start({ resumeFrom: 'ck-5' })
-    for (let i = 0; i < 200 && (await cutService.status(started.runId)).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 25))
-    const { run } = await cutService.status(started.runId)
+    assert.equal(started.runId, 'ck-5')
+    for (let i = 0; i < 200 && (await cutService.status('ck-5')).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 25))
+    for (let i = 0; i < 200 && (await cutStore.getRun('ck-5'))?.status !== 'completed'; i += 1) await new Promise((r) => setTimeout(r, 25))
+    const { run } = await cutService.status('ck-5')
     assert.equal(run.status, 'completed')
     assert.equal(run.totals.reusedFiles, cutDone)
-    for (let i = 0; i < 40 && (await cutStore.getFileResults('ck-5')).size; i += 1) await new Promise((r) => setTimeout(r, 25))
+    assert.equal(run.totals.files, 3)
+    assert.equal(run.startedAt, cutStarted)
+    assert.equal(run.resumes, 1)
+    assert.ok(run.priorMs >= 5 * 60_000 - 1000 && run.priorMs <= 5 * 60_000 + 1000, String(run.priorMs))
+    assert.ok(run.durationMs >= run.priorMs, `${run.durationMs} < ${run.priorMs}`)
+    assert.equal(run.totals.modelCalls, 7)
+    assert.equal(run.totals.tokens, 900)
+    assert.match(await readFile(join(cutRoot, '_records', 'runs', 'ck-5', 'report.md'), 'utf8'), /继续处理：1 次/)
     assert.equal((await cutStore.getFileResults('ck-5')).size, 0)
-    assert.equal((await cutStore.getRun('ck-5')).resumedBy, started.runId)
+    assert.equal((await cutService.list()).runs.filter((item) => item.id === 'ck-5').length, 1)
+    // Delivered: exactly the three files, nothing left set aside.
+    const delivered = []
+    const walk = async (dir) => { for (const entry of await readdir(dir, { withFileTypes: true })) entry.isDirectory() ? await walk(join(dir, entry.name)) : delivered.push(entry.name) }
+    await walk(run.output)
+    assert.deepEqual(delivered.sort(), ['a.txt', 'b.txt', 'c.txt'])
+    await assert.rejects(stat(join(cutRoot, '_records', 'runs', 'ck-5', 'staging-previous')))
+  })
+
+  // Continued twice in place, the first continuation cut off too: the files
+  // of both earlier runs are taken over, none is delivered twice.
+  const twiceRoot = join(tmp, 'ck-twice')
+  let twiceAbort = null
+  await stopAfterFirst(twiceRoot, 'tw-1')
+  const twiceService = createService({ config: { model: '', outputRoot: twiceRoot }, defaultDirectory: tmp })
+  await check('连续两次继续处理（第一次也被取消）：前两次完成的文件都沿用，交付文件不重复', async () => {
+    const twiceStore = await openRecords(join(twiceRoot, '_records'))
+    // First continuation: stopped after one more file (one file at a time).
+    const firstGo = await runBatch({
+      inputDir: ckIn, outputRoot: twiceRoot, options: { runId: 'tw-1', resumeFrom: 'tw-1', concurrency: 1, previous: await twiceStore.getRunDetail('tw-1') ?? await twiceStore.getRun('tw-1') },
+      signal: (() => { const c = new AbortController(); twiceAbort = c; return c.signal })(),
+      onEvent: ({ phase, run }) => { if (phase === 'file-done' && run.totals.files >= 2) twiceAbort.abort() },
+    })
+    assert.equal(firstGo.status, 'cancelled')
+    assert.equal(firstGo.resumes, 1)
+    // Files of the first run (set aside) and of this continuation (staging).
+    const doneBefore = (await twiceStore.getFileResults('tw-1')).size
+    assert.ok(doneBefore >= 2, String(doneBefore))
+    assert.ok((await stat(join(twiceRoot, '_records', 'runs', 'tw-1', 'staging-previous'))).isDirectory())
+    const started = await twiceService.start({ resumeFrom: 'tw-1' })
+    assert.equal(started.runId, 'tw-1')
+    for (let i = 0; i < 200 && (await twiceStore.getRun('tw-1'))?.status !== 'completed'; i += 1) await new Promise((r) => setTimeout(r, 25))
+    const { run } = await twiceService.status('tw-1')
+    assert.equal(run.status, 'completed')
+    assert.equal(run.resumes, 2)
+    assert.equal(run.totals.reusedFiles, doneBefore)
+    const delivered = []
+    const walk = async (dir) => { for (const entry of await readdir(dir, { withFileTypes: true })) entry.isDirectory() ? await walk(join(dir, entry.name)) : delivered.push(entry.name) }
+    await walk(run.output)
+    assert.deepEqual(delivered.sort(), ['a.txt', 'b.txt', 'c.txt'])
+    for (const name of delivered) assert.doesNotMatch(await readFile(join(run.output, name), 'utf8'), /13800138000|11010519491231002X|13900139000/)
   })
   await check('仍在跳心跳的运行中批次不会被当成中断', async () => {
     await cutStore.putRun({ id: 'live-1', status: 'running', startedAt: new Date().toISOString(), heartbeatAt: new Date().toISOString() })
@@ -363,8 +419,9 @@ if (hasSqlite) {
   await check('换电脑续跑：原输入不在时提示选择；给出新位置后沿用已完成的文件（按内容比对），写回拷来的输出位置', async () => {
     await assert.rejects(mvService.start({ resumeFrom: 'mv-1' }), (error) => error.code === 'resume-input-missing' && error.details.inputKind === 'dir')
     const started = await mvService.start({ resumeFrom: 'mv-1', inputDir: mvInB })
-    for (let i = 0; i < 200 && (await mvService.status(started.runId)).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 25))
-    const { run } = await mvService.status(started.runId)
+    assert.equal(started.runId, 'mv-1')
+    for (let i = 0; i < 200 && (await mvService.status('mv-1')).run?.status === 'running'; i += 1) await new Promise((r) => setTimeout(r, 25))
+    const { run } = await mvService.status('mv-1')
     assert.equal(run.status, 'completed')
     assert.equal(run.totals.reusedFiles, mvDone)
     assert.ok(mvDone >= 1)
