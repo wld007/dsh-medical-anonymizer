@@ -295,8 +295,12 @@ async function testDicomNames() {
   const header = async (rel) => parseDicomBuffer(await readFile(join(out, rel)), { dict: dictVr })
   const value = (parsed, tag) => decodeAscii(parsed.dataset.find((item) => item.tag === tag)?.value)
 
-  await check('#9 DICOM 批次完成且输出文件齐全', async () => {
-    assert.equal(run.status, 'completed', JSON.stringify(run.files.map((file) => file.issues)))
+  await check('#9 DICOM 批次只等「像素未检查」确认，输出文件齐全', async () => {
+    // Pixel data is never checked: the batch waits for that acknowledgement only.
+    assert.equal(run.status, 'review', JSON.stringify(run.files.map((file) => file.issues)))
+    assert.equal(run.totals.unresolved, 1)
+    assert.ok(run.files.every((file) => !file.issues.some((issue) => issue.severity === 'error')), JSON.stringify(run.files.map((file) => file.issues)))
+    assert.equal(run.unchecked.dicomPixels, files.length)
     assert.equal(paths.length, files.length, paths.join('\n'))
   })
   await check('#9 输出路径不含原始姓名（含拼音/大小写/空格/顺序变体）和病人 ID', async () => {
@@ -428,7 +432,8 @@ async function testDicomNamesBreak() {
     }
   })
   await check('#9b 批次状态与文件状态', async () => {
-    assert.equal(run.status, 'completed', JSON.stringify(run.files.map((file) => file.issues)))
+    assert.equal(run.status, 'review', JSON.stringify(run.files.map((file) => file.issues)))
+    assert.equal(run.totals.unresolved, 1)
   })
 }
 

@@ -861,6 +861,32 @@ window.__ModuleLoader__.load({
       'ws.rv.replaced': '已替换为 {to}（{count} 处）',
       'ws.rv.allowed': '已确认不是标识符，并加入不匹配的值',
       'ws.rv.accepted': '已确认保留',
+      'ws.rv.ack': '已知晓',
+      'ws.rv.ackHint': '这些文件没有处理，也不在交付数据中；确认你知道这件事（需要的话请另行处理）',
+      'ws.rv.acked': '已知晓',
+      'ws.rv.infoOnly': '仅列出，不需要处理',
+      'ws.rv.batchHead': '未检查的内容 · 待确认 {n} / 共 {total} 项',
+      'ws.rv.batchName': '整批：没有处理的内容',
+      'ws.rv.batchSub': '不支持的文件、隐藏文件、DICOM 像素等',
+      'ws.rv.batchBadge': '待确认「已知晓」的项数',
+      'ws.rv.paths': '查看清单（{n} 个）',
+      'ws.rv.pathsFiles': '查看所在文件（{n} 个）',
+      'ws.rv.pathsMore': '还有 {n} 个未显示',
+      'ws.rv.unreadWarn': '插件读不出这段内容，没有检查过。里面可能是病历正文、姓名等；确认保留就会原样交付。',
+      'ws.rv.keepConfirmTitle': '确认原样交付没检查过的内容？',
+      'ws.rv.keepConfirmOne': '这段{kind}插件读不出来，没有检查过，里面可能有病历正文、姓名等。确认保留后会原样交付。',
+      'ws.rv.keepConfirmKind': '内容',
+      'ws.rv.keepConfirmMany': '要保留的 {total} 项里有 {n} 项是插件读不出、没有检查过的内容（PDF、Word、二进制等），里面可能有病历正文、姓名等。确认保留后会原样交付。',
+      'ws.rv.keepConfirmDo': '确认保留',
+      'ws.rv.code.unsupported-files': '不支持的文件',
+      'ws.rv.code.hidden-files': '隐藏文件',
+      'ws.rv.code.linked-files': '快捷方式',
+      'ws.rv.code.dicom-pixels': 'DICOM 像素未检查',
+      'ws.rv.code.system-files': '系统文件',
+      'ws.rv.code.skipped-field': '不处理的字段',
+      'ws.rv.code.kept-identifiers': '保留的标识符',
+      'ws.cmp.f.unchecked': '未检查',
+      'ws.cmp.f.uncheckedHint': '没有检查过的内容：读不出的内容（PDF、Word、二进制、编码串等，图片除外）、没有处理的文件（不支持的格式、隐藏文件、快捷方式、系统文件）、DICOM 像素，以及按设置原样输出的字段和标识符类型',
       'ws.rv.rowsHere': '本文件这个字段共 {n} 行，一次处理',
       'ws.rv.whole': '整值替换为',
       'ws.rv.wholeHint': '这个值整体就是标识符：把整个原值换成一个假名（同一原值在哪里都是同一个假名），和这个字段其他行的处理一致',
@@ -1866,6 +1892,32 @@ window.__ModuleLoader__.load({
       'ws.rv.replaced': 'Replaced with {to} ({count}×)',
       'ws.rv.allowed': 'Confirmed not an identifier; added to allowed values',
       'ws.rv.accepted': 'Kept',
+      'ws.rv.ack': 'Noted',
+      'ws.rv.ackHint': 'These files were not processed and are not in the delivered data; confirm that you know (handle them separately if needed)',
+      'ws.rv.acked': 'Noted',
+      'ws.rv.infoOnly': 'Listed only, nothing to decide',
+      'ws.rv.batchHead': 'Not checked · {n} of {total} to confirm',
+      'ws.rv.batchName': 'Whole batch: not processed',
+      'ws.rv.batchSub': 'Unsupported or hidden files, DICOM pixels …',
+      'ws.rv.batchBadge': 'Items to confirm as noted',
+      'ws.rv.paths': 'Show the list ({n})',
+      'ws.rv.pathsFiles': 'Show the files ({n})',
+      'ws.rv.pathsMore': '{n} more not shown',
+      'ws.rv.unreadWarn': 'The plugin cannot read this content and did not check it. It may hold record text or names; keeping it delivers it as it is.',
+      'ws.rv.keepConfirmTitle': 'Deliver content nobody checked as it is?',
+      'ws.rv.keepConfirmOne': 'The plugin cannot read this {kind} and did not check it; it may hold record text or names. Kept, it is delivered as it is.',
+      'ws.rv.keepConfirmKind': 'content',
+      'ws.rv.keepConfirmMany': '{n} of the {total} items to keep are content the plugin cannot read and did not check (PDF, Word, binary …); it may hold record text or names. Kept, it is delivered as it is.',
+      'ws.rv.keepConfirmDo': 'Keep',
+      'ws.rv.code.unsupported-files': 'Unsupported files',
+      'ws.rv.code.hidden-files': 'Hidden files',
+      'ws.rv.code.linked-files': 'Links',
+      'ws.rv.code.dicom-pixels': 'DICOM pixels not checked',
+      'ws.rv.code.system-files': 'System files',
+      'ws.rv.code.skipped-field': 'Skipped field',
+      'ws.rv.code.kept-identifiers': 'Kept identifiers',
+      'ws.cmp.f.unchecked': 'Not checked',
+      'ws.cmp.f.uncheckedHint': 'What was not checked: content that cannot be read (PDF, Word, binary, encoded strings; images aside), files not processed (unsupported, hidden, links, system files), DICOM pixels, and fields or identifier types the settings leave as they are',
       'ws.rv.rowsHere': '{n} rows of this field in this file, handled at once',
       'ws.rv.whole': 'Replace whole value as',
       'ws.rv.wholeHint': 'The value as a whole is an identifier: replace the whole original by one pseudonym (the same original gets the same pseudonym everywhere), like the other rows of this field',
@@ -2122,6 +2174,7 @@ window.__ModuleLoader__.load({
       .ma-btn:hover{background:var(--dsw-alias-bg-overlay)}
       .ma-btn:disabled{opacity:.5;cursor:default}
       .ma-btn.ma-primary{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:#fff}
+      .ma-btn.ma-danger{background:var(--dsw-alias-state-danger-primary, #d4380d);border-color:var(--dsw-alias-state-danger-primary, #d4380d);color:#fff}
       .ma-btn.ma-small{height:26px;padding:0 9px;font-size:12px}
       .ma-link{background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--dsw-alias-brand-primary);cursor:pointer}
       .ma-hint{font-size:12px;color:var(--dsw-alias-label-secondary);min-height:16px;line-height:16px}
@@ -2773,6 +2826,9 @@ window.__ModuleLoader__.load({
       .ws-cmp-table td.ws-cmp-src,.ws-cmp-table td.ws-cmp-dst{user-select:text}
       .ws-mx-tip{margin-left:auto}
       .ws-mx-backdrop{position:fixed;inset:0;z-index:60}
+      .ws-keep-confirm{left:50%;top:30%;transform:translateX(-50%);width:380px}.ws-keep-confirm p{margin:0;line-height:1.6}
+      .ws-rv-warn{margin:6px 0;padding:6px 8px;border-radius:6px;background:var(--dsw-alias-state-warn-bg, rgba(230,140,0,.12));color:var(--dsw-alias-state-warn-primary, #b26a00);font-size:12px;line-height:1.5}
+      .ws-rv-paths{margin:6px 0;font-size:12px}.ws-rv-paths summary{cursor:pointer;color:var(--wd-ink2, inherit)}.ws-rv-paths ul{margin:4px 0 0;padding-left:18px;max-height:260px;overflow:auto}.ws-rv-paths li{word-break:break-all}
       .ws-mx{position:fixed;z-index:61;width:280px;display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:12px}
       .ws-mx-title{font-weight:600}
       .ws-mx-text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;padding:4px 6px;border-radius:4px;background:var(--dsw-alias-bg-layer-2);word-break:break-all}
@@ -4480,7 +4536,17 @@ window.__ModuleLoader__.load({
           : null)
     }
 
-    const OPAQUE_REVIEW = new Set(['opaque', 'opaque-token', 'unreadable', 'zip-failed', 'over-limit', 'opaque-check', 'dicom-document'])
+    // Batch-level items about input not processed at all: acknowledged only.
+    const ACK_CODES = new Set(['zip-failed', 'over-limit', 'unsupported-files', 'hidden-files', 'linked-files', 'dicom-pixels'])
+    // Only listed, no decision needed (system files, fields / types the settings skip).
+    const INFO_CODES = new Set(['system-files', 'skipped-field', 'kept-identifiers'])
+    const BATCH_CODES = new Set([...ACK_CODES, ...INFO_CODES])
+    const OPAQUE_REVIEW = new Set(['opaque', 'opaque-token', 'unreadable', 'opaque-check', 'dicom-document', ...BATCH_CODES])
+    // Everything the batch did not check: content it could not read (images
+    // aside), and what it skipped or was told to leave as it is.
+    const isUnchecked = (item) => BATCH_CODES.has(item.code) || ['opaque-token', 'unreadable', 'opaque-check', 'dicom-document'].includes(item.code) || (item.code === 'opaque' && !item.image)
+    // Keeping it delivers content nobody has read (PDF, Word, binary …).
+    const keepNeedsConfirm = (item) => item.code === 'opaque' && !item.image
     // Long strings / short tokens the plugin could not read: text in a field,
     // judged by looking at the values (with the items to judge, not images).
     const READ_REVIEW = new Set(['unreadable', 'opaque-token'])
@@ -5322,6 +5388,10 @@ window.__ModuleLoader__.load({
       const loadReview = React.useCallback(async (id) => {
         try {
           const value = await call('reviewItems', { runId: id })
+          // Items only listed are settled from the start: never counted as open.
+          for (const file of value?.files ?? []) {
+            file.items = (file.items ?? []).map((item) => (item.info && !item.decision ? { ...item, decision: { action: 'info' } } : item))
+          }
           recordLoaded('review', id)
           setReviewByRun((map) => ({ ...map, [id]: value }))
         } catch { recordFailed('review', id, setReviewByRun) }
@@ -5380,6 +5450,8 @@ window.__ModuleLoader__.load({
       const [opaqueOpen, setOpaqueOpen] = React.useState({})
       // Reviewer edit popover: { kind: 'revert' | 'add', text, x, y, relPath, n, type, scope, remember }.
       const [manualMenu, setManualMenu] = React.useState(null)
+      // Keeping content nobody read waits for this confirmation.
+      const [keepConfirm, setKeepConfirm] = React.useState(null)
       const [manualBusy, setManualBusy] = React.useState(false)
       React.useEffect(() => {
         if (!manualMenu) return undefined
@@ -5442,6 +5514,11 @@ window.__ModuleLoader__.load({
       }, [adviceRunId, recordsRetry])
 
       async function decideReview(file, item, action, extra = {}) {
+        if (action === 'accept' && keepNeedsConfirm(item) && !extra.confirmed) {
+          setKeepConfirm({ n: Number(item.count ?? 1), total: 1, kind: item.kind ?? '', go: () => decideReview(file, item, action, { ...extra, confirmed: true }) })
+          return
+        }
+        delete extra.confirmed
         // The button may be stale; the host refuses as well.
         if (action === 'replace' && anyRunning) { setReviewNote({ ok: false, text: t('ws.rv.runningHint') }); return }
         setReviewBusy(item.id)
@@ -6098,11 +6175,13 @@ window.__ModuleLoader__.load({
       }
 
       // `pick` narrows the items (e.g. only those the model suggests removing).
-      async function bulkReview(action, files = reviewData?.files ?? [], pick = null, bySuggestion = false) {
-        const ids = files.flatMap((file) => file.items)
-          .filter((item) => !item.decision && isImageLike(item.code) && (action === 'accept' || item.code === 'opaque') && (!pick || pick(item)))
-          .map((item) => item.id)
+      async function bulkReview(action, files = reviewData?.files ?? [], pick = null, bySuggestion = false, confirmed = false) {
+        const chosen = files.flatMap((file) => file.items)
+          .filter((item) => !item.decision && isImageLike(item.code) && !BATCH_CODES.has(item.code) && (action === 'accept' || item.code === 'opaque') && (!pick || pick(item)))
+        const ids = chosen.map((item) => item.id)
         if (ids.length === 0) return
+        const risky = action === 'accept' ? chosen.filter(keepNeedsConfirm).length : 0
+        if (risky > 0 && !confirmed) { setKeepConfirm({ n: risky, total: ids.length, go: () => bulkReview(action, files, pick, bySuggestion, true) }); return }
         setReviewBusy('bulk')
         setReviewNote(null)
         try {
@@ -6163,7 +6242,12 @@ window.__ModuleLoader__.load({
           : item.decision.action === 'whole' ? (item.decision.count ? t('ws.rv.wholeDone', { type: item.decision.type ?? '', count: item.decision.count }) : t('ws.rv.wholeWith', { type: item.decision.type ?? '' }))
           : item.decision.action === 'split' ? t('ws.rv.split', { removed: item.decision.removed?.length ?? 0, kept: item.decision.kept ?? 0 })
           : item.decision.action === 'remove' ? t('ws.rv.removed')
+            : item.decision.action === 'info' ? t('ws.rv.infoOnly')
+            : ACK_CODES.has(item.code) ? t('ws.rv.acked')
             : item.decision.action === 'allow' ? t('ws.rv.allowed') : t('ws.rv.accepted'))
+        : ACK_CODES.has(item.code)
+          ? h('div', { className: 'ma-actions' },
+            h('button', { className: 'ma-btn ma-small ma-primary', disabled: reviewBusy !== null, title: t('ws.rv.ackHint'), onClick: () => decideReview(file, item, 'accept') }, reviewBusy === item.id ? t('save.saving') : t('ws.rv.ack')))
         : OPAQUE_REVIEW.has(item.code)
           ? h('div', { className: 'ma-actions' },
             item.code === 'opaque' && !(item.image && Number(item.count ?? 1) > 1)
@@ -6203,9 +6287,17 @@ window.__ModuleLoader__.load({
         item.text
           ? h('div', { className: 'ws-rv-ctx' }, item.before, h('mark', {}, item.text), item.after)
           : h('div', { className: 'ws-rv-ctx ws-rv-plain' }, item.detail),
+        keepNeedsConfirm(item) && !item.decision ? h('div', { className: 'ws-rv-warn' }, t('ws.rv.unreadWarn')) : null,
+        Array.isArray(item.paths) && item.paths.length ? pathList(item) : null,
         item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove', busy: reviewBusy !== null || !file.editable, onSplit: (removeIndexes) => decideReview(file, item, 'split', { removeIndexes }) }) : null,
         item.decision ? null : opinions(item),
         reviewActions(file, item))
+      // The files (or folders) an item is about, folded; long lists in pages.
+      const PATHS_SHOWN = 300
+      const pathList = (item) => h('details', { className: 'ws-rv-paths' },
+        h('summary', {}, t(item.code === 'skipped-field' ? 'ws.rv.pathsFiles' : 'ws.rv.paths', { n: item.paths.length })),
+        h('ul', {}, item.paths.slice(0, PATHS_SHOWN).map((path, index) => h('li', { key: index, className: 'ma-mono' }, path))),
+        item.paths.length > PATHS_SHOWN ? h('p', { className: 'ma-hint' }, t('ws.rv.pathsMore', { n: item.paths.length - PATHS_SHOWN })) : null)
       // The model's reading of an image under review: category and suggestion.
       const visionChip = (item) => (item.vision
         ? h('span', { className: `ws-vis ws-vis-${item.vision.error ? 'err' : item.vision.suggestion}`, title: item.vision.error ? item.vision.error : `${item.vision.reason ?? ''}${item.vision.ruleTypes?.length ? `\n${t('ws.vis.rules', { types: item.vision.ruleTypes.join('、') })}` : ''}` },
@@ -6221,7 +6313,7 @@ window.__ModuleLoader__.load({
           visionChip(item)),
         item.image && item.baseId ? h(OpaquePreview, { runId: adviceRunId, item, removed: item.decision?.action === 'remove', busy: reviewBusy !== null || !file.editable, onSplit: (removeIndexes) => decideReview(file, item, 'split', { removeIndexes }) })
           : !item.baseId && (item.code === 'unreadable' || item.code === 'opaque-token') ? h('div', { className: 'ws-pv-note' }, item.detail, h('br'), h('b', {}, t('ws.rv.unreadableHow')))
-            : h('div', { className: 'ws-pv-note' }, item.detail),
+            : h('div', { className: 'ws-pv-note' }, item.detail, keepNeedsConfirm(item) && !item.decision ? h('div', { className: 'ws-rv-warn' }, t('ws.rv.unreadWarn')) : null),
         reviewActions(file, item))
       // Both models' opinions, round by round (cross-checked items).
       const OUTCOME = { dismissed: 'ws.op.dismissed', disputed: 'ws.op.disputed', confirmed: 'ws.op.confirmed', unjudged: 'ws.op.unjudged' }
@@ -6260,15 +6352,15 @@ window.__ModuleLoader__.load({
         const judge = judgeShown ?? file.items.filter((item) => !isOpaque(item))
         const opaque = opaqueShown ?? file.items.filter(isOpaque)
         const opaqueLeft = opaque.filter((item) => !item.decision)
-        const unfolded = opaqueOpen[file.relPath] === true
+        const unfolded = opaqueOpen[file.relPath] ?? Boolean(file.batch)
         return h(React.Fragment, {},
           judge.length ? h('div', { className: 'ws-rv-loose' },
             h('div', { className: 'ws-rv-loose-h' }, t('ws.rv.looseHead', { n: judge.filter((item) => !item.decision).length || judge.length })),
             judge.map((item) => reviewInline(file, item))) : null,
           opaque.length ? h('div', { className: 'ws-cmp-review ws-rv-opaque' },
             h('div', { className: 'ws-rv-head' },
-              h('button', { type: 'button', className: 'ma-link', onClick: () => setOpaqueOpen({ ...opaqueOpen, [file.relPath]: !unfolded }) }, `${unfolded ? '▾' : '▸'} ${opaqueShown ? t('ws.rv.opaqueUnlocated', { n: opaqueLeft.length }) : t('ws.rv.opaqueHead', { n: opaqueLeft.length, total: opaque.length })}`),
-              opaqueLeft.length && !opaqueShown ? h('span', { className: 'ma-actions' },
+              h('button', { type: 'button', className: 'ma-link', onClick: () => setOpaqueOpen({ ...opaqueOpen, [file.relPath]: !unfolded }) }, `${unfolded ? '▾' : '▸'} ${file.batch ? t('ws.rv.batchHead', { n: opaqueLeft.length, total: opaque.length }) : opaqueShown ? t('ws.rv.opaqueUnlocated', { n: opaqueLeft.length }) : t('ws.rv.opaqueHead', { n: opaqueLeft.length, total: opaque.length })}`),
+              opaqueLeft.length && !opaqueShown && !file.batch ? h('span', { className: 'ma-actions' },
                 opaqueLeft.some((item) => item.code === 'opaque') ? h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null || !file.editable, title: file.editable ? t('ws.rv.removeHint') : file.reason, onClick: () => bulkReview('remove', [file]) }, t('ws.rv.fileRemove')) : null,
                 h('button', { className: 'ma-btn ma-small', disabled: reviewBusy !== null, title: t('ws.rv.keepHint'), onClick: () => bulkReview('accept', [file]) }, t('ws.rv.fileKeep'))) : null),
             unfolded ? opaque.map((item) => reviewCard(file, item)) : null) : null)
@@ -6361,7 +6453,8 @@ window.__ModuleLoader__.load({
         list = [...extra, ...list]
         // Files with images (or other unreadable content), handled or not:
         // the ones still open are also under "to review".
-        const hasImages = (relPath) => (reviewByPath.get(relPath)?.items ?? []).some((item) => isOpaque(item))
+        const hasImages = (relPath) => (reviewByPath.get(relPath)?.items ?? []).some((item) => isOpaque(item) && !BATCH_CODES.has(item.code))
+        const hasUnchecked = (relPath) => (reviewByPath.get(relPath)?.items ?? []).some(isUnchecked)
         // To review: files with something still open; reviewed: every item decided.
         const decidedOf = (relPath) => (reviewByPath.get(relPath)?.items ?? []).filter((item) => item.decision).length
         const isOpen = (relPath) => openOf(relPath) > 0
@@ -6369,6 +6462,7 @@ window.__ModuleLoader__.load({
         const inFilter = (entry, id) => (id === 'all' ? true
           : id === 'changed' ? entry.changed > 0
             : id === 'images' ? hasImages(entry.relPath)
+              : id === 'unchecked' ? hasUnchecked(entry.relPath)
               : id === 'done' ? isDone(entry.relPath)
                 : isOpen(entry.relPath))
         // The open file stays listed after its last item is decided, until you move on.
@@ -6389,8 +6483,8 @@ window.__ModuleLoader__.load({
         const dir = (path) => path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
         const name = (path) => path.slice(path.lastIndexOf('/') + 1)
         // Open items of the whole batch, for the image actions and "next to judge".
-        const batchOpaqueOpen = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision && isOpaque(item))
-        const fileOpaqueOpen = (reviewFile?.items ?? []).filter((item) => !item.decision && isOpaque(item))
+        const batchOpaqueOpen = (reviewData?.files ?? []).flatMap((file) => file.items).filter((item) => !item.decision && isOpaque(item) && !BATCH_CODES.has(item.code))
+        const fileOpaqueOpen = (reviewFile?.items ?? []).filter((item) => !item.decision && isOpaque(item) && !BATCH_CODES.has(item.code))
         const fileJudgeOpen = (reviewFile?.items ?? []).filter((item) => !item.decision && !isOpaque(item)).length
         // Under "reviewed" the judgement view lists the decided items, to check them.
         const showDecided = compareFilter === 'done'
@@ -6687,12 +6781,20 @@ window.__ModuleLoader__.load({
           if (event.key === 'ArrowUp' || event.key === 'k') { event.preventDefault(); go(-1) }
         } },
           manualPopover(),
+          keepConfirm ? h(React.Fragment, {},
+            h('div', { className: 'ws-mx-backdrop', onMouseDown: () => setKeepConfirm(null) }),
+            h('div', { className: 'ws-mx ws-keep-confirm', role: 'alertdialog' },
+              h('div', { className: 'ws-mx-title' }, t('ws.rv.keepConfirmTitle')),
+              h('p', {}, keepConfirm.total > 1 ? t('ws.rv.keepConfirmMany', { n: keepConfirm.n, total: keepConfirm.total }) : t('ws.rv.keepConfirmOne', { kind: keepConfirm.kind || t('ws.rv.keepConfirmKind') })),
+              h('div', { className: 'ma-actions' },
+                h('button', { className: 'ma-btn ma-small', onClick: () => setKeepConfirm(null) }, t('ws.mx.cancel')),
+                h('button', { className: 'ma-btn ma-small ma-danger', onClick: () => { const go = keepConfirm.go; setKeepConfirm(null); go() } }, t('ws.rv.keepConfirmDo'))))) : null,
           h('aside', { className: 'ws-cmp-side' },
-            h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'images', 'review', 'done'].map((id) => {
+            h('div', { className: 'ws-cmp-filters' }, ['all', 'changed', 'images', 'unchecked', 'review', 'done'].map((id) => {
               const n = list.filter((entry) => inFilter(entry, id)).length
               return h('button', {
-                key: id, type: 'button', className: `ws-cmp-filter ws-cmp-filter-${id}${compareFilter === id ? ' ws-on' : ''}`, disabled: (id === 'images' || id === 'done') && n === 0 && compareFilter !== id,
-                title: id === 'images' ? t('ws.cmp.f.imagesHint') : id === 'done' ? t('ws.cmp.f.doneHint') : id === 'review' ? t('ws.cmp.f.reviewHint') : undefined,
+                key: id, type: 'button', className: `ws-cmp-filter ws-cmp-filter-${id}${compareFilter === id ? ' ws-on' : ''}`, disabled: (id === 'images' || id === 'done' || id === 'unchecked') && n === 0 && compareFilter !== id,
+                title: id === 'images' ? t('ws.cmp.f.imagesHint') : id === 'unchecked' ? t('ws.cmp.f.uncheckedHint') : id === 'done' ? t('ws.cmp.f.doneHint') : id === 'review' ? t('ws.cmp.f.reviewHint') : undefined,
                 // Image files open in the image view; reviewed files show the decisions.
                 onClick: () => {
                   setCompareFilter(id)
@@ -6708,17 +6810,23 @@ window.__ModuleLoader__.load({
                 onClick: () => { setCompareSel(entry.n); setCompareShow(300) },
               },
                 h('span', { className: `ws-cmp-dot ws-p-${open > 0 ? 'review' : isDone(entry.relPath) ? 'clean' : entry.status}` }),
-                h('span', { className: 'ws-cmp-name' }, h('b', {}, name(entry.relPath)), dir(entry.relPath) ? h('small', {}, dir(entry.relPath)) : null),
+                h('span', { className: 'ws-cmp-name' }, h('b', {}, reviewByPath.get(entry.relPath)?.batch ? t('ws.rv.batchName') : name(entry.relPath)), reviewByPath.get(entry.relPath)?.batch ? h('small', {}, t('ws.rv.batchSub')) : dir(entry.relPath) ? h('small', {}, dir(entry.relPath)) : null),
                 open > 0
                   ? h('span', { className: 'ws-cmp-counts' },
                     judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-bad', title: t('ws.rv.judgeBadge') }, String(judgeOf(entry.relPath))) : null,
-                    open - judgeOf(entry.relPath) > 0 ? h('span', { className: 'ws-count ws-count-muted ws-count-op', title: t('ws.rv.opaqueBadge') }, imageGlyph(), String(open - judgeOf(entry.relPath))) : null)
+                    open - judgeOf(entry.relPath) > 0
+                      ? (reviewByPath.get(entry.relPath)?.batch
+                        // Files not processed, to acknowledge: no image glyph.
+                        ? h('span', { className: 'ws-count ws-count-bad', title: t('ws.rv.batchBadge') }, String(open - judgeOf(entry.relPath)))
+                        : h('span', { className: 'ws-count ws-count-muted ws-count-op', title: t('ws.rv.opaqueBadge') }, imageGlyph(), String(open - judgeOf(entry.relPath))))
+                      : null)
                   : isDone(entry.relPath)
                     ? (() => {
                       // What was done: replaced, restored, kept as it was, removed.
                       const KIND = { replace: 'swap', absorb: 'swap', whole: 'swap', unglue: 'restore', accept: 'keep', allow: 'keep', remove: 'drop', split: 'drop' }
                       const tally = {}
                       for (const item of reviewByPath.get(entry.relPath)?.items ?? []) {
+                        if (item.decision?.action === 'info') continue
                         const kind = KIND[item.decision?.action] ?? 'keep'
                         tally[kind] = (tally[kind] ?? 0) + 1
                       }
@@ -6749,7 +6857,7 @@ window.__ModuleLoader__.load({
                 setFocusReview(next.item.id)
               }
               return h('div', { className: 'ws-cmp-bar' },
-                h('span', { className: 'ma-mono ws-cmp-path', title: selected?.relPath ?? '' }, selected?.relPath ?? ''),
+                h('span', { className: 'ma-mono ws-cmp-path', title: selected?.relPath ?? '' }, reviewFile?.batch ? t('ws.rv.batchName') : selected?.relPath ?? ''),
                 selected ? h('span', { className: 'ma-hint' }, t('ws.cmp.stats', { changed: selected.changed, total: selected.total })) : null,
                 h('span', { className: 'ma-mono' }, shown.length ? `${position < 0 ? '—' : position + 1} / ${shown.length}` : ''),
                 h('button', { className: 'ma-btn ma-small', disabled: position <= 0, onClick: () => go(-1) }, `↑ ${t('ws.cmp.prev')}`),
