@@ -112,7 +112,7 @@ await check('批次处理：正文和 GBK 分段里的标识符被替换，按�
   await mkdir(input, { recursive: true })
   await writeFile(join(input, 'emr.json'), JSON.stringify([{ ID: 'R1', RECORDCONTENT: field(container({ body: BODY, instance: INSTANCE })) }]))
   const root = join(tmp, 'out')
-  const run = await runBatch({ inputDir: join(input, 'emr.json'), outputRoot: root, options: { runId: 'casedoc', maxRounds: 2, llm: null } })
+  const run = await runBatch({ inputDir: join(input, 'emr.json'), outputRoot: root, options: { runId: 'casedoc', maxRounds: 2, llm: null, policy: { unwrapEncoded: false } } })
   const file = run.files[0]
   assert.equal(file.issues.filter((issue) => issue.code === 'opaque').length, 0, JSON.stringify(file.issues))
   const out = JSON.parse(await readFile(outJoin(await outDirOf(root, 'casedoc'), 'emr.json'), 'utf8'))
@@ -126,6 +126,48 @@ await check('批次处理：正文和 GBK 分段里的标识符被替换，按�
   for (const [name, section] of Object.entries(sections)) assert.equal(section.declared, section.bytes.length, name)
   // The GBK section is still GBK.
   assert.match(new TextDecoder('gbk', { fatal: true }).decode(sections.instanceref.bytes), /<RB_姓名 Reference=/)
+})
+
+await check('默认设置：图片直接去除不进复核；base64 内容和病历文档容器解码后保存，结果比对前后对得上', async () => {
+  const input = join(tmp, 'plain-in')
+  await mkdir(input, { recursive: true })
+  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(300, 9)]).toString('base64')
+  const html = `<!DOCTYPE html><html><body><div>姓名：欧阳明华</div><div>电话：13700137000</div><img src="data:image/png;base64,${png}"/></body></html>`
+  await writeFile(join(input, 'emr.json'), JSON.stringify([
+    { ID: 'R1', DCMT_CTT: Buffer.from(html, 'utf8').toString('base64'), RECORDCONTENT: field(container({ body: BODY, instance: INSTANCE, skew: -6 })) },
+  ]))
+  const root = join(tmp, 'plain-out')
+  const run = await runBatch({ inputDir: join(input, 'emr.json'), outputRoot: root, options: { runId: 'plain', maxRounds: 2, llm: null } })
+  const file = run.files[0]
+  assert.equal(run.status, 'completed', JSON.stringify(file.issues))
+  assert.ok(file.issues.some((issue) => issue.code === 'images-removed' && /PNG/.test(issue.detail)))
+  assert.ok(!file.issues.some((issue) => issue.code === 'opaque'))
+  assert.equal(file.structure?.ok, true, JSON.stringify(file.structure))
+  const out = JSON.parse(await readFile(join(root, 'output', 'emr.json'), 'utf8'))[0]
+  // Base64 HTML: written as the HTML itself, the picture a placeholder.
+  assert.match(out.DCMT_CTT, /^<!DOCTYPE html>/)
+  assert.ok(!out.DCMT_CTT.includes('13700137000') && !out.DCMT_CTT.includes(png))
+  assert.match(out.DCMT_CTT, /<img src="data:image\/png;base64,iVBOR/)
+  // EMR container: the whole document as plain text, lengths exact.
+  assert.ok(out.RECORDCONTENT.startsWith('B\tCaseDocdata\ttaglists\t'))
+  const bytes = Buffer.from(out.RECORDCONTENT, 'utf8')
+  const sections = sectionsOf(bytes)
+  for (const [name, section] of Object.entries(sections)) assert.equal(section.declared, section.bytes.length, name)
+  assert.ok(!sections.worddata.bytes.toString('utf8').includes('13800138000'))
+  assert.match(sections.instanceref.bytes.toString('utf8'), /<RB_姓名 Reference=/)
+  // Read back: the same texts, decoded the same way.
+  const again = layered(await loadDocument(join(root, 'output', 'emr.json'), 'emr.json'))
+  assert.ok(again.segments().some((segment) => /^casedoc/.test(segment.via ?? '') && /主诉：反复咳嗽三天/.test(segment.text)))
+  assert.equal(again.opaque().filter((item) => !/图片/.test(item.kind)).length, 0)
+  // Comparison: every original segment has its result next to it.
+  const store = await openRecords(join(root, '_records'))
+  const list = await store.getCompareList('plain')
+  const entry = list.find((item) => item.relPath === 'emr.json')
+  assert.ok(entry && !entry.skipped && entry.total > 0, JSON.stringify(entry))
+  const rows = (await store.getCompareFile('plain', entry.n))?.changes ?? []
+  assert.equal(rows.length, entry.total)
+  assert.ok(rows.some((row) => !row.same && /13700137000/.test(row.before) && !/13700137000/.test(row.after)))
+  await closeRecords()
 })
 
 await check('续跑：0.11.3–0.11.5 的逐文件结果，普通文件照旧沿用，含无法识别二进制内容的文件重新处理', async () => {
@@ -146,7 +188,7 @@ await check('续跑：0.11.3–0.11.5 的逐文件结果，普通文件照旧沿
   const rows = await store.getFileResults('cd-1')
   assert.equal(rows.size, 2)
   // As written by 0.11.3–0.11.5: their config key, and the container left unreadable.
-  const legacy = createHash('sha256').update(JSON.stringify({ policy: resolvePolicy({}), maxRounds: 3, maxFileBytes: 30_000_000, version: '0.11.3' })).digest('hex').slice(0, 16)
+  const legacy = createHash('sha256').update(JSON.stringify({ policy: (({ removeImages, unwrapEncoded, ...rest }) => rest)(resolvePolicy({})), maxRounds: 3, maxFileBytes: 30_000_000, version: '0.11.3' })).digest('hex').slice(0, 16)
   for (const [relPath, row] of rows) {
     const data = structuredClone(row.data)
     if (relPath.endsWith('.json')) data.file.issues = [...(data.file.issues ?? []), { severity: 'error', code: 'opaque', detail: '无法检查的内容：无法识别的二进制内容 ×1（约 1 KB，位于 base64›utf8›base64（字段 RECORDCONTENT））' }]

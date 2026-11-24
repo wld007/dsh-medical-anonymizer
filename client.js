@@ -746,6 +746,12 @@ window.__ModuleLoader__.load({
       'rules.opaqueTitle': '无法检查的内容',
       'rules.opaqueHint': '图片、PDF、Word、二进制、无法解码的编码串、加密内容等无法转成文字检查，不会被当作「通过」。默认转人工复核：在复核完成前，批次的交付数据不会放到输出根目录的 output 文件夹。',
       'rules.opaqueLabel': '处理方式',
+      'rules.opaqueLabelOther': '图片以外的内容（PDF、Word、二进制等）',
+      'rules.removeImages': '直接去除图片（默认开启）',
+      'rules.removeImagesHint': '病历里嵌入的图片（PNG、JPEG、GIF、BMP、TIFF）不进复核，直接用占位图替代。关掉后图片和其他无法检查的内容一样，按下面的处理方式办。',
+      'rules.unwrapTitle': '编码内容的保存方式',
+      'rules.unwrapHint': '字段里存成 base64、十六进制（包括里面的压缩内容、电子病历文档容器）的内容，匿名化后写成解开后的文字，交付数据可以直接读、直接检索。关掉则按原编码写回，与原系统格式一致。',
+      'rules.unwrap': '解码后保存（默认开启）',
       'rules.opaqueReview': '转人工复核（默认，推荐）',
       'rules.opaqueRemove': '自动移除，用空白占位替代',
       'ws.rv.remove': '移除',
@@ -1745,6 +1751,12 @@ window.__ModuleLoader__.load({
       'rules.opaqueTitle': 'Content that cannot be checked',
       'rules.opaqueHint': 'Images, PDFs, Word files, binary data, undecodable encodings and encrypted content cannot be read as text and never count as clean. By default they go to manual review, and the batch result stays out of the output root until review is complete.',
       'rules.opaqueLabel': 'Handling',
+      'rules.opaqueLabelOther': 'Content other than images (PDF, Word, binary …)',
+      'rules.removeImages': 'Remove images directly (on by default)',
+      'rules.removeImagesHint': 'Images embedded in records (PNG, JPEG, GIF, BMP, TIFF) skip review and are replaced with a placeholder. Turned off, they are handled like other content that cannot be checked, as set below.',
+      'rules.unwrapTitle': 'How encoded content is saved',
+      'rules.unwrapHint': 'Content stored as base64 or hex in a field (including compressed content and EMR document containers inside it) is written as the decoded text once anonymized, so the delivered data can be read and searched directly. Turned off, it is written back in its original encoding, as the source system stores it.',
+      'rules.unwrap': 'Save decoded (on by default)',
       'rules.opaqueReview': 'Manual review (default, recommended)',
       'rules.opaqueRemove': 'Remove automatically, leave an empty placeholder',
       'ws.rv.remove': 'Remove',
@@ -3490,6 +3502,8 @@ window.__ModuleLoader__.load({
       const [skipText, setSkipText] = React.useState('')
       const [forceText, setForceText] = React.useState('')
       const [opaquePolicy, setOpaquePolicy] = React.useState('review')
+      const [removeImages, setRemoveImages] = React.useState(true)
+      const [unwrapEncoded, setUnwrapEncoded] = React.useState(true)
       const [imageCheckOn, setImageCheckOn] = React.useState(true)
       const [assessScene, setAssessScene] = React.useState('controlledTwo')
       const [assessEnv, setAssessEnv] = React.useState(1)
@@ -3534,6 +3548,8 @@ window.__ModuleLoader__.load({
         setForceText((info.forceValues ?? []).join('\n'))
         setSkipText((info.skipFields ?? []).join('\n'))
         setOpaquePolicy(info.opaquePolicy === 'remove' ? 'remove' : 'review')
+        setRemoveImages(info.removeImages !== false)
+        setUnwrapEncoded(info.unwrapEncoded !== false)
         setImageCheckOn(info.imageCheck !== false)
         setAssessScene(info.assessScene ?? info.policySchema?.defaultScene ?? 'controlledTwo')
         setAssessEnv(Number(info.assessEnvironment ?? 1))
@@ -3589,6 +3605,8 @@ window.__ModuleLoader__.load({
           || !sameMap(quasiPolicy, config.quasiPolicy)
           || !sameList(allowText, config.allowValues) || !sameList(skipText, config.skipFields) || !sameList(forceText, config.forceValues)
           || opaquePolicy !== (config.opaquePolicy === 'remove' ? 'remove' : 'review')
+          || removeImages !== (config.removeImages !== false)
+          || unwrapEncoded !== (config.unwrapEncoded !== false)
           || imageCheckOn !== (config.imageCheck !== false)
           || assessScene !== (config.assessScene ?? 'controlledTwo') || Number(assessEnv) !== Number(config.assessEnvironment ?? 1)
           || !sameList(assessIgnoreText, config.assessIgnoreFields) || !sameList(assessExtraText, config.assessExtraFields)
@@ -3650,6 +3668,8 @@ window.__ModuleLoader__.load({
             skipFields: lines(skipText),
             forceValues: lines(forceText),
             opaquePolicy,
+            removeImages,
+            unwrapEncoded,
             imageCheck: imageCheckOn,
             assessScene,
             assessEnvironment: Number(assessEnv),
@@ -3930,7 +3950,11 @@ window.__ModuleLoader__.load({
             h('div', {},
               h('h3', {}, t('rules.opaqueTitle')),
               h('p', { className: 'ma-hint' }, t('rules.opaqueHint')))),
-          h('label', { className: 'ma-field' }, t('rules.opaqueLabel'),
+          h('label', { className: 'ma-check' },
+            h('input', { type: 'checkbox', checked: removeImages, onChange: (event) => setRemoveImages(event.target.checked) }),
+            t('rules.removeImages')),
+          h('p', { className: 'ma-hint' }, t('rules.removeImagesHint')),
+          h('label', { className: 'ma-field' }, removeImages ? t('rules.opaqueLabelOther') : t('rules.opaqueLabel'),
             h('select', { className: 'ma-input', value: opaquePolicy, onChange: (event) => setOpaquePolicy(event.target.value) },
               h('option', { value: 'review' }, t('rules.opaqueReview')),
               h('option', { value: 'remove' }, t('rules.opaqueRemove')))),
@@ -3939,6 +3963,14 @@ window.__ModuleLoader__.load({
             t('rules.imageCheck')),
           h('p', { className: `ma-hint${imageCheckOn ? ' ma-warn-text' : ''}` }, t('rules.imageCheckHint')),
         ),
+        h('div', { className: 'ma-card' },
+          h('div', { className: 'ma-block-head' },
+            h('div', {},
+              h('h3', {}, t('rules.unwrapTitle')),
+              h('p', { className: 'ma-hint' }, t('rules.unwrapHint')))),
+          h('label', { className: 'ma-check' },
+            h('input', { type: 'checkbox', checked: unwrapEncoded, onChange: (event) => setUnwrapEncoded(event.target.checked) }),
+            t('rules.unwrap'))),
       )
 
       const batchPanel = () => h('div', { className: 'ma-panel' },

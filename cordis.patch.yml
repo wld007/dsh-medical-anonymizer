@@ -23,6 +23,12 @@
         # Content that cannot be read as text (images, PDFs, binary, unknown
         # encodings): review (default, hold for a human) | remove (placeholder).
         opaquePolicy: review
+        # Images (PNG, JPEG, GIF, BMP, TIFF) are replaced with a placeholder without
+        # review; other unreadable content follows opaquePolicy. Set false to review them.
+        removeImages: true
+        # Write values stored as base64 / hex (and the compression or EMR document
+        # container inside) as the text they hold. Set false to keep the original encoding.
+        unwrapEncoded: true
         # Send embedded images under review to the detection model to sort them
         # (signature, seal, chart …) and suggest remove / keep. The images are
         # sent to the model endpoint; needs a vision model. Set false to turn off.

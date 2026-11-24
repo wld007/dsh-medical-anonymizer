@@ -77,7 +77,7 @@ await check('病历 XML 里内嵌的 LZMA 文书被解开、匿名化、按原�
   await mkdir(input, { recursive: true })
   await writeFile(join(input, 'emr.json'), JSON.stringify([{ DOC_ID: 'D1', XML_CONT: wrap(inner) }, { DOC_ID: 'D2', XML_CONT: wrap(innerWithImage) }]))
   const root = join(tmp, 'out')
-  const run = await runBatch({ inputDir: join(input, 'emr.json'), outputRoot: root, options: { runId: 'lzma', maxRounds: 2, llm: null } })
+  const run = await runBatch({ inputDir: join(input, 'emr.json'), outputRoot: root, options: { runId: 'lzma', maxRounds: 2, llm: null, policy: { removeImages: false, unwrapEncoded: false } } })
   const file = run.files[0]
   const opaque = file.issues.filter((issue) => issue.code === 'opaque')
   // Only the embedded picture is left for review, named as what it is.

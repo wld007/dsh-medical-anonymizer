@@ -1142,7 +1142,7 @@ async function main() {
   const htmlDoc = `<!DOCTYPE html><html><body><div><span>姓名：</span><span>欧阳明华</span></div><div>身份证号：11010519491231002X</div><img src="data:image/png;base64,${png}"/></body></html>`
   await writeFile(join(encIn, 'emr.json'), JSON.stringify([{ ID: 1, DCMT_CTT: Buffer.from(htmlDoc).toString('base64') }]))
   const encRoot = join(tmp, 'enc-out')
-  const encRun = await runBatch({ inputDir: join(encIn, 'emr.json'), outputRoot: encRoot, options: { runId: 'enc-1' } })
+  const encRun = await runBatch({ inputDir: join(encIn, 'emr.json'), outputRoot: encRoot, options: { runId: 'enc-1', policy: { removeImages: false, unwrapEncoded: false } } })
   const staged = JSON.parse(await readFile(join(encRoot, '_records', 'runs', 'enc-1', 'staging', 'emr.json'), 'utf8'))
   const stagedHtml = Buffer.from(staged[0].DCMT_CTT, 'base64').toString('utf8')
   await check('编码内容：base64 里的 HTML 解码后识别替换，写回仍是 base64', () => {
