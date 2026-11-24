@@ -2247,6 +2247,7 @@ window.__ModuleLoader__.load({
       .ws-tag{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;padding:1px 6px;border-radius:4px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);letter-spacing:1px}
       .ws-tag.ws-live{color:var(--dsw-alias-state-error-primary);border-color:var(--dsw-alias-state-error-primary);animation:ws-blink 1.6s infinite}
       .ws-pick{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+      .ma-pick-row{display:flex;gap:6px;align-items:center}.ma-pick-row .ma-input{flex:1;min-width:0}.ma-pick-row .ma-btn{flex:none;white-space:nowrap}
       .ws-start{height:34px;font-weight:600}
       .ws-panel.ws-grow{flex:1 1 auto;min-height:0}
       .ws-history{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:auto;margin-right:-6px;padding-right:6px}
@@ -3307,6 +3308,17 @@ window.__ModuleLoader__.load({
       })
     }
 
+    /** One folder from the native chooser (macOS), else the Harness picker; null if cancelled. */
+    async function pickFolder() {
+      try {
+        return (await call('pickFolders')).paths?.[0] ?? null
+      } catch (cause) {
+        const uiWorkspace = services.ctx?.get('uiWorkspace')
+        if (!uiWorkspace?.pickDirectory) throw cause
+        return (await uiWorkspace.pickDirectory()) ?? null
+      }
+    }
+
     function message(cause) {
       return String(cause?.message ?? cause)
     }
@@ -3978,11 +3990,16 @@ window.__ModuleLoader__.load({
           h('h3', {}, t('run.title')),
           h('div', { className: 'ma-grid' },
             h('label', { className: 'ma-field' }, t('run.output'),
-              h('input', {
-                className: 'ma-input', value: outputRoot,
-                onChange: (event) => setOutputRoot(event.target.value),
-                placeholder: t('run.outputDefault'),
-              })),
+              h('div', { className: 'ma-pick-row' },
+                h('input', {
+                  className: 'ma-input', value: outputRoot,
+                  onChange: (event) => setOutputRoot(event.target.value),
+                  placeholder: t('run.outputDefault'),
+                }),
+                h('button', { type: 'button', className: 'ma-btn ma-small', onClick: async (event) => {
+                  event.preventDefault()
+                  try { const path = await pickFolder(); if (path) setOutputRoot(path) } catch (cause) { setError(message(cause)) }
+                } }, t('ws.pickDir')))),
             h('label', { className: 'ma-field', title: t('run.roundsHint') }, t('run.rounds'),
               h('input', {
                 className: 'ma-input', type: 'number', min: 1, max: 6, value: maxRounds,
@@ -5179,13 +5196,7 @@ window.__ModuleLoader__.load({
           const picked = await call('pickFile')
           return picked?.paths?.[0] ?? picked?.path ?? null
         }
-        try {
-          return (await call('pickFolders')).paths?.[0] ?? null
-        } catch (cause) {
-          const uiWorkspace = services.ctx.get('uiWorkspace')
-          if (!uiWorkspace?.pickDirectory) throw cause
-          return (await uiWorkspace.pickDirectory()) ?? null
-        }
+        return pickFolder()
       }
 
       // An output root copied from another computer (or not used here yet):
@@ -7724,7 +7735,13 @@ window.__ModuleLoader__.load({
                   h('button', { className: 'ma-btn ma-small', onClick: browse }, t('ws.pickDir')),
                   h('button', { className: 'ma-btn ma-small', onClick: browseFile }, t('ws.pickFile')))),
               h('label', { className: 'ma-field' }, t('form.output'),
-                h('input', { className: 'ma-input', value: outputRoot, onChange: (event) => setOutputRoot(event.target.value), placeholder: t('run.outputDefault') })),
+                h('div', { className: 'ma-pick-row' },
+                  h('input', { className: 'ma-input', value: outputRoot, onChange: (event) => setOutputRoot(event.target.value), placeholder: t('run.outputDefault'), title: outputRoot }),
+                  h('button', { type: 'button', className: 'ma-btn ma-small', onClick: async (event) => {
+                    event.preventDefault()
+                    setError('')
+                    try { const path = await pickFolder(); if (path) setOutputRoot(path) } catch (cause) { setError(message(cause)) }
+                  } }, t('ws.pickDir')))),
               h('div', { className: 'ma-actions' },
                 h('button', { className: 'ma-btn ma-primary ws-start', style: { flex: 1 }, disabled: busy || anyRunning, onClick: async () => { await start(); setNewOpen(false); setView('line') } },
                   busy ? t('form.starting') : `▶ ${t('form.start')}`)))
