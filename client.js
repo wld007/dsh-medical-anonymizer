@@ -4541,6 +4541,9 @@ window.__ModuleLoader__.load({
     // Only listed, no decision needed (system files, fields / types the settings skip).
     const INFO_CODES = new Set(['system-files', 'skipped-field', 'kept-identifiers'])
     const BATCH_CODES = new Set([...ACK_CODES, ...INFO_CODES])
+    // Progress as a whole percent: rounded down, so it shows 100 % only when
+    // all of it is done (2742 of 2750 is 99 %, not 100 %).
+    const progressPct = (done, total) => (total > 0 ? (done >= total ? 100 : Math.min(99, Math.floor((done / total) * 100))) : 0)
     const OPAQUE_REVIEW = new Set(['opaque', 'opaque-token', 'unreadable', 'opaque-check', 'dicom-document', ...BATCH_CODES])
     // Everything the batch did not check: content it could not read (images
     // aside), and what it skipped or was told to leave as it is.
@@ -5775,7 +5778,11 @@ window.__ModuleLoader__.load({
       }
       const planned = Number(current?.planned ?? 0) || (running ? 0 : files.length)
       const done = files.length
-      const percent = planned > 0 ? Math.min(100, Math.round((done / planned) * 100)) : (current && !running ? 100 : 0)
+      // Rounded down until every file is done: 2742 / 2750 is 99 %, not 100 %
+      // (also for a stopped or interrupted batch).
+      const percent = planned > 0
+        ? (!running && (done >= planned || current?.status === 'completed' || current?.status === 'review') ? 100 : Math.min(99, Math.floor((done / planned) * 100)))
+        : (current && !running ? 100 : 0)
       // Ring: progress by data volume, including in-flight files' estimated
       // share; batches from before 0.8.1 have no byte counts and use files.
       const plannedBytes = Number(current?.plannedBytes ?? 0)
@@ -5784,7 +5791,7 @@ window.__ModuleLoader__.load({
       const processedBytes = running ? Number(current?.doneBytes ?? 0) + inflightBytes
         : (current?.status === 'completed' || current?.status === 'review' ? plannedBytes : Number(current?.doneBytes ?? 0))
       const bytePercent = plannedBytes > 0
-        ? (running ? Math.min(99, Math.floor((processedBytes / plannedBytes) * 100)) : (current?.status === 'completed' || current?.status === 'review' ? 100 : Math.round((Number(current?.doneBytes ?? 0) / plannedBytes) * 100)))
+        ? (running ? Math.min(99, Math.floor((processedBytes / plannedBytes) * 100)) : (current?.status === 'completed' || current?.status === 'review' ? 100 : Math.min(99, Math.floor((Number(current?.doneBytes ?? 0) / plannedBytes) * 100))))
         : percent
       const fmtBytes = (bytes) => bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(2)} GB` : bytes >= 1024 ** 2 ? `${(bytes / 1024 ** 2).toFixed(1)} MB` : `${Math.max(0, Math.round(bytes / 1024))} KB`
       // Running time over every run of the batch: a continued batch goes on
@@ -7774,7 +7781,7 @@ window.__ModuleLoader__.load({
               if (id === 'review') {
                 const all = (reviewData?.files ?? []).flatMap((file) => file.items)
                 const decided = all.filter((item) => item.decision).length
-                return all.length ? ring(decided / all.length, `${Math.round((decided / all.length) * 100)}%`, t('wd.decided', { n: decided, total: all.length })) : ring(1, '—', t('wd.dNone'))
+                return all.length ? ring(decided / all.length, `${progressPct(decided, all.length)}%`, t('wd.decided', { n: decided, total: all.length })) : ring(1, '—', t('wd.dNone'))
               }
               return ring(lineTotal ? passed / lineTotal : 0, lineTotal ? `${Math.round((passed / lineTotal) * 100)}%` : '—', `${passed} / ${lineTotal || '—'}`)
             })(),
@@ -7786,7 +7793,7 @@ window.__ModuleLoader__.load({
           ...parts.map((part, i) => h(React.Fragment, { key: i }, part)),
           here.length
             ? section(`${t('wd.inflight')} · ${here.length}`, h('div', { className: 'wd-ovr-list' }, here.slice(0, 8).map((state) => h('div', { key: state.file, className: 'wd-ovr', style: { gridTemplateColumns: 'minmax(0,1fr) 40px 40px' }, title: state.file },
-              h('span', {}, shortPath(state.file)), h('i', {}, `R${state.round || 1}`), h('b', {}, `${Math.round(Math.min(1, Number(state.fraction) || 0) * 100)}%`)))))
+              h('span', {}, shortPath(state.file)), h('i', {}, `R${state.round || 1}`), h('b', {}, `${progressPct(Math.min(1, Number(state.fraction) || 0), 1)}%`)))))
             : null)
       }
 
@@ -7896,7 +7903,7 @@ window.__ModuleLoader__.load({
                     return h('div', { className: 'wd-ov wd-ov-bl' },
                       h('div', { className: 'wd-ovh' }, h('span', { className: 'wd-cap', style: { color: 'var(--wd-acc2)' } }, `● ${t('wd.inflight')} · ${inflight.length}`)),
                       live.map((state) => {
-                        const pct = Math.round(Math.min(1, Number(state.fraction) || 0) * 100)
+                        const pct = progressPct(Math.min(1, Number(state.fraction) || 0), 1)
                         return h('div', { key: `l${state.file}`, className: 'wd-fl', title: `${state.file}\n${pct}%` },
                           h('div', { className: 'wd-fl-row' },
                             h('span', { className: 'wd-fl-name' }, fileName(state.file)),
